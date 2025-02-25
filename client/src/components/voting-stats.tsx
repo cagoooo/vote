@@ -72,7 +72,6 @@ export function VotingStats({ question }: VotingStatsProps) {
     });
   }, [totals, totalVotes]);
 
-  // Start animation when component mounts
   useEffect(() => {
     controls.start("visible");
   }, []);
@@ -137,14 +136,14 @@ export function VotingStats({ question }: VotingStatsProps) {
               >
                 <div className="flex justify-between items-center mb-1">
                   <motion.span 
-                    className={`font-medium bg-gradient-to-r ${gradientClass} bg-clip-text text-transparent`}
+                    className={`font-medium bg-gradient-to-r ${gradientClass} bg-clip-text text-transparent [text-shadow:_0_1px_1px_rgba(0,0,0,0.5),_0_-1px_1px_rgba(0,0,0,0.5),_1px_0_1px_rgba(0,0,0,0.5),_-1px_0_1px_rgba(0,0,0,0.5)]`}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                   >
                     {option}
                   </motion.span>
                   <motion.span 
-                    className={`font-semibold bg-gradient-to-r ${gradientClass} bg-clip-text text-transparent`}
+                    className={`font-semibold bg-gradient-to-r ${gradientClass} bg-clip-text text-transparent [text-shadow:_0_1px_1px_rgba(0,0,0,0.5),_0_-1px_1px_rgba(0,0,0,0.5),_1px_0_1px_rgba(0,0,0,0.5),_-1px_0_1px_rgba(0,0,0,0.5)]`}
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ type: "spring", stiffness: 200 }}
@@ -170,7 +169,7 @@ export function VotingStats({ question }: VotingStatsProps) {
                     </motion.div>
                   </div>
                   <motion.span 
-                    className={`text-sm font-medium bg-gradient-to-r ${gradientClass} bg-clip-text text-transparent min-w-[4rem] text-right`}
+                    className={`text-sm font-medium bg-gradient-to-r ${gradientClass} bg-clip-text text-transparent [text-shadow:_0_1px_1px_rgba(0,0,0,0.5),_0_-1px_1px_rgba(0,0,0,0.5),_1px_0_1px_rgba(0,0,0,0.5),_-1px_0_1px_rgba(0,0,0,0.5)] min-w-[4rem] text-right`}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.5, delay: index * 0.1 + 0.2 }}
@@ -185,12 +184,12 @@ export function VotingStats({ question }: VotingStatsProps) {
       </motion.div>
 
       <motion.p 
-        className="mt-6 text-sm text-center bg-primary/5 py-2 px-4 rounded-full"
+        className="mt-6 text-sm text-center bg-primary/5 py-2 px-4 rounded-full [text-shadow:_0_1px_1px_rgba(0,0,0,0.3),_0_-1px_1px_rgba(0,0,0,0.3),_1px_0_1px_rgba(0,0,0,0.3),_-1px_0_1px_rgba(0,0,0,0.3)]"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
       >
-        總投票數：<span className="font-semibold text-primary">{totalVotes}</span>
+        總投票數：<span className="font-semibold text-primary [text-shadow:_0_1px_1px_rgba(0,0,0,0.3),_0_-1px_1px_rgba(0,0,0,0.3),_1px_0_1px_rgba(0,0,0,0.3),_-1px_0_1px_rgba(0,0,0,0.3)]">{totalVotes}</span>
       </motion.p>
     </Card>
   );
