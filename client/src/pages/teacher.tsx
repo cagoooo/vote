@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { ScreenshotUpload } from "@/components/screenshot-upload";
 import { QRDisplay } from "@/components/qr-display";
 import { VotingStats } from "@/components/voting-stats";
+import { ShareButton } from "@/components/share-button";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useVotingSound } from "@/hooks/use-voting-sounds";
@@ -192,6 +193,10 @@ export default function Teacher() {
         </form>
       ) : (
         <div className="space-y-6 animate-fade-in">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold gradient-text">投票進行中</h2>
+            <ShareButton url={window.location.href} />
+          </div>
           <div className="grid md:grid-cols-2 gap-6">
             <QRDisplay questionId={createdQuestion.id} />
             <VotingStats question={createdQuestion} onVoteReceived={handleVoteReceived} />
