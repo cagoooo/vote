@@ -10,14 +10,14 @@ interface VotingStatsProps {
   question: Question;
 }
 
-// 預定義的漸層色彩配置
+// 預定義的漸層色彩配置，增加飽和度
 const gradients = [
-  "from-blue-500 to-cyan-300",
-  "from-purple-500 to-pink-300",
-  "from-green-500 to-emerald-300",
-  "from-orange-500 to-yellow-300",
-  "from-red-500 to-rose-300",
-  "from-indigo-500 to-blue-300",
+  "from-blue-600 to-cyan-400",
+  "from-purple-600 to-pink-400",
+  "from-green-600 to-emerald-400",
+  "from-orange-600 to-yellow-400",
+  "from-red-600 to-rose-400",
+  "from-indigo-600 to-blue-400",
 ];
 
 export function VotingStats({ question }: VotingStatsProps) {
@@ -72,7 +72,6 @@ export function VotingStats({ question }: VotingStatsProps) {
     });
   }, [totals, totalVotes]);
 
-  // Start animation when component mounts
   useEffect(() => {
     controls.start("visible");
   }, []);
@@ -137,14 +136,14 @@ export function VotingStats({ question }: VotingStatsProps) {
               >
                 <div className="flex justify-between items-center mb-1">
                   <motion.span 
-                    className={`font-medium bg-gradient-to-r ${gradientClass} bg-clip-text text-transparent`}
+                    className={`font-medium text-base bg-gradient-to-r ${gradientClass} bg-clip-text text-transparent`}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                   >
                     {option}
                   </motion.span>
                   <motion.span 
-                    className={`font-semibold bg-gradient-to-r ${gradientClass} bg-clip-text text-transparent`}
+                    className={`font-bold text-lg bg-gradient-to-r ${gradientClass} bg-clip-text text-transparent`}
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ type: "spring", stiffness: 200 }}
@@ -161,7 +160,7 @@ export function VotingStats({ question }: VotingStatsProps) {
                       className="relative h-2 overflow-hidden rounded-full bg-secondary"
                     >
                       <motion.div
-                        className={`absolute top-0 left-0 h-full bg-gradient-to-r ${gradientClass}`}
+                        className={`absolute top-0 left-0 h-full bg-gradient-to-r ${gradientClass} shadow-lg`}
                         style={{ width: `${percentage}%` }}
                         initial={{ width: 0 }}
                         animate={{ width: `${percentage}%` }}
@@ -170,7 +169,7 @@ export function VotingStats({ question }: VotingStatsProps) {
                     </motion.div>
                   </div>
                   <motion.span 
-                    className={`text-sm font-medium bg-gradient-to-r ${gradientClass} bg-clip-text text-transparent min-w-[4rem] text-right`}
+                    className={`text-base font-bold bg-gradient-to-r ${gradientClass} bg-clip-text text-transparent min-w-[4rem] text-right`}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.5, delay: index * 0.1 + 0.2 }}
@@ -185,12 +184,12 @@ export function VotingStats({ question }: VotingStatsProps) {
       </motion.div>
 
       <motion.p 
-        className="mt-6 text-sm text-center bg-primary/5 py-2 px-4 rounded-full"
+        className="mt-6 text-sm text-center bg-primary/10 py-2 px-4 rounded-full font-medium"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
       >
-        總投票數：<span className="font-semibold text-primary">{totalVotes}</span>
+        總投票數：<span className="font-bold text-base text-primary">{totalVotes}</span>
       </motion.p>
     </Card>
   );
