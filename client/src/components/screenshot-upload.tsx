@@ -23,6 +23,11 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
       const base64 = reader.result as string;
       setPreview(base64);
       onImageSelect(base64);
+      toast({
+        title: "上傳成功",
+        description: "圖片已成功上傳",
+        variant: "success",
+      });
     };
     reader.readAsDataURL(file);
   };
