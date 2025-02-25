@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Camera, Scissors } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useConfetti } from "@/hooks/use-confetti";
 
 interface ScreenshotUploadProps {
   onImageSelect: (image: string) => void;
@@ -13,6 +14,16 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
   const [preview, setPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { triggerConfetti } = useConfetti();
+
+  const handleUploadSuccess = () => {
+    triggerConfetti();
+    toast({
+      title: "上傳成功",
+      description: "圖片已成功上傳",
+      variant: "success",
+    });
+  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -23,11 +34,7 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
       const base64 = reader.result as string;
       setPreview(base64);
       onImageSelect(base64);
-      toast({
-        title: "上傳成功",
-        description: "圖片已成功上傳",
-        variant: "success",
-      });
+      handleUploadSuccess();
     };
     reader.readAsDataURL(file);
   };
@@ -58,11 +65,7 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
       window.focus();
       setTimeout(() => {
         window.focus();
-        toast({
-          title: "截圖完成",
-          description: "已成功返回投票系統",
-          variant: "success",
-        });
+        handleUploadSuccess();
       }, 100);
     });
   };
