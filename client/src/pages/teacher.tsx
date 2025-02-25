@@ -43,7 +43,6 @@ export default function Teacher() {
   });
 
   const resetAll = () => {
-    // 重置所有狀態
     setImageUrl("");
     setOptions(["", "", ""]);
     setCreatedQuestion(null);
@@ -120,7 +119,7 @@ export default function Teacher() {
                     value={option}
                     onChange={(e) => updateOption(index, e.target.value)}
                     placeholder={`選項 ${index + 1}`}
-                    className="transition-all duration-300 focus:ring-2 focus:ring-primary/20"
+                    className="transition-all duration-300 focus:ring-2 focus:ring-red-500/20 border-red-100 hover:border-red-200 focus:border-red-300"
                   />
                   {options.length > 2 && (
                     <Button
@@ -128,7 +127,7 @@ export default function Teacher() {
                       variant="outline"
                       size="icon"
                       onClick={() => removeOption(index)}
-                      className="hover:bg-destructive/10 transition-colors"
+                      className="hover:bg-red-500/10 hover:border-red-200 transition-colors"
                     >
                       <Minus className="h-4 w-4" />
                     </Button>
@@ -142,7 +141,7 @@ export default function Teacher() {
                 type="button"
                 variant="outline"
                 onClick={addOption}
-                className="flex items-center gap-2 hover:bg-primary/10 transition-colors"
+                className="flex items-center gap-2 hover:bg-red-500/10 hover:border-red-200 transition-colors"
               >
                 <Plus className="h-4 w-4" />
                 添加選項
@@ -152,7 +151,7 @@ export default function Teacher() {
 
           <Button
             type="submit"
-            className="w-full h-12 text-lg shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-r from-primary to-purple-600 hover:scale-[1.02]"
+            className="w-full h-12 text-lg shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-r from-primary via-red-500 to-purple-600 hover:scale-[1.02]"
             disabled={createQuestion.isPending || !canSubmit}
           >
             {createQuestion.isPending ? (
@@ -185,7 +184,7 @@ export default function Teacher() {
 
           <Button
             onClick={resetAll}
-            className="w-full flex items-center justify-center gap-2 h-12 text-lg bg-primary/10 hover:bg-primary/20 text-primary"
+            className="w-full flex items-center justify-center gap-2 h-12 text-lg bg-red-500/10 hover:bg-red-500/20 text-red-600"
             variant="ghost"
           >
             <RefreshCw className="w-5 h-5" />
