@@ -56,7 +56,6 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
         toast({
           title: "截圖完成",
           description: "已成功返回投票系統",
-          variant: "success",
         });
       }, 100);
     });
