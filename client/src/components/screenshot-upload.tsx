@@ -173,6 +173,7 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
     setPreview(base64);
     onImageSelect(base64);
     setIsEditing(false);
+    setCrop(undefined); // Reset crop state after completing
     toast({
       title: "裁切成功",
       description: "圖片已成功裁切",
@@ -271,6 +272,7 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
             <Button
               onClick={handleCropComplete}
               className="flex items-center gap-2"
+              disabled={!crop}
             >
               <Check className="h-4 w-4" />
               確認裁切
