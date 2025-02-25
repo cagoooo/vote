@@ -9,7 +9,7 @@ import { VotingStats } from "@/components/voting-stats";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Question } from "@shared/schema";
-import { Plus, Minus } from "lucide-react";
+import { Plus, Minus, Sparkles } from "lucide-react";
 
 export default function Teacher() {
   const [imageUrl, setImageUrl] = useState("");
@@ -88,22 +88,30 @@ export default function Teacher() {
   const canSubmit = imageUrl && validOptionCount >= 2;
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
-      <h1 className="text-3xl font-bold mb-8">建立投票問題</h1>
+    <div className="page-container max-w-4xl">
+      <h1 className="text-4xl font-bold mb-8 gradient-text text-center">
+        建立即時投票
+      </h1>
 
       {!createdQuestion ? (
         <form onSubmit={handleSubmit} className="space-y-6">
           <ScreenshotUpload onImageSelect={handleImageSelect} />
 
-          <Card className="p-6">
-            <h2 className="text-lg font-semibold mb-4">選項設置</h2>
-            <div className="space-y-4">
+          <Card className="p-6 card-hover">
+            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary" />
+              選項設置
+            </h2>
+            <div className="space-y-4 animate-fade-in">
               {options.map((option, index) => (
-                <div key={index} className="flex gap-2">
+                <div key={index} className="flex gap-2 animate-slide-up" style={{
+                  animationDelay: `${index * 100}ms`
+                }}>
                   <Input
                     value={option}
                     onChange={(e) => updateOption(index, e.target.value)}
                     placeholder={`選項 ${index + 1}`}
+                    className="transition-all duration-300 focus:ring-2 focus:ring-primary/20"
                   />
                   {options.length > 2 && (
                     <Button
@@ -111,6 +119,7 @@ export default function Teacher() {
                       variant="outline"
                       size="icon"
                       onClick={() => removeOption(index)}
+                      className="hover:bg-destructive/10 transition-colors"
                     >
                       <Minus className="h-4 w-4" />
                     </Button>
@@ -124,7 +133,7 @@ export default function Teacher() {
                 type="button"
                 variant="outline"
                 onClick={addOption}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 hover:bg-primary/10 transition-colors"
               >
                 <Plus className="h-4 w-4" />
                 添加選項
@@ -134,25 +143,32 @@ export default function Teacher() {
 
           <Button
             type="submit"
-            className="w-full"
+            className="w-full h-12 text-lg shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-r from-primary to-purple-600 hover:scale-[1.02]"
             disabled={createQuestion.isPending || !canSubmit}
           >
-            {createQuestion.isPending ? "建立中..." : "建立問題"}
+            {createQuestion.isPending ? (
+              <div className="flex items-center gap-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                建立中...
+              </div>
+            ) : (
+              "建立問題"
+            )}
           </Button>
 
           {!imageUrl && (
-            <p className="text-sm text-muted-foreground text-center">
+            <p className="text-sm text-muted-foreground text-center animate-fade-in">
               請先上傳或截取圖片
             </p>
           )}
           {validOptionCount < 2 && (
-            <p className="text-sm text-muted-foreground text-center">
+            <p className="text-sm text-muted-foreground text-center animate-fade-in">
               請至少填寫兩個選項（目前已填寫 {validOptionCount} 個）
             </p>
           )}
         </form>
       ) : (
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid md:grid-cols-2 gap-6 animate-fade-in">
           <QRDisplay questionId={createdQuestion.id} />
           <VotingStats question={createdQuestion} />
         </div>
