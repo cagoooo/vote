@@ -100,7 +100,7 @@ export default function Teacher() {
   return (
     <div className="page-container max-w-4xl">
       <h1 className="text-4xl font-bold mb-8 gradient-text text-center">
-        建立即時投票
+        石門國小即時投票系統
       </h1>
 
       {!createdQuestion ? (
