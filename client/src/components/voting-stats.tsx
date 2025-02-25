@@ -4,10 +4,11 @@ import { Card } from "@/components/ui/card";
 import type { Question, Vote } from "@shared/schema";
 import { motion, useAnimation, AnimatePresence } from "framer-motion";
 import { BarChart } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 interface VotingStatsProps {
   question: Question;
+  onVoteReceived?: () => void;
 }
 
 // 預定義的漸層色彩配置，增加飽和度
@@ -20,7 +21,7 @@ const gradients = [
   "from-indigo-600 to-blue-400",
 ];
 
-export function VotingStats({ question }: VotingStatsProps) {
+export function VotingStats({ question, onVoteReceived }: VotingStatsProps) {
   const { data: votes = [] } = useQuery<Vote[]>({
     queryKey: [`/api/questions/${question.id}/votes`],
     refetchInterval: 1000,
@@ -28,6 +29,7 @@ export function VotingStats({ question }: VotingStatsProps) {
 
   const [animatedPercentages, setAnimatedPercentages] = useState<Record<number, number>>({});
   const controls = useAnimation();
+  const previousVoteCount = useRef(0);
 
   const totals = votes.reduce((acc, vote) => {
     acc[vote.optionIndex] = (acc[vote.optionIndex] || 0) + 1;
@@ -35,6 +37,14 @@ export function VotingStats({ question }: VotingStatsProps) {
   }, {} as Record<number, number>);
 
   const totalVotes = votes.length;
+
+  // 監控投票數變化並觸發音效
+  useEffect(() => {
+    if (totalVotes > previousVoteCount.current && onVoteReceived) {
+      onVoteReceived();
+    }
+    previousVoteCount.current = totalVotes;
+  }, [totalVotes, onVoteReceived]);
 
   // Animate percentages when votes change
   useEffect(() => {

@@ -8,6 +8,7 @@ import { QRDisplay } from "@/components/qr-display";
 import { VotingStats } from "@/components/voting-stats";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useVotingSound } from "@/hooks/use-voting-sounds";
 import type { Question } from "@shared/schema";
 import { Plus, Minus, Sparkles, RefreshCw } from "lucide-react";
 
@@ -16,6 +17,7 @@ export default function Teacher() {
   const [options, setOptions] = useState<string[]>(["", "", ""]);
   const [createdQuestion, setCreatedQuestion] = useState<Question | null>(null);
   const { toast } = useToast();
+  const { playVoteSessionStart, playVoteSubmitted } = useVotingSound();
 
   const createQuestion = useMutation({
     mutationFn: async () => {
@@ -28,9 +30,11 @@ export default function Teacher() {
     },
     onSuccess: (question) => {
       setCreatedQuestion(question);
+      playVoteSessionStart();
       toast({
         title: "成功建立問題",
         description: "學生現在可以開始投票了",
+        variant: "success",
       });
     },
     onError: (error: Error) => {
@@ -92,6 +96,10 @@ export default function Teacher() {
 
   const handleImageSelect = (image: string) => {
     setImageUrl(image);
+  };
+
+  const handleVoteReceived = () => {
+    playVoteSubmitted();
   };
 
   const validOptionCount = options.filter(Boolean).length;
@@ -186,7 +194,7 @@ export default function Teacher() {
         <div className="space-y-6 animate-fade-in">
           <div className="grid md:grid-cols-2 gap-6">
             <QRDisplay questionId={createdQuestion.id} />
-            <VotingStats question={createdQuestion} />
+            <VotingStats question={createdQuestion} onVoteReceived={handleVoteReceived} />
           </div>
 
           <Button
