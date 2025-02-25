@@ -22,9 +22,11 @@ export default function Student() {
       const voted = localStorage.getItem(`voted_${questionId}`);
       if (voted) {
         setHasVoted(true);
+      } else {
+        setHasVoted(false);
       }
     }
-  }, [questionId]);
+  }, [questionId]); // 當 questionId 改變時重新檢查
 
   // 獲取問題數據
   const { data: question, isError } = useQuery<Question>({
@@ -108,7 +110,7 @@ export default function Student() {
 
         <div className="p-6 space-y-4">
           {hasVoted ? (
-            <motion.div 
+            <motion.div
               className="space-y-4"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -145,7 +147,7 @@ export default function Student() {
               </p>
             </motion.div>
           ) : (
-            <motion.div 
+            <motion.div
               className="grid gap-3"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

@@ -6,6 +6,7 @@ export interface IStorage {
   getActiveQuestion(): Promise<Question | undefined>;
   addVote(questionId: number, optionIndex: number): Promise<Vote>;
   getVotesForQuestion(questionId: number): Promise<Vote[]>;
+  resetVotes(questionId: number): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -23,14 +24,15 @@ export class MemStorage implements IStorage {
 
   async createQuestion(insertQuestion: InsertQuestion): Promise<Question> {
     // Deactivate any existing active questions
-    for (const question of this.questions.values()) {
+    for (const [, question] of this.questions) {
       question.active = false;
     }
 
     const id = this.currentQuestionId++;
     const question: Question = {
-      ...insertQuestion,
       id,
+      imageUrl: insertQuestion.imageUrl,
+      options: [...insertQuestion.options],
       active: true,
     };
     this.questions.set(id, question);
@@ -56,6 +58,15 @@ export class MemStorage implements IStorage {
     return Array.from(this.votes.values()).filter(
       (vote) => vote.questionId === questionId
     );
+  }
+
+  async resetVotes(questionId: number): Promise<void> {
+    // 移除特定問題的所有投票
+    for (const [id, vote] of this.votes) {
+      if (vote.questionId === questionId) {
+        this.votes.delete(id);
+      }
+    }
   }
 }
 

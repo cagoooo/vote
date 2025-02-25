@@ -9,7 +9,7 @@ import { VotingStats } from "@/components/voting-stats";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Question } from "@shared/schema";
-import { Plus, Minus, Sparkles } from "lucide-react";
+import { Plus, Minus, Sparkles, RefreshCw } from "lucide-react";
 
 export default function Teacher() {
   const [imageUrl, setImageUrl] = useState("");
@@ -38,6 +38,25 @@ export default function Teacher() {
         title: "建立問題失敗",
         description: error.message,
         variant: "destructive",
+      });
+    },
+  });
+
+  const resetVoting = useMutation({
+    mutationFn: async () => {
+      if (!createdQuestion) return;
+      await apiRequest("POST", `/api/questions/${createdQuestion.id}/reset`);
+      const res = await apiRequest("POST", "/api/questions", {
+        imageUrl: createdQuestion.imageUrl,
+        options: createdQuestion.options,
+      });
+      return res.json();
+    },
+    onSuccess: (question) => {
+      setCreatedQuestion(question);
+      toast({
+        title: "投票已重置",
+        description: "新的 QR Code 已生成，可以開始新一輪投票",
       });
     },
   });
@@ -104,9 +123,7 @@ export default function Teacher() {
             </h2>
             <div className="space-y-4 animate-fade-in">
               {options.map((option, index) => (
-                <div key={index} className="flex gap-2 animate-slide-up" style={{
-                  animationDelay: `${index * 100}ms`
-                }}>
+                <div key={index} className="flex gap-2 animate-slide-up" style={{ animationDelay: `${index * 100}ms` }}>
                   <Input
                     value={option}
                     onChange={(e) => updateOption(index, e.target.value)}
@@ -168,9 +185,30 @@ export default function Teacher() {
           )}
         </form>
       ) : (
-        <div className="grid md:grid-cols-2 gap-6 animate-fade-in">
-          <QRDisplay questionId={createdQuestion.id} />
-          <VotingStats question={createdQuestion} />
+        <div className="space-y-6 animate-fade-in">
+          <div className="grid md:grid-cols-2 gap-6">
+            <QRDisplay questionId={createdQuestion.id} />
+            <VotingStats question={createdQuestion} />
+          </div>
+
+          <Button
+            onClick={() => resetVoting.mutate()}
+            disabled={resetVoting.isPending}
+            className="w-full flex items-center justify-center gap-2 h-12 text-lg bg-primary/10 hover:bg-primary/20 text-primary"
+            variant="ghost"
+          >
+            {resetVoting.isPending ? (
+              <div className="flex items-center gap-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent"></div>
+                重置中...
+              </div>
+            ) : (
+              <>
+                <RefreshCw className="w-5 h-5" />
+                重新開始投票
+              </>
+            )}
+          </Button>
         </div>
       )}
     </div>
