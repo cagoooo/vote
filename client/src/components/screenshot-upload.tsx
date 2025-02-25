@@ -16,6 +16,8 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
   const { toast } = useToast();
   const { triggerConfetti } = useConfetti();
 
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
   const handleUploadSuccess = () => {
     triggerConfetti();
     toast({
@@ -71,6 +73,15 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
   };
 
   const handleScreenshot = async (isMobile: boolean) => {
+    if (isIOS && isMobile) {
+      toast({
+        title: "iOS 設備截圖說明",
+        description: "請依照以下步驟操作：\n1. 使用 iOS 內建截圖功能 (電源鍵 + 音量上鍵)\n2. 點擊「上傳圖片」按鈕\n3. 從相簿中選擇剛才的截圖",
+        variant: "info",
+      });
+      return;
+    }
+
     try {
       const constraints: MediaStreamConstraints = {
         video: {
@@ -107,7 +118,7 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
       toast({
         title: "截圖失敗",
         description: isMobile 
-          ? "無法截取手機/平板畫面，請嘗試以下步驟：\n1. 確保已授予螢幕錄製權限\n2. 選擇要分享的畫面\n3. 如果使用iOS裝置，請使用Safari瀏覽器" 
+          ? "無法截取手機/平板畫面，請嘗試以下步驟：\n1. 確保已授予螢幕錄製權限\n2. 選擇要分享的畫面\n3. 如果使用iOS裝置，請使用系統截圖功能後再上傳" 
           : "截圖失敗，請確保已授予螢幕錄製權限",
         variant: "destructive",
       });
