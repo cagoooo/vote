@@ -46,21 +46,21 @@ export default function Teacher() {
 
   return (
     <div className="container mx-auto p-6 max-w-4xl">
-      <h1 className="text-3xl font-bold mb-8">Create Voting Question</h1>
+      <h1 className="text-3xl font-bold mb-8">建立投票問題</h1>
 
       {!createdQuestion ? (
         <form onSubmit={handleSubmit} className="space-y-6">
           <ScreenshotUpload onImageSelect={setImageUrl} />
 
           <Card className="p-6">
-            <h2 className="text-lg font-semibold mb-4">Options</h2>
+            <h2 className="text-lg font-semibold mb-4">選項設置</h2>
             <div className="space-y-4">
               {options.map((option, index) => (
                 <div key={index} className="flex gap-2">
                   <Input
                     value={option}
                     onChange={(e) => updateOption(index, e.target.value)}
-                    placeholder={`Option ${index + 1}`}
+                    placeholder={`選項 ${index + 1}`}
                   />
                   {options.length > 2 && (
                     <Button
@@ -84,7 +84,7 @@ export default function Teacher() {
                 className="flex items-center gap-2"
               >
                 <Plus className="h-4 w-4" />
-                Add Option
+                添加選項
               </Button>
             </div>
           </Card>
@@ -94,7 +94,7 @@ export default function Teacher() {
             className="w-full"
             disabled={!imageUrl || options.filter(Boolean).length < 2}
           >
-            Create Question
+            建立問題
           </Button>
         </form>
       ) : (

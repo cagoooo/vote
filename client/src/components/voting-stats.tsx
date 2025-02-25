@@ -22,7 +22,7 @@ export function VotingStats({ question }: VotingStatsProps) {
 
   return (
     <Card className="p-6">
-      <h2 className="text-lg font-semibold mb-4">Live Results</h2>
+      <h2 className="text-lg font-semibold mb-4">即時投票結果</h2>
       <div className="space-y-4">
         {question.options.map((option, index) => {
           const count = totals[index] || 0;
@@ -32,7 +32,7 @@ export function VotingStats({ question }: VotingStatsProps) {
             <div key={index} className="space-y-2">
               <div className="flex justify-between">
                 <span>{option}</span>
-                <span>{count} votes</span>
+                <span>{count} 票</span>
               </div>
               <Progress value={percentage} className="h-2" />
             </div>
@@ -40,7 +40,7 @@ export function VotingStats({ question }: VotingStatsProps) {
         })}
       </div>
       <p className="mt-4 text-sm text-muted-foreground">
-        Total votes: {totalVotes}
+        總投票數：{totalVotes}
       </p>
     </Card>
   );

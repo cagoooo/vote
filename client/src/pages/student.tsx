@@ -20,8 +20,8 @@ export default function Student() {
     },
     onSuccess: () => {
       toast({
-        title: "Vote submitted",
-        description: "Thank you for voting!",
+        title: "投票成功",
+        description: "感謝您的參與！",
       });
     },
   });
@@ -29,9 +29,9 @@ export default function Student() {
   if (!question) {
     return (
       <div className="container mx-auto p-6 text-center">
-        <h1 className="text-2xl font-bold">No active question</h1>
+        <h1 className="text-2xl font-bold">目前沒有活動的問題</h1>
         <p className="text-muted-foreground mt-2">
-          Please wait for the teacher to create a new question
+          請等待老師建立新的問題
         </p>
       </div>
     );
@@ -42,10 +42,10 @@ export default function Student() {
       <Card className="overflow-hidden">
         <img
           src={question.imageUrl}
-          alt="Question"
+          alt="問題圖片"
           className="w-full h-auto"
         />
-        
+
         <div className="p-6 space-y-4">
           <div className="grid gap-2">
             {question.options.map((option, index) => (
