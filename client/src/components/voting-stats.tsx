@@ -10,6 +10,16 @@ interface VotingStatsProps {
   question: Question;
 }
 
+// 預定義的漸層色彩配置
+const gradients = [
+  "from-blue-500 to-cyan-300",
+  "from-purple-500 to-pink-300",
+  "from-green-500 to-emerald-300",
+  "from-orange-500 to-yellow-300",
+  "from-red-500 to-rose-300",
+  "from-indigo-500 to-blue-300",
+];
+
 export function VotingStats({ question }: VotingStatsProps) {
   const { data: votes = [] } = useQuery<Vote[]>({
     queryKey: [`/api/questions/${question.id}/votes`],
@@ -116,6 +126,7 @@ export function VotingStats({ question }: VotingStatsProps) {
           {question.options.map((option, index) => {
             const count = totals[index] || 0;
             const percentage = animatedPercentages[index] || 0;
+            const gradientClass = gradients[index % gradients.length];
 
             return (
               <motion.div
@@ -126,14 +137,14 @@ export function VotingStats({ question }: VotingStatsProps) {
               >
                 <div className="flex justify-between items-center mb-1">
                   <motion.span 
-                    className="font-medium"
+                    className={`font-medium bg-gradient-to-r ${gradientClass} bg-clip-text text-transparent`}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                   >
                     {option}
                   </motion.span>
                   <motion.span 
-                    className="font-semibold text-primary"
+                    className={`font-semibold bg-gradient-to-r ${gradientClass} bg-clip-text text-transparent`}
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ type: "spring", stiffness: 200 }}
@@ -147,15 +158,19 @@ export function VotingStats({ question }: VotingStatsProps) {
                       initial={{ scale: 0, originX: 0 }}
                       animate={{ scale: 1 }}
                       transition={{ duration: 0.5, delay: index * 0.1 }}
+                      className="relative h-2 overflow-hidden rounded-full bg-secondary"
                     >
-                      <Progress 
-                        value={percentage} 
-                        className="h-2"
+                      <motion.div
+                        className={`absolute top-0 left-0 h-full bg-gradient-to-r ${gradientClass}`}
+                        style={{ width: `${percentage}%` }}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${percentage}%` }}
+                        transition={{ duration: 0.5 }}
                       />
                     </motion.div>
                   </div>
                   <motion.span 
-                    className="text-sm text-muted-foreground min-w-[4rem] text-right"
+                    className={`text-sm font-medium bg-gradient-to-r ${gradientClass} bg-clip-text text-transparent min-w-[4rem] text-right`}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.5, delay: index * 0.1 + 0.2 }}
