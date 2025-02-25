@@ -2,9 +2,13 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Camera, Scissors, Smartphone } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Camera, Scissors, Smartphone, Trash2, Check } from "lucide-react";
+import { CropIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useConfetti } from "@/hooks/use-confetti";
+import ReactCrop, { type Crop as ReactCropType } from 'react-image-crop';
+import 'react-image-crop/dist/ReactCrop.css';
 
 interface ScreenshotUploadProps {
   onImageSelect: (image: string) => void;
@@ -12,7 +16,10 @@ interface ScreenshotUploadProps {
 
 export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
   const [preview, setPreview] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [crop, setCrop] = useState<ReactCropType>();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
   const { toast } = useToast();
   const { triggerConfetti } = useConfetti();
 
@@ -77,7 +84,7 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
       toast({
         title: "iOS 設備截圖說明",
         description: "請依照以下步驟操作：\n1. 使用 iOS 內建截圖功能 (電源鍵 + 音量上鍵)\n2. 點擊「上傳圖片」按鈕\n3. 從相簿中選擇剛才的截圖",
-        variant: "info",
+        variant: "default",
       });
       return;
     }
@@ -126,6 +133,52 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
     }
   };
 
+  const handleDeleteImage = () => {
+    setPreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    toast({
+      title: "刪除成功",
+      description: "圖片已被刪除",
+    });
+  };
+
+  const handleCropComplete = () => {
+    if (!imageRef.current || !crop) return;
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const scaleX = imageRef.current.naturalWidth / imageRef.current.width;
+    const scaleY = imageRef.current.naturalHeight / imageRef.current.height;
+
+    canvas.width = crop.width;
+    canvas.height = crop.height;
+
+    ctx.drawImage(
+      imageRef.current,
+      crop.x * scaleX,
+      crop.y * scaleY,
+      crop.width * scaleX,
+      crop.height * scaleY,
+      0,
+      0,
+      crop.width,
+      crop.height
+    );
+
+    const base64 = canvas.toDataURL('image/jpeg');
+    setPreview(base64);
+    onImageSelect(base64);
+    setIsEditing(false);
+    toast({
+      title: "裁切成功",
+      description: "圖片已成功裁切",
+    });
+  };
+
   return (
     <Card className="p-6">
       <div className="space-y-4">
@@ -167,9 +220,64 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
               alt="預覽圖"
               className="max-w-full h-auto"
             />
+            <div className="absolute top-2 right-2 flex gap-2">
+              <Button
+                size="icon"
+                variant="secondary"
+                className="bg-white/80 hover:bg-white"
+                onClick={() => setIsEditing(true)}
+              >
+                <CropIcon className="h-4 w-4" />
+              </Button>
+              <Button
+                size="icon"
+                variant="destructive"
+                className="bg-white/80 hover:bg-red-500"
+                onClick={handleDeleteImage}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         )}
       </div>
+
+      <Dialog open={isEditing} onOpenChange={setIsEditing}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>裁切圖片</DialogTitle>
+          </DialogHeader>
+          <div className="mt-4">
+            <ReactCrop
+              crop={crop}
+              onChange={c => setCrop(c)}
+              aspect={undefined}
+            >
+              <img
+                ref={imageRef}
+                src={preview || ''}
+                alt="裁切預覽"
+                className="max-w-full h-auto"
+              />
+            </ReactCrop>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button
+              variant="ghost"
+              onClick={() => setIsEditing(false)}
+            >
+              取消
+            </Button>
+            <Button
+              onClick={handleCropComplete}
+              className="flex items-center gap-2"
+            >
+              <Check className="h-4 w-4" />
+              確認裁切
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
