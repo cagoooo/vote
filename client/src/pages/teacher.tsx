@@ -40,8 +40,15 @@ export default function Teacher() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!imageUrl || options.filter(Boolean).length < 2) {
+      return;
+    }
     const question = await createQuestion.mutateAsync();
     setCreatedQuestion(question);
+  };
+
+  const handleImageSelect = (image: string) => {
+    setImageUrl(image);
   };
 
   return (
@@ -50,7 +57,7 @@ export default function Teacher() {
 
       {!createdQuestion ? (
         <form onSubmit={handleSubmit} className="space-y-6">
-          <ScreenshotUpload onImageSelect={setImageUrl} />
+          <ScreenshotUpload onImageSelect={handleImageSelect} />
 
           <Card className="p-6">
             <h2 className="text-lg font-semibold mb-4">選項設置</h2>

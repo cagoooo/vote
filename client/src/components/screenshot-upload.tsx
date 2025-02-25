@@ -30,7 +30,9 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
       // 直接開啟系統的螢幕截圖選擇器
       const stream = await navigator.mediaDevices.getDisplayMedia({
         video: {
-          cursor: "always"
+          displaySurface: "monitor",
+          selfBrowserSurface: "exclude",
+          systemAudio: "exclude",
         },
         audio: false
       });
@@ -95,7 +97,7 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
         </div>
 
         {preview && (
-          <div className="mt-4 relative rounded-lg overflow-hidden">
+          <div className="mt-4 relative rounded-lg overflow-hidden border border-border">
             <img
               src={preview}
               alt="預覽圖"
