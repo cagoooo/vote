@@ -6,8 +6,9 @@ interface QRDisplayProps {
 }
 
 export function QRDisplay({ questionId }: QRDisplayProps) {
-  const domains = (import.meta.env.VITE_REPLIT_DOMAINS || "").split(",")[0];
-  const url = `https://${domains}/vote/${questionId}`;
+  // 使用當前網頁的主機名稱，確保在任何環境下都能正常工作
+  const currentHost = window.location.host;
+  const url = `${window.location.protocol}//${currentHost}/vote/${questionId}`;
 
   return (
     <Card className="p-6 flex flex-col items-center gap-4">

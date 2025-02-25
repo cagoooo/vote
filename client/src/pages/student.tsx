@@ -4,11 +4,16 @@ import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Question } from "@shared/schema";
+import { useParams } from "wouter";
 
 export default function Student() {
   const { toast } = useToast();
-  const { data: question } = useQuery<Question>({
-    queryKey: ["/api/questions/active"],
+  const params = useParams<{ id: string }>();
+  const questionId = params.id;
+
+  // 如果有指定ID，就獲取特定問題，否則獲取當前活動的問題
+  const { data: question, isError } = useQuery<Question>({
+    queryKey: [questionId ? `/api/questions/${questionId}` : "/api/questions/active"],
   });
 
   const vote = useMutation({
@@ -25,6 +30,17 @@ export default function Student() {
       });
     },
   });
+
+  if (isError) {
+    return (
+      <div className="container mx-auto p-6 text-center">
+        <h1 className="text-2xl font-bold">無法載入問題</h1>
+        <p className="text-muted-foreground mt-2">
+          請確認連結是否正確
+        </p>
+      </div>
+    );
+  }
 
   if (!question) {
     return (
