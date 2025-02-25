@@ -13,20 +13,13 @@ import { Plus, Minus } from "lucide-react";
 
 export default function Teacher() {
   const [imageUrl, setImageUrl] = useState("");
-  const [options, setOptions] = useState<string[]>(["", "", "", ""]);
+  const [options, setOptions] = useState<string[]>(["", "", ""]);
   const [createdQuestion, setCreatedQuestion] = useState<Question | null>(null);
   const { toast } = useToast();
 
   const createQuestion = useMutation({
     mutationFn: async () => {
       const filteredOptions = options.filter(Boolean);
-      if (filteredOptions.length < 2) {
-        throw new Error("至少需要兩個選項");
-      }
-      if (!imageUrl) {
-        throw new Error("請先上傳或截取圖片");
-      }
-
       const res = await apiRequest("POST", "/api/questions", {
         imageUrl,
         options: filteredOptions,
@@ -64,12 +57,35 @@ export default function Teacher() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const validOptions = options.filter(Boolean);
+
+    if (!imageUrl) {
+      toast({
+        title: "缺少圖片",
+        description: "請先上傳或截取圖片",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (validOptions.length < 2) {
+      toast({
+        title: "選項不足",
+        description: "請至少填寫兩個選項",
+        variant: "destructive",
+      });
+      return;
+    }
+
     await createQuestion.mutateAsync();
   };
 
   const handleImageSelect = (image: string) => {
     setImageUrl(image);
   };
+
+  const validOptionCount = options.filter(Boolean).length;
+  const canSubmit = imageUrl && validOptionCount >= 2;
 
   return (
     <div className="container mx-auto p-6 max-w-4xl">
@@ -119,10 +135,21 @@ export default function Teacher() {
           <Button
             type="submit"
             className="w-full"
-            disabled={createQuestion.isPending || !imageUrl || options.filter(Boolean).length < 2}
+            disabled={createQuestion.isPending || !canSubmit}
           >
             {createQuestion.isPending ? "建立中..." : "建立問題"}
           </Button>
+
+          {!imageUrl && (
+            <p className="text-sm text-muted-foreground text-center">
+              請先上傳或截取圖片
+            </p>
+          )}
+          {validOptionCount < 2 && (
+            <p className="text-sm text-muted-foreground text-center">
+              請至少填寫兩個選項（目前已填寫 {validOptionCount} 個）
+            </p>
+          )}
         </form>
       ) : (
         <div className="grid md:grid-cols-2 gap-6">
