@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Camera, Scissors } from "lucide-react";
+import { Camera, Scissors, Smartphone } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useConfetti } from "@/hooks/use-confetti";
 
@@ -70,11 +70,14 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
     });
   };
 
-  const handleScreenshot = async () => {
+  const handleScreenshot = async (displaySurface: "monitor" | "window" | "browser" | "mobile") => {
     try {
       const stream = await navigator.mediaDevices.getDisplayMedia({
         video: {
-          displaySurface: "monitor",
+          displaySurface: displaySurface,
+          // 手機和平板的優化設定
+          frameRate: { ideal: 30 },
+          cursor: "never",
         },
         audio: false
       });
@@ -103,7 +106,9 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
       if (err instanceof Error) {
         toast({
           title: "截圖失敗",
-          description: err.message,
+          description: displaySurface === "mobile" 
+            ? "無法截取手機/平板畫面，請確保已授予權限" 
+            : err.message,
           variant: "destructive",
         });
       } else {
@@ -120,13 +125,20 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
   return (
     <Card className="p-6">
       <div className="space-y-4">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-wrap">
           <Button
-            onClick={handleScreenshot}
+            onClick={() => handleScreenshot("monitor")}
             className="flex items-center gap-2"
           >
             <Scissors className="h-4 w-4" />
-            螢幕截圖
+            電腦截圖
+          </Button>
+          <Button
+            onClick={() => handleScreenshot("mobile")}
+            className="flex items-center gap-2"
+          >
+            <Smartphone className="h-4 w-4" />
+            手機/平板截圖
           </Button>
           <Button
             onClick={() => fileInputRef.current?.click()}
