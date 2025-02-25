@@ -42,24 +42,16 @@ export default function Teacher() {
     },
   });
 
-  const resetVoting = useMutation({
-    mutationFn: async () => {
-      if (!createdQuestion) return;
-      await apiRequest("POST", `/api/questions/${createdQuestion.id}/reset`);
-      const res = await apiRequest("POST", "/api/questions", {
-        imageUrl: createdQuestion.imageUrl,
-        options: createdQuestion.options,
-      });
-      return res.json();
-    },
-    onSuccess: (question) => {
-      setCreatedQuestion(question);
-      toast({
-        title: "投票已重置",
-        description: "新的 QR Code 已生成，可以開始新一輪投票",
-      });
-    },
-  });
+  const resetAll = () => {
+    // 重置所有狀態
+    setImageUrl("");
+    setOptions(["", "", ""]);
+    setCreatedQuestion(null);
+    toast({
+      title: "已重置所有設定",
+      description: "您可以重新開始建立新的投票",
+    });
+  };
 
   const addOption = () => setOptions([...options, ""]);
   const removeOption = (index: number) => {
@@ -192,22 +184,12 @@ export default function Teacher() {
           </div>
 
           <Button
-            onClick={() => resetVoting.mutate()}
-            disabled={resetVoting.isPending}
+            onClick={resetAll}
             className="w-full flex items-center justify-center gap-2 h-12 text-lg bg-primary/10 hover:bg-primary/20 text-primary"
             variant="ghost"
           >
-            {resetVoting.isPending ? (
-              <div className="flex items-center gap-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent"></div>
-                重置中...
-              </div>
-            ) : (
-              <>
-                <RefreshCw className="w-5 h-5" />
-                重新開始投票
-              </>
-            )}
+            <RefreshCw className="w-5 h-5" />
+            重新建立投票
           </Button>
         </div>
       )}
