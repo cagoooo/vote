@@ -16,22 +16,25 @@ export default function Student() {
   const [hasVoted, setHasVoted] = useState(false);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
 
-  // 檢查是否已經投票
-  useEffect(() => {
-    if (questionId) {
-      const voted = localStorage.getItem(`voted_${questionId}`);
-      if (voted) {
-        setHasVoted(true);
-      } else {
-        setHasVoted(false);
-      }
-    }
-  }, [questionId]); // 當 questionId 改變時重新檢查
-
   // 獲取問題數據
-  const { data: question, isError } = useQuery<Question>({
+  const { data: question } = useQuery<Question>({
     queryKey: [questionId ? `/api/questions/${questionId}` : "/api/questions/active"],
   });
+
+  // 檢查是否已經投票，並處理重置情況
+  useEffect(() => {
+    if (questionId && question) {
+      // 如果問題是活動的（新的或重置的），清除之前的投票記錄
+      if (question.active) {
+        localStorage.removeItem(`voted_${questionId}`);
+        setHasVoted(false);
+      } else {
+        // 檢查是否已經為這個問題投票
+        const voted = localStorage.getItem(`voted_${questionId}`);
+        setHasVoted(!!voted);
+      }
+    }
+  }, [questionId, question]); // 當 questionId 或 question 改變時重新檢查
 
   // 獲取投票結果
   const { data: votes = [] } = useQuery<Vote[]>({
@@ -57,23 +60,6 @@ export default function Student() {
       }
     },
   });
-
-  if (isError) {
-    return (
-      <div className="page-container text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <h1 className="text-2xl font-bold gradient-text">無法載入問題</h1>
-          <p className="text-muted-foreground mt-2">
-            請確認連結是否正確
-          </p>
-        </motion.div>
-      </div>
-    );
-  }
 
   if (!question) {
     return (
