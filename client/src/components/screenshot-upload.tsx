@@ -27,38 +27,43 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
 
   const handleScreenshot = async () => {
     try {
-      // 嘗試開啟系統的螢幕截圖工具
-      await navigator.mediaDevices.getUserMedia({ video: true });
-
-      // 使用Windows + Shift + S快捷鍵的提示
-      alert("請使用 Windows + Shift + S 進行螢幕截圖，\n截圖後請在此處貼上圖片。");
-
-      // 監聽剪貼板
-      document.addEventListener('paste', function handlePaste(e) {
-        const items = e.clipboardData?.items;
-        if (!items) return;
-
-        for (let i = 0; i < items.length; i++) {
-          if (items[i].type.indexOf('image') !== -1) {
-            const blob = items[i].getAsFile();
-            if (!blob) continue;
-
-            const reader = new FileReader();
-            reader.onloadend = () => {
-              const base64 = reader.result as string;
-              setPreview(base64);
-              onImageSelect(base64);
-            };
-            reader.readAsDataURL(blob);
-
-            // 移除事件監聽器
-            document.removeEventListener('paste', handlePaste);
-            break;
-          }
-        }
+      // 直接開啟系統的螢幕截圖選擇器
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: {
+          cursor: "always"
+        },
+        audio: false
       });
+
+      // 等待用戶選擇區域並截圖
+      const video = document.createElement('video');
+      video.srcObject = stream;
+      await video.play();
+
+      // 創建 canvas 來抓取圖片
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      // 將視頻幀繪製到 canvas
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // 停止所有視頻軌道
+      stream.getTracks().forEach(track => track.stop());
+
+      // 將 canvas 轉換為圖片
+      const base64 = canvas.toDataURL('image/png');
+      setPreview(base64);
+      onImageSelect(base64);
+
     } catch (err) {
-      alert("無法啟動螢幕截圖功能，請確保已授予攝像頭權限。");
+      if (err instanceof Error) {
+        alert("無法啟動螢幕截圖功能：" + err.message);
+      } else {
+        alert("無法啟動螢幕截圖功能，請稍後再試。");
+      }
     }
   };
 
