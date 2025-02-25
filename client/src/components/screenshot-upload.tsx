@@ -25,6 +25,29 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
     reader.readAsDataURL(file);
   };
 
+  const compressImage = (canvas: HTMLCanvasElement, quality = 0.7): string => {
+    const MAX_WIDTH = 1920;
+    const scale = MAX_WIDTH / canvas.width;
+
+    // 如果圖片寬度小於最大寬度，不需要縮放
+    if (scale >= 1) {
+      return canvas.toDataURL('image/jpeg', quality);
+    }
+
+    // 創建新的canvas進行縮放
+    const scaledCanvas = document.createElement('canvas');
+    const scaledWidth = canvas.width * scale;
+    const scaledHeight = canvas.height * scale;
+    scaledCanvas.width = scaledWidth;
+    scaledCanvas.height = scaledHeight;
+
+    const ctx = scaledCanvas.getContext('2d');
+    if (!ctx) return canvas.toDataURL('image/jpeg', quality);
+
+    ctx.drawImage(canvas, 0, 0, scaledWidth, scaledHeight);
+    return scaledCanvas.toDataURL('image/jpeg', quality);
+  };
+
   const handleScreenshot = async () => {
     try {
       // 直接開啟系統的螢幕截圖選擇器
@@ -55,8 +78,8 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
       // 停止所有視頻軌道
       stream.getTracks().forEach(track => track.stop());
 
-      // 將 canvas 轉換為圖片
-      const base64 = canvas.toDataURL('image/png');
+      // 壓縮並轉換圖片
+      const base64 = compressImage(canvas);
       setPreview(base64);
       onImageSelect(base64);
 
