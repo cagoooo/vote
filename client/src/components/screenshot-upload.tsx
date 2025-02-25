@@ -70,17 +70,18 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
     });
   };
 
-  const handleScreenshot = async (displaySurface: "monitor" | "window" | "browser" | "mobile") => {
+  const handleScreenshot = async (isMobile: boolean) => {
     try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({
+      const constraints: MediaStreamConstraints = {
         video: {
-          displaySurface: displaySurface,
-          // 手機和平板的優化設定
           frameRate: { ideal: 30 },
-          cursor: "never",
+          width: { ideal: isMobile ? 1080 : 1920 },
+          height: { ideal: isMobile ? 1920 : 1080 },
         },
         audio: false
-      });
+      };
+
+      const stream = await navigator.mediaDevices.getDisplayMedia(constraints);
 
       const video = document.createElement('video');
       video.srcObject = stream;
@@ -103,21 +104,13 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
       focusWindow();
 
     } catch (err) {
-      if (err instanceof Error) {
-        toast({
-          title: "截圖失敗",
-          description: displaySurface === "mobile" 
-            ? "無法截取手機/平板畫面，請確保已授予權限" 
-            : err.message,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "截圖失敗",
-          description: "請稍後再試",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "截圖失敗",
+        description: isMobile 
+          ? "無法截取手機/平板畫面，請嘗試以下步驟：\n1. 確保已授予螢幕錄製權限\n2. 選擇要分享的畫面\n3. 如果使用iOS裝置，請使用Safari瀏覽器" 
+          : "截圖失敗，請確保已授予螢幕錄製權限",
+        variant: "destructive",
+      });
       focusWindow();
     }
   };
@@ -127,14 +120,14 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
       <div className="space-y-4">
         <div className="flex items-center gap-4 flex-wrap">
           <Button
-            onClick={() => handleScreenshot("monitor")}
+            onClick={() => handleScreenshot(false)}
             className="flex items-center gap-2"
           >
             <Scissors className="h-4 w-4" />
             電腦截圖
           </Button>
           <Button
-            onClick={() => handleScreenshot("mobile")}
+            onClick={() => handleScreenshot(true)}
             className="flex items-center gap-2"
           >
             <Smartphone className="h-4 w-4" />
