@@ -54,8 +54,6 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
       const stream = await navigator.mediaDevices.getDisplayMedia({
         video: {
           displaySurface: "monitor",
-          selfBrowserSurface: "exclude",
-          systemAudio: "exclude",
         },
         audio: false
       });
@@ -83,12 +81,17 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
       setPreview(base64);
       onImageSelect(base64);
 
+      // 將焦點返回到應用程式窗口
+      window.focus();
+
     } catch (err) {
       if (err instanceof Error) {
         alert("無法啟動螢幕截圖功能：" + err.message);
       } else {
         alert("無法啟動螢幕截圖功能，請稍後再試。");
       }
+      // 確保即使在出錯的情況下也返回焦點
+      window.focus();
     }
   };
 
