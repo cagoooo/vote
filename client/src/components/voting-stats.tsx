@@ -28,7 +28,7 @@ export function VotingStats({ question }: VotingStatsProps) {
         <BarChart className="w-5 h-5 text-primary" />
         <h2 className="text-xl font-semibold gradient-text">即時投票結果</h2>
       </div>
-      <div className="space-y-4">
+      <div className="space-y-6">
         {question.options.map((option, index) => {
           const count = totals[index] || 0;
           const percentage = totalVotes ? (count / totalVotes) * 100 : 0;
@@ -41,16 +41,18 @@ export function VotingStats({ question }: VotingStatsProps) {
               animate={{ x: 0, opacity: 1 }}
               transition={{ delay: index * 0.1 }}
             >
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center mb-1">
                 <span className="font-medium">{option}</span>
                 <span className="font-semibold text-primary">{count} 票</span>
               </div>
-              <div className="relative">
-                <Progress 
-                  value={percentage} 
-                  className="h-2"
-                />
-                <span className="absolute right-0 -top-6 text-xs text-muted-foreground">
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <Progress 
+                    value={percentage} 
+                    className="h-2"
+                  />
+                </div>
+                <span className="text-sm text-muted-foreground min-w-[4rem] text-right">
                   {percentage.toFixed(1)}%
                 </span>
               </div>

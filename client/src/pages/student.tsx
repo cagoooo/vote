@@ -115,13 +115,15 @@ export default function Student() {
                     animate={{ x: 0, opacity: 1 }}
                     transition={{ delay: index * 0.1 }}
                   >
-                    <div className="flex justify-between">
+                    <div className="flex justify-between items-center mb-1">
                       <span>{option}</span>
                       <span className="font-semibold">{count} 票</span>
                     </div>
-                    <div className="relative">
-                      <Progress value={percentage} className="h-2" />
-                      <span className="absolute right-0 -top-6 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-4">
+                      <div className="flex-1">
+                        <Progress value={percentage} className="h-2" />
+                      </div>
+                      <span className="text-sm text-muted-foreground min-w-[4rem] text-right">
                         {percentage.toFixed(1)}%
                       </span>
                     </div>
