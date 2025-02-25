@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Camera, Scissors } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface ScreenshotUploadProps {
   onImageSelect: (image: string) => void;
@@ -11,6 +12,7 @@ interface ScreenshotUploadProps {
 export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
   const [preview, setPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -29,12 +31,10 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
     const MAX_WIDTH = 1920;
     const scale = MAX_WIDTH / canvas.width;
 
-    // 如果圖片寬度小於最大寬度，不需要縮放
     if (scale >= 1) {
       return canvas.toDataURL('image/jpeg', quality);
     }
 
-    // 創建新的canvas進行縮放
     const scaledCanvas = document.createElement('canvas');
     const scaledWidth = canvas.width * scale;
     const scaledHeight = canvas.height * scale;
@@ -48,9 +48,21 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
     return scaledCanvas.toDataURL('image/jpeg', quality);
   };
 
+  const focusWindow = () => {
+    requestAnimationFrame(() => {
+      window.focus();
+      setTimeout(() => {
+        window.focus();
+        toast({
+          title: "截圖完成",
+          description: "已成功返回投票系統",
+        });
+      }, 100);
+    });
+  };
+
   const handleScreenshot = async () => {
     try {
-      // 直接開啟系統的螢幕截圖選擇器
       const stream = await navigator.mediaDevices.getDisplayMedia({
         video: {
           displaySurface: "monitor",
@@ -58,40 +70,41 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
         audio: false
       });
 
-      // 等待用戶選擇區域並截圖
       const video = document.createElement('video');
       video.srcObject = stream;
       await video.play();
 
-      // 創建 canvas 來抓取圖片
       const canvas = document.createElement('canvas');
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      // 將視頻幀繪製到 canvas
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      // 停止所有視頻軌道
       stream.getTracks().forEach(track => track.stop());
 
-      // 壓縮並轉換圖片
       const base64 = compressImage(canvas);
       setPreview(base64);
       onImageSelect(base64);
 
-      // 將焦點返回到應用程式窗口
-      window.focus();
+      focusWindow();
 
     } catch (err) {
       if (err instanceof Error) {
-        alert("無法啟動螢幕截圖功能：" + err.message);
+        toast({
+          title: "截圖失敗",
+          description: err.message,
+          variant: "destructive",
+        });
       } else {
-        alert("無法啟動螢幕截圖功能，請稍後再試。");
+        toast({
+          title: "截圖失敗",
+          description: "請稍後再試",
+          variant: "destructive",
+        });
       }
-      // 確保即使在出錯的情況下也返回焦點
-      window.focus();
+      focusWindow();
     }
   };
 
