@@ -99,9 +99,16 @@ export default function Teacher() {
 
   return (
     <div className="page-container max-w-4xl">
-      <h1 className="text-4xl font-bold mb-8 gradient-text text-center">
-        石門國小即時投票系統
-      </h1>
+      <div className="flex items-center justify-center gap-4 mb-8">
+        <img
+          src="/logo.png"
+          alt="石門國小校徽"
+          className="h-12 md:h-16 w-auto object-contain"
+        />
+        <h1 className="text-3xl md:text-4xl font-bold gradient-text">
+          石門國小即時投票系統
+        </h1>
+      </div>
 
       {!createdQuestion ? (
         <form onSubmit={handleSubmit} className="space-y-6">
