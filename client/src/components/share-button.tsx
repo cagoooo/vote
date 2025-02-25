@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Share2 } from "lucide-react";
 import { SiFacebook, SiX, SiLine } from "react-icons/si";
+import { useToast } from "@/hooks/use-toast";
 
 interface ShareButtonProps {
   url?: string;
@@ -10,6 +11,7 @@ interface ShareButtonProps {
 
 export function ShareButton({ url = window.location.href }: ShareButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const { toast } = useToast();
 
   const shareButtons = [
     {
@@ -35,6 +37,23 @@ export function ShareButton({ url = window.location.href }: ShareButtonProps) {
   const handleShare = (shareUrl: string) => {
     window.open(shareUrl, "_blank", "noopener,noreferrer");
     setIsOpen(false);
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast({
+        title: "複製成功",
+        description: "連結已複製到剪貼簿",
+      });
+      setIsOpen(false);
+    } catch (err) {
+      toast({
+        title: "複製失敗",
+        description: "請手動複製連結",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -73,6 +92,17 @@ export function ShareButton({ url = window.location.href }: ShareButtonProps) {
                 <button.icon className="h-5 w-5" />
               </motion.button>
             ))}
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={handleCopyLink}
+              className="p-2 rounded-full text-white bg-gray-600 hover:opacity-90 transition-opacity"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+              </svg>
+            </motion.button>
           </motion.div>
         )}
       </AnimatePresence>
