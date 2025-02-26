@@ -206,7 +206,6 @@ export default function Teacher() {
                 className="max-w-full max-h-[40vh] w-auto h-auto object-contain rounded-lg shadow-lg"
               />
             </div>
-            <h3 className="text-lg font-medium mb-2">{createdQuestion.options[0]}</h3>
           </Card>
 
           <div className="grid md:grid-cols-2 gap-6">
