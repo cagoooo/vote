@@ -37,7 +37,7 @@ export function ShareButton({ url = window.location.href, question, votes }: Sha
     });
     shareText += `\n📈 總投票數：${totalVotes}票\n\n`;
     // Use the QR code URL instead of the direct URL
-    shareText += `👉 參與投票：${window.location.origin}/student/${question.id}`;
+    shareText += `👉 參與投票：${window.location.origin}/vote/${question.id}`;
 
     return shareText;
   };
