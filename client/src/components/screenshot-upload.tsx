@@ -188,21 +188,21 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
         <div className="flex items-center gap-4 flex-wrap">
           <Button
             onClick={() => handleScreenshot(false)}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 transition-all duration-300 hover:shadow-md hover:scale-[1.02]"
           >
             <Scissors className="h-4 w-4" />
             電腦截圖
           </Button>
           <Button
             onClick={() => handleScreenshot(true)}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 transition-all duration-300 hover:shadow-md hover:scale-[1.02]"
           >
             <Smartphone className="h-4 w-4" />
             手機/平板截圖
           </Button>
           <Button
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 transition-all duration-300 hover:shadow-md hover:scale-[1.02]"
           >
             <Camera className="h-4 w-4" />
             上傳圖片
@@ -227,7 +227,7 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
               <Button
                 size="icon"
                 variant="secondary"
-                className="bg-white/80 hover:bg-white"
+                className="bg-white/80 hover:bg-white transition-all duration-300 hover:scale-110"
                 onClick={() => setIsEditing(true)}
               >
                 <CropIcon className="h-4 w-4" />
@@ -235,7 +235,7 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
               <Button
                 size="icon"
                 variant="destructive"
-                className="bg-white/80 hover:bg-red-500"
+                className="bg-white/80 hover:bg-red-500 transition-all duration-300 hover:scale-110"
                 onClick={handleDeleteImage}
               >
                 <Trash2 className="h-4 w-4" />
