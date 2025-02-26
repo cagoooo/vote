@@ -35,7 +35,7 @@ export function ShareButton({ url = window.location.href, question, votes }: Sha
     shareText += `\n📈 總投票數：${totalVotes}票\n\n`;
     shareText += `👉 參與投票：${url}`;
 
-    return encodeURIComponent(shareText);
+    return shareText;
   };
 
   const shareButtons = [
@@ -43,19 +43,19 @@ export function ShareButton({ url = window.location.href, question, votes }: Sha
       name: "Facebook",
       icon: SiFacebook,
       color: "bg-[#1877F2]",
-      shareUrl: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${getShareText()}`,
+      shareUrl: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(getShareText())}`,
     },
     {
       name: "X (Twitter)",
       icon: SiX,
       color: "bg-[#000000]",
-      shareUrl: `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${getShareText()}`,
+      shareUrl: `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(getShareText())}`,
     },
     {
       name: "LINE",
       icon: SiLine,
       color: "bg-[#00B900]",
-      shareUrl: `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(url)}&text=${getShareText()}`,
+      shareUrl: `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(url)}&text=${encodeURIComponent(getShareText())}`,
     },
   ];
 
@@ -70,7 +70,16 @@ export function ShareButton({ url = window.location.href, question, votes }: Sha
 
   const handleCopyLink = async () => {
     try {
-      const shareText = decodeURIComponent(getShareText());
+      const shareText = getShareText();
+      if (!shareText) {
+        toast({
+          title: "複製失敗",
+          description: "無法獲取投票結果",
+          variant: "destructive",
+        });
+        return;
+      }
+
       await navigator.clipboard.writeText(shareText);
       toast({
         title: "複製成功",
@@ -78,6 +87,7 @@ export function ShareButton({ url = window.location.href, question, votes }: Sha
       });
       setIsOpen(false);
     } catch (err) {
+      console.error('Copy failed:', err);
       toast({
         title: "複製失敗",
         description: "請手動複製連結",
