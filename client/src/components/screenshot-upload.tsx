@@ -124,8 +124,8 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
     } catch (err) {
       toast({
         title: "截圖失敗",
-        description: isMobile 
-          ? "無法截取手機/平板畫面，請嘗試以下步驟：\n1. 確保已授予螢幕錄製權限\n2. 選擇要分享的畫面\n3. 如果使用iOS裝置，請使用系統截圖功能後再上傳" 
+        description: isMobile
+          ? "無法截取手機/平板畫面，請嘗試以下步驟：\n1. 確保已授予螢幕錄製權限\n2. 選擇要分享的畫面\n3. 如果使用iOS裝置，請使用系統截圖功能後再上傳"
           : "截圖失敗，請確保已授予螢幕錄製權限",
         variant: "destructive",
       });
@@ -177,6 +177,7 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
     toast({
       title: "裁切成功",
       description: "圖片已成功裁切",
+      variant: "success",
     });
   };
 
