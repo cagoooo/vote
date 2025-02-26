@@ -10,13 +10,14 @@ import { ShareButton } from "@/components/share-button";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useVotingSound } from "@/hooks/use-voting-sounds";
-import type { Question } from "@shared/schema";
+import type { Question, Vote } from "@shared/schema"; // Assuming Vote type exists
 import { Plus, Minus, Sparkles, RefreshCw } from "lucide-react";
 
 export default function Teacher() {
   const [imageUrl, setImageUrl] = useState("");
   const [options, setOptions] = useState<string[]>(["", "", ""]);
   const [createdQuestion, setCreatedQuestion] = useState<Question | null>(null);
+  const [votes, setVotes] = useState<Vote[]>([]); // Added votes state
   const { toast } = useToast();
   const { playVoteSessionStart, playVoteSubmitted } = useVotingSound();
 
@@ -51,6 +52,7 @@ export default function Teacher() {
     setImageUrl("");
     setOptions(["", "", ""]);
     setCreatedQuestion(null);
+    setVotes([]); // Reset votes
     toast({
       title: "已重置所有設定",
       description: "您可以重新開始建立新的投票",
@@ -99,8 +101,9 @@ export default function Teacher() {
     setImageUrl(image);
   };
 
-  const handleVoteReceived = () => {
+  const handleVoteReceived = (newVotes: Vote[]) => { //updated handleVoteReceived
     playVoteSubmitted();
+    setVotes(newVotes); // Update votes state
   };
 
   const validOptionCount = options.filter(Boolean).length;
@@ -109,7 +112,7 @@ export default function Teacher() {
   return (
     <div className="page-container max-w-4xl">
       <div className="flex items-center justify-center gap-2 sm:gap-3 md:gap-4 mb-6 md:mb-8 transition-all duration-300">
-        <a href="https://akai.smes.tyc.edu.tw/" target="_blank" rel="noopener noreferrer" 
+        <a href="https://akai.smes.tyc.edu.tw/" target="_blank" rel="noopener noreferrer"
            className="relative group p-2 rounded-lg transition-all duration-300 hover:bg-yellow-100/10">
           <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/20 to-amber-500/20 rounded-lg blur opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
           <img
@@ -202,7 +205,11 @@ export default function Teacher() {
         <div className="space-y-6 animate-fade-in">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold gradient-text">投票進行中</h2>
-            <ShareButton url={window.location.href} />
+            <ShareButton
+              url={window.location.href}
+              question={createdQuestion}
+              votes={votes} // Added votes prop
+            />
           </div>
 
           <Card className="p-6 card-hover">
