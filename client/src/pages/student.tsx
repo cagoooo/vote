@@ -170,7 +170,7 @@ export default function Student() {
                             </motion.span>
                           )}
                         </span>
-                        <motion.span 
+                        <motion.span
                           className="font-semibold"
                           key={`count-${count}`}
                           initial={{ scale: 0.5, opacity: 0 }}
@@ -242,13 +242,36 @@ export default function Student() {
                       }}
                       disabled={vote.isPending || hasVoted}
                       variant={selectedOption === index ? "default" : "outline"}
-                      className={`w-full h-12 text-lg transition-all duration-300 ${
+                      className={`w-full h-12 text-lg transition-all duration-300 relative overflow-hidden ${
                         selectedOption === index
-                          ? "bg-primary text-primary-foreground"
-                          : "hover:bg-primary/10"
+                          ? "bg-primary text-primary-foreground transform hover:scale-[1.02] hover:shadow-lg"
+                          : "hover:bg-primary/10 hover:border-primary/50"
                       }`}
+                      asChild
                     >
-                      {option}
+                      <motion.div
+                        whileHover={{
+                          scale: 1.02,
+                          transition: { duration: 0.2 }
+                        }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        <div className="relative z-10 flex items-center justify-center gap-2">
+                          {option}
+                          <motion.div
+                            className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/10 to-primary/0"
+                            animate={{
+                              x: ["0%", "100%"],
+                            }}
+                            transition={{
+                              duration: 2,
+                              repeat: Infinity,
+                              ease: "linear",
+                            }}
+                            style={{ opacity: selectedOption === index ? 0 : 1 }}
+                          />
+                        </div>
+                      </motion.div>
                     </Button>
                   </motion.div>
                 ))}
