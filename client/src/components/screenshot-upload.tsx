@@ -217,32 +217,34 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
         </div>
 
         {preview && (
-          <div className="mt-4 relative rounded-lg overflow-hidden border border-border">
-            <img
-              src={preview}
-              alt="預覽圖"
-              className="max-w-full h-auto"
-            />
-            <div className="absolute top-2 right-2 flex gap-2">
-              <Button
-                size="icon"
-                variant="secondary"
-                className="bg-white/80 hover:bg-white transition-all duration-300 hover:scale-110"
-                onClick={() => setIsEditing(true)}
-              >
-                <CropIcon className="h-4 w-4" />
-              </Button>
-              <Button
-                size="icon"
-                variant="destructive"
-                className="bg-white/80 hover:bg-red-500 transition-all duration-300 hover:scale-110"
-                onClick={handleDeleteImage}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+            <div className="mt-4 relative rounded-lg overflow-hidden border border-border">
+              <div className="flex justify-center items-center">
+                <img
+                  src={preview}
+                  alt="預覽圖"
+                  className="max-w-full max-h-[70vh] w-auto h-auto object-contain mx-auto"
+                />
+              </div>
+              <div className="absolute top-2 right-2 flex gap-2">
+                <Button
+                  size="icon"
+                  variant="secondary"
+                  className="bg-white/80 hover:bg-white transition-all duration-300 hover:scale-110"
+                  onClick={() => setIsEditing(true)}
+                >
+                  <CropIcon className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="destructive"
+                  className="bg-white/80 hover:bg-red-500 transition-all duration-300 hover:scale-110"
+                  onClick={handleDeleteImage}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
         {/* 只在非編輯模式下顯示驗證提示 */}
         {!isEditing && !preview && (
@@ -267,7 +269,7 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
                 ref={imageRef}
                 src={preview || ''}
                 alt="裁切預覽"
-                className="max-w-full h-auto"
+                className="max-w-full max-h-[60vh] w-auto h-auto object-contain mx-auto"
               />
             </ReactCrop>
           </div>
