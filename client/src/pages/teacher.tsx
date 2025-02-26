@@ -109,11 +109,13 @@ export default function Teacher() {
   return (
     <div className="page-container max-w-4xl">
       <div className="flex items-center justify-center gap-2 sm:gap-3 md:gap-4 mb-6 md:mb-8 transition-all duration-300">
-        <img
-          src="/logo.png"
-          alt="Logo"
-          className="h-10 sm:h-12 md:h-16 lg:h-20 w-auto object-contain transition-all duration-300 hover:scale-105 hover:rotate-3 hover:shadow-lg hover:brightness-110"
-        />
+        <a href="https://akai.smes.tyc.edu.tw/" target="_blank" rel="noopener noreferrer">
+          <img
+            src="/logo.png"
+            alt="Logo"
+            className="h-10 sm:h-12 md:h-16 lg:h-20 w-auto object-contain transition-all duration-300 hover:scale-105 hover:rotate-3 hover:shadow-lg hover:brightness-110"
+          />
+        </a>
         <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold gradient-text transition-all duration-300">
           即時投票系統
         </h1>
