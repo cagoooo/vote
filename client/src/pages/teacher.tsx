@@ -109,11 +109,16 @@ export default function Teacher() {
   return (
     <div className="page-container max-w-4xl">
       <div className="flex items-center justify-center gap-2 sm:gap-3 md:gap-4 mb-6 md:mb-8 transition-all duration-300">
-        <a href="https://akai.smes.tyc.edu.tw/" target="_blank" rel="noopener noreferrer">
+        <a href="https://akai.smes.tyc.edu.tw/" target="_blank" rel="noopener noreferrer" 
+           className="relative group p-2 rounded-lg transition-all duration-300 hover:bg-yellow-100/10">
+          <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/20 to-amber-500/20 rounded-lg blur opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
           <img
             src="/logo.png"
             alt="Logo"
-            className="h-10 sm:h-12 md:h-16 lg:h-20 w-auto object-contain transition-all duration-300 hover:scale-105 hover:rotate-3 hover:shadow-lg hover:brightness-110"
+            className="h-10 sm:h-12 md:h-16 lg:h-20 w-auto object-contain relative transition-all duration-300 
+              group-hover:scale-110 group-hover:rotate-3 group-hover:brightness-110 
+              group-hover:shadow-[0_0_30px_rgba(251,191,36,0.3)] 
+              group-active:scale-95 group-active:rotate-0"
           />
         </a>
         <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold gradient-text transition-all duration-300">
