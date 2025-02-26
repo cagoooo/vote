@@ -26,17 +26,38 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
 
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
-  // Add paste event listener
-  useEffect(() => {
-    const handlePaste = async (e: ClipboardEvent) => {
-      e.preventDefault();
-      const items = e.clipboardData?.items;
+  // Handle clipboard paste
+  const handlePaste = async (clipboardItems?: DataTransferItemList) => {
+    if (!clipboardItems) {
+      const clipboard = await navigator.clipboard.read().catch(() => null);
+      if (!clipboard) {
+        toast({
+          title: "無法存取剪貼簿",
+          description: "請確保已授予網站剪貼簿存取權限",
+          variant: "destructive",
+        });
+        return;
+      }
 
-      if (!items) return;
-
-      for (let i = 0; i < items.length; i++) {
-        if (items[i].type.indexOf('image') !== -1) {
-          const blob = items[i].getAsFile();
+      for (const item of clipboard) {
+        const imageType = item.types.find(type => type.startsWith('image/'));
+        if (imageType) {
+          const blob = await item.getType(imageType);
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const base64 = reader.result as string;
+            setPreview(base64);
+            onImageSelect(base64);
+            handleUploadSuccess();
+          };
+          reader.readAsDataURL(blob);
+          return;
+        }
+      }
+    } else {
+      for (let i = 0; i < clipboardItems.length; i++) {
+        if (clipboardItems[i].type.indexOf('image') !== -1) {
+          const blob = clipboardItems[i].getAsFile();
           if (!blob) continue;
 
           const reader = new FileReader();
@@ -47,24 +68,37 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
             handleUploadSuccess();
           };
           reader.readAsDataURL(blob);
-          break;
+          return;
         }
       }
+    }
+
+    toast({
+      title: "未找到圖片",
+      description: "請確保已複製圖片到剪貼簿",
+      variant: "destructive",
+    });
+  };
+
+  // Add paste event listener
+  useEffect(() => {
+    const pasteHandler = (e: ClipboardEvent) => {
+      e.preventDefault();
+      handlePaste(e.clipboardData?.items);
     };
 
     const card = cardRef.current;
     if (card) {
-      card.addEventListener('paste', handlePaste);
-      // Make the card focusable
+      card.addEventListener('paste', pasteHandler);
       card.tabIndex = 0;
     }
 
     return () => {
       if (card) {
-        card.removeEventListener('paste', handlePaste);
+        card.removeEventListener('paste', pasteHandler);
       }
     };
-  }, [onImageSelect]);
+  }, [handlePaste]);
 
   const handleUploadSuccess = () => {
     triggerConfetti();
@@ -249,7 +283,7 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
             上傳圖片
           </Button>
           <Button
-            onClick={() => cardRef.current?.focus()}
+            onClick={() => handlePaste()}
             className="flex items-center gap-2 transition-all duration-300 hover:shadow-md hover:scale-[1.02] bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 text-black hover:from-yellow-500 hover:via-amber-500 hover:to-yellow-600"
           >
             <Clipboard className="h-4 w-4" />
