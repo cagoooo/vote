@@ -26,13 +26,14 @@ export function ShareButton({ url = window.location.href, question, votes }: Sha
       return acc;
     }, {} as Record<number, number>);
 
-    let shareText = `投票問題結果：\n\n`;
+    let shareText = `即時投票系統 - 投票結果\n\n`;
     question.options.forEach((option, index) => {
       const count = voteCounts[index] || 0;
       const percentage = totalVotes ? Math.round((count / totalVotes) * 100) : 0;
-      shareText += `${option}: ${count}票 (${percentage}%)\n`;
+      shareText += `📊 ${option}: ${count}票 (${percentage}%)\n`;
     });
-    shareText += `\n總投票數：${totalVotes}票\n`;
+    shareText += `\n📈 總投票數：${totalVotes}票\n\n`;
+    shareText += `👉 參與投票：${url}`;
 
     return encodeURIComponent(shareText);
   };
@@ -69,11 +70,11 @@ export function ShareButton({ url = window.location.href, question, votes }: Sha
 
   const handleCopyLink = async () => {
     try {
-      const textToCopy = `${url}\n\n${decodeURIComponent(getShareText())}`;
-      await navigator.clipboard.writeText(textToCopy);
+      const shareText = decodeURIComponent(getShareText());
+      await navigator.clipboard.writeText(shareText);
       toast({
         title: "複製成功",
-        description: "投票結果連結已複製到剪貼簿",
+        description: "投票結果已複製到剪貼簿",
       });
       setIsOpen(false);
     } catch (err) {
