@@ -197,6 +197,18 @@ export default function Teacher() {
             <h2 className="text-xl font-semibold gradient-text">投票進行中</h2>
             <ShareButton url={window.location.href} />
           </div>
+
+          <Card className="p-6 card-hover">
+            <div className="flex justify-center mb-6">
+              <img
+                src={createdQuestion.imageUrl}
+                alt="問題圖片"
+                className="max-w-full max-h-[40vh] w-auto h-auto object-contain rounded-lg shadow-lg"
+              />
+            </div>
+            <h3 className="text-lg font-medium mb-2">{createdQuestion.options[0]}</h3>
+          </Card>
+
           <div className="grid md:grid-cols-2 gap-6">
             <QRDisplay questionId={createdQuestion.id} />
             <VotingStats question={createdQuestion} onVoteReceived={handleVoteReceived} />
