@@ -188,21 +188,21 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
         <div className="flex items-center gap-4 flex-wrap">
           <Button
             onClick={() => handleScreenshot(false)}
-            className="flex items-center gap-2 transition-all duration-300 hover:shadow-md hover:scale-[1.02]"
+            className="flex items-center gap-2 transition-all duration-300 hover:shadow-md hover:scale-[1.02] bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 text-black hover:from-yellow-500 hover:via-amber-500 hover:to-yellow-600"
           >
             <Scissors className="h-4 w-4" />
             電腦截圖
           </Button>
           <Button
             onClick={() => handleScreenshot(true)}
-            className="flex items-center gap-2 transition-all duration-300 hover:shadow-md hover:scale-[1.02]"
+            className="flex items-center gap-2 transition-all duration-300 hover:shadow-md hover:scale-[1.02] bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 text-black hover:from-yellow-500 hover:via-amber-500 hover:to-yellow-600"
           >
             <Smartphone className="h-4 w-4" />
             手機/平板截圖
           </Button>
           <Button
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-2 transition-all duration-300 hover:shadow-md hover:scale-[1.02]"
+            className="flex items-center gap-2 transition-all duration-300 hover:shadow-md hover:scale-[1.02] bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 text-black hover:from-yellow-500 hover:via-amber-500 hover:to-yellow-600"
           >
             <Camera className="h-4 w-4" />
             上傳圖片
