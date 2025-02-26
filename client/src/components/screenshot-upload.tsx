@@ -243,10 +243,17 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
             </div>
           </div>
         )}
+
+        {/* 只在非編輯模式下顯示驗證提示 */}
+        {!isEditing && !preview && (
+          <p className="text-sm text-muted-foreground text-center animate-fade-in">
+            請先上傳或截取圖片
+          </p>
+        )}
       </div>
 
       <Dialog open={isEditing} onOpenChange={setIsEditing}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>裁切圖片</DialogTitle>
           </DialogHeader>
@@ -264,7 +271,7 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
               />
             </ReactCrop>
           </div>
-          <div className="flex justify-end gap-2 mt-4">
+          <div className="flex justify-end gap-2 mt-4 sticky bottom-0 bg-background p-4 border-t">
             <Button
               variant="ghost"
               onClick={() => setIsEditing(false)}
