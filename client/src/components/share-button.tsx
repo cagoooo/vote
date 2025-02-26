@@ -18,13 +18,16 @@ export function ShareButton({ url = window.location.href, question, votes }: Sha
 
   // Generate share text with voting results if available
   const getShareText = () => {
-    if (!question || !votes) return "";
+    if (!question) {
+      console.log("No question data available");
+      return "";
+    }
 
-    const totalVotes = votes.length;
-    const voteCounts = votes.reduce((acc, vote) => {
+    const totalVotes = votes?.length || 0;
+    const voteCounts = votes?.reduce((acc, vote) => {
       acc[vote.optionIndex] = (acc[vote.optionIndex] || 0) + 1;
       return acc;
-    }, {} as Record<number, number>);
+    }, {} as Record<number, number>) || {};
 
     let shareText = `即時投票系統 - 投票結果\n\n`;
     question.options.forEach((option, index) => {
@@ -74,7 +77,7 @@ export function ShareButton({ url = window.location.href, question, votes }: Sha
       if (!shareText) {
         toast({
           title: "複製失敗",
-          description: "無法獲取投票結果",
+          description: "無法獲取投票結果，請確認投票已建立且有投票數據",
           variant: "destructive",
         });
         return;

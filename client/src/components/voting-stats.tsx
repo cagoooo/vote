@@ -8,7 +8,7 @@ import { useEffect, useState, useRef } from "react";
 
 interface VotingStatsProps {
   question: Question;
-  onVoteReceived?: () => void;
+  onVoteReceived?: (votes: Vote[]) => void;
 }
 
 // 預定義的漸層色彩配置，增加飽和度
@@ -29,7 +29,7 @@ export function VotingStats({ question, onVoteReceived }: VotingStatsProps) {
 
   const [animatedPercentages, setAnimatedPercentages] = useState<Record<number, number>>({});
   const controls = useAnimation();
-  const previousVoteCount = useRef(0);
+  
 
   const totals = votes.reduce((acc, vote) => {
     acc[vote.optionIndex] = (acc[vote.optionIndex] || 0) + 1;
@@ -40,11 +40,10 @@ export function VotingStats({ question, onVoteReceived }: VotingStatsProps) {
 
   // 監控投票數變化並觸發音效
   useEffect(() => {
-    if (totalVotes > previousVoteCount.current && onVoteReceived) {
-      onVoteReceived();
+    if (onVoteReceived) {
+      onVoteReceived(votes);
     }
-    previousVoteCount.current = totalVotes;
-  }, [totalVotes, onVoteReceived]);
+  }, [votes, onVoteReceived]);
 
   // Animate percentages when votes change
   useEffect(() => {
