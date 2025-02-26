@@ -141,6 +141,7 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
     toast({
       title: "刪除成功",
       description: "圖片已被刪除",
+      variant: "success",
     });
   };
 
