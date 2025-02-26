@@ -1,9 +1,9 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Camera, Scissors, Smartphone, Trash2, Check } from "lucide-react";
+import { Camera, Scissors, Smartphone, Trash2, Check, Clipboard } from "lucide-react";
 import { CropIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useConfetti } from "@/hooks/use-confetti";
@@ -20,10 +20,51 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
   const [crop, setCrop] = useState<ReactCropType>();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { triggerConfetti } = useConfetti();
 
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+  // Add paste event listener
+  useEffect(() => {
+    const handlePaste = async (e: ClipboardEvent) => {
+      e.preventDefault();
+      const items = e.clipboardData?.items;
+
+      if (!items) return;
+
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          const blob = items[i].getAsFile();
+          if (!blob) continue;
+
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const base64 = reader.result as string;
+            setPreview(base64);
+            onImageSelect(base64);
+            handleUploadSuccess();
+          };
+          reader.readAsDataURL(blob);
+          break;
+        }
+      }
+    };
+
+    const card = cardRef.current;
+    if (card) {
+      card.addEventListener('paste', handlePaste);
+      // Make the card focusable
+      card.tabIndex = 0;
+    }
+
+    return () => {
+      if (card) {
+        card.removeEventListener('paste', handlePaste);
+      }
+    };
+  }, [onImageSelect]);
 
   const handleUploadSuccess = () => {
     triggerConfetti();
@@ -174,7 +215,7 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
     setPreview(base64);
     onImageSelect(base64);
     setIsEditing(false);
-    setCrop(undefined); // Reset crop state after completing
+    setCrop(undefined);
     toast({
       title: "裁切成功",
       description: "圖片已成功裁切",
@@ -183,7 +224,7 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
   };
 
   return (
-    <Card className="p-6">
+    <Card ref={cardRef} className="p-6">
       <div className="space-y-4">
         <div className="flex items-center gap-4 flex-wrap">
           <Button
@@ -206,6 +247,13 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
           >
             <Camera className="h-4 w-4" />
             上傳圖片
+          </Button>
+          <Button
+            onClick={() => cardRef.current?.focus()}
+            className="flex items-center gap-2 transition-all duration-300 hover:shadow-md hover:scale-[1.02] bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 text-black hover:from-yellow-500 hover:via-amber-500 hover:to-yellow-600"
+          >
+            <Clipboard className="h-4 w-4" />
+            貼上圖片
           </Button>
           <Input
             ref={fileInputRef}
@@ -249,7 +297,7 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
         {/* 只在非編輯模式下顯示驗證提示 */}
         {!isEditing && !preview && (
           <p className="text-sm text-muted-foreground text-center animate-fade-in">
-            請先上傳或截取圖片
+            請先上傳或截取圖片，也可以直接貼上複製的圖片 (Ctrl+V)
           </p>
         )}
       </div>
