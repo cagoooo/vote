@@ -135,7 +135,7 @@ export default function Teacher() {
                     value={option}
                     onChange={(e) => updateOption(index, e.target.value)}
                     placeholder={`選項 ${index + 1}`}
-                    className="transition-all duration-300 focus:ring-2 focus:ring-red-500/20 border-red-100 hover:border-red-200 focus:border-red-300 focus:outline-none" // Added focus styles
+                    className="transition-all duration-300 focus:ring-2 focus:ring-green-500/20 border-green-100 hover:border-green-200 focus:border-green-300 focus:outline-none bg-green-50/30"
                   />
                   {options.length > 2 && (
                     <Button
@@ -157,7 +157,7 @@ export default function Teacher() {
                 type="button"
                 variant="outline"
                 onClick={addOption}
-                className="flex items-center gap-2 hover:bg-red-500/10 hover:border-red-200 transition-colors"
+                className="flex items-center gap-2 hover:bg-green-500/10 hover:border-green-200 transition-colors"
               >
                 <Plus className="h-4 w-4" />
                 添加選項
@@ -167,7 +167,7 @@ export default function Teacher() {
 
           <Button
             type="submit"
-            className="w-full h-12 text-lg shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-r from-primary via-red-500 to-purple-600 hover:scale-[1.02] ripple" // Added ripple class
+            className="w-full h-12 text-lg shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-r from-primary via-red-500 to-purple-600 hover:scale-[1.02] ripple"
             disabled={createQuestion.isPending || !canSubmit}
           >
             {createQuestion.isPending ? (
