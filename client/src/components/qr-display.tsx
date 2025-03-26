@@ -20,7 +20,7 @@ export function QRDisplay({ questionId }: QRDisplayProps) {
         <QRCode value={url} size={200} />
       </div>
       <p className="text-sm text-muted-foreground text-center">
-        或訪問: <a href={url} target="_blank" rel="noopener noreferrer" className="underline hover:text-primary transition-colors">{url}</a>
+        或<a href={url} target="_blank" rel="noopener noreferrer" className="underline hover:text-primary transition-colors">訪問連結</a>
       </p>
     </Card>
   );

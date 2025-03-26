@@ -84,18 +84,43 @@ export function ShareButton({ url = window.location.href, question, votes }: Sha
         return;
       }
 
-      await navigator.clipboard.writeText(shareText);
-      toast({
-        title: "複製成功",
-        description: "投票結果已複製到剪貼簿",
-      });
+      // For better compatibility, use a fallback method if clipboard API fails
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(shareText);
+        toast({
+          title: "複製成功",
+          description: "投票結果已複製到剪貼簿",
+          className: "bg-green-50",
+        });
+      } else {
+        // Fallback for browsers that don't support clipboard API
+        const textArea = document.createElement('textarea');
+        textArea.value = shareText;
+        textArea.style.position = 'fixed';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        if (successful) {
+          toast({
+            title: "複製成功",
+            description: "投票結果已複製到剪貼簿",
+            className: "bg-green-50",
+          });
+        } else {
+          throw new Error('Fallback copy method failed');
+        }
+      }
       setIsOpen(false);
     } catch (err) {
       console.error('Copy failed:', err);
       toast({
         title: "複製失敗",
-        description: "請手動複製連結",
+        description: "無法獲取投票結果，請檢查瀏覽器權限",
         variant: "destructive",
+        className: "bg-red-50",
       });
     }
   };
