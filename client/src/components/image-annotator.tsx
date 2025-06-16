@@ -93,9 +93,10 @@ export function ImageAnnotator({ imageUrl, onImageUpdated, isOpen, onClose }: Im
     
     if (!canvas || !backgroundCanvas || !container) return;
 
+    // Calculate responsive dimensions
     const containerRect = container.getBoundingClientRect();
-    const maxWidth = containerRect.width - 32; // Account for padding
-    const maxHeight = window.innerHeight * 0.6;
+    const maxWidth = Math.min(containerRect.width - 64, window.innerWidth * 0.85);
+    const maxHeight = Math.min(window.innerHeight * 0.65, 700);
 
     // Calculate display dimensions maintaining aspect ratio
     const aspectRatio = image.width / image.height;
@@ -105,6 +106,15 @@ export function ImageAnnotator({ imageUrl, onImageUpdated, isOpen, onClose }: Im
     if (displayHeight > maxHeight) {
       displayHeight = maxHeight;
       displayWidth = displayHeight * aspectRatio;
+    }
+
+    // Ensure minimum size for mobile devices
+    const minWidth = Math.min(300, window.innerWidth * 0.8);
+    const minHeight = minWidth / aspectRatio;
+    
+    if (displayWidth < minWidth) {
+      displayWidth = minWidth;
+      displayHeight = minHeight;
     }
 
     // Set canvas dimensions
@@ -124,9 +134,12 @@ export function ImageAnnotator({ imageUrl, onImageUpdated, isOpen, onClose }: Im
       }
     });
 
-    // Draw background image
+    // Draw background image with proper scaling
     const bgCtx = backgroundCanvas.getContext('2d');
     if (bgCtx) {
+      // Clear the canvas first
+      bgCtx.clearRect(0, 0, displayWidth, displayHeight);
+      // Draw the image to fill the canvas
       bgCtx.drawImage(image, 0, 0, displayWidth, displayHeight);
     }
 
@@ -329,12 +342,12 @@ export function ImageAnnotator({ imageUrl, onImageUpdated, isOpen, onClose }: Im
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[95vh] p-0">
-        <DialogHeader className="p-6 pb-4">
-          <DialogTitle className="text-xl font-semibold">圖片標註</DialogTitle>
+      <DialogContent className="max-w-[95vw] max-h-[95vh] w-full p-0 overflow-hidden">
+        <DialogHeader className="p-4 pb-2 sm:p-6 sm:pb-4">
+          <DialogTitle className="text-lg sm:text-xl font-semibold">圖片標註</DialogTitle>
         </DialogHeader>
 
-        <div className="px-6 pb-4">
+        <div className="px-4 pb-4 sm:px-6 overflow-y-auto max-h-[calc(95vh-80px)]">
           {/* Toolbar */}
           <div className="flex flex-wrap items-center gap-2 mb-4 p-3 bg-muted/50 rounded-lg">
             {/* Tools */}
@@ -477,18 +490,20 @@ export function ImageAnnotator({ imageUrl, onImageUpdated, isOpen, onClose }: Im
           {/* Canvas Container */}
           <div 
             ref={containerRef}
-            className="relative border rounded-lg overflow-hidden bg-white flex justify-center"
+            className="relative border rounded-lg overflow-hidden bg-white flex justify-center items-center min-h-[400px]"
           >
             <div className="relative">
               {/* Background image canvas */}
               <canvas
                 ref={backgroundCanvasRef}
-                className="absolute top-0 left-0 block"
+                className="block border border-gray-200 rounded"
+                style={{ zIndex: 1 }}
               />
               {/* Annotation canvas */}
               <canvas
                 ref={canvasRef}
                 className="absolute top-0 left-0 block cursor-crosshair touch-none"
+                style={{ zIndex: 2 }}
                 onMouseDown={startDrawing}
                 onMouseMove={draw}
                 onMouseUp={stopDrawing}

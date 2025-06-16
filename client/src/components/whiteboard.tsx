@@ -75,15 +75,44 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
 
     const resizeCanvas = () => {
       const rect = container.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return; // Wait for proper container sizing
+      
       const dpr = window.devicePixelRatio || 1;
       
+      // Calculate responsive dimensions with better mobile support
+      const isMobile = window.innerWidth < 640;
+      const containerPadding = isMobile ? 16 : 32;
+      const maxWidth = Math.min(rect.width - containerPadding, window.innerWidth * (isMobile ? 0.95 : 0.85));
+      const maxHeight = Math.min(window.innerHeight * (isMobile ? 0.5 : 0.6), isMobile ? 400 : 600);
+      
+      // Use a more suitable aspect ratio for mobile
+      const aspectRatio = isMobile ? 3 / 2 : 4 / 3;
+      
+      let displayWidth = maxWidth;
+      let displayHeight = displayWidth / aspectRatio;
+      
+      // Adjust if height exceeds maximum
+      if (displayHeight > maxHeight) {
+        displayHeight = maxHeight;
+        displayWidth = displayHeight * aspectRatio;
+      }
+      
+      // Ensure minimum usable size
+      const minWidth = isMobile ? 280 : 400;
+      const minHeight = minWidth / aspectRatio;
+      
+      if (displayWidth < minWidth) {
+        displayWidth = minWidth;
+        displayHeight = minHeight;
+      }
+      
       // Set display size
-      canvas.style.width = `${rect.width}px`;
-      canvas.style.height = `${Math.min(rect.width * 0.7, window.innerHeight * 0.6)}px`;
+      canvas.style.width = `${displayWidth}px`;
+      canvas.style.height = `${displayHeight}px`;
       
       // Set actual size in memory (scaled for DPI)
-      canvas.width = rect.width * dpr;
-      canvas.height = Math.min(rect.width * 0.7, window.innerHeight * 0.6) * dpr;
+      canvas.width = displayWidth * dpr;
+      canvas.height = displayHeight * dpr;
       
       // Scale context for DPI
       const ctx = canvas.getContext('2d');
@@ -101,10 +130,12 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
       }
     };
 
-    resizeCanvas();
+    // Initial resize with a small delay to ensure container is rendered
+    const timeoutId = setTimeout(resizeCanvas, 100);
     window.addEventListener('resize', resizeCanvas);
 
     return () => {
+      clearTimeout(timeoutId);
       window.removeEventListener('resize', resizeCanvas);
     };
   }, [isOpen, paths]);
@@ -271,31 +302,33 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[95vh] p-0">
-        <DialogHeader className="p-6 pb-4">
-          <DialogTitle className="text-xl font-semibold">手寫白板</DialogTitle>
+      <DialogContent className="max-w-[95vw] max-h-[95vh] w-full p-0 overflow-hidden">
+        <DialogHeader className="p-4 pb-2 sm:p-6 sm:pb-4">
+          <DialogTitle className="text-lg sm:text-xl font-semibold">手寫白板</DialogTitle>
         </DialogHeader>
 
-        <div className="px-6 pb-4">
+        <div className="px-4 pb-4 sm:px-6 overflow-y-auto max-h-[calc(95vh-80px)]">
           {/* Toolbar */}
-          <div className="flex flex-wrap items-center gap-2 mb-4 p-3 bg-muted/50 rounded-lg">
+          <div className="flex flex-wrap items-center gap-1 sm:gap-2 mb-4 p-2 sm:p-3 bg-muted/50 rounded-lg">
             {/* Tools */}
             <div className="flex items-center gap-1">
               <Button
                 size="sm"
                 variant={currentTool === 'pen' ? 'default' : 'outline'}
                 onClick={() => setCurrentTool('pen')}
-                className="h-9"
+                className="h-8 sm:h-9 px-2 sm:px-3"
               >
-                <Pencil className="h-4 w-4" />
+                <Pencil className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline ml-1">筆</span>
               </Button>
               <Button
                 size="sm"
                 variant={currentTool === 'eraser' ? 'default' : 'outline'}
                 onClick={() => setCurrentTool('eraser')}
-                className="h-9"
+                className="h-8 sm:h-9 px-2 sm:px-3"
               >
-                <Eraser className="h-4 w-4" />
+                <Eraser className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline ml-1">擦</span>
               </Button>
             </div>
 
@@ -430,11 +463,11 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
           {/* Canvas Container */}
           <div 
             ref={containerRef}
-            className="relative border rounded-lg overflow-hidden bg-white"
+            className="relative border rounded-lg overflow-hidden bg-white w-full min-h-[300px] sm:min-h-[400px] flex justify-center items-center"
           >
             <canvas
               ref={canvasRef}
-              className="block cursor-crosshair touch-none"
+              className="block cursor-crosshair touch-none border border-gray-200 rounded max-w-full max-h-full"
               onMouseDown={startDrawing}
               onMouseMove={draw}
               onMouseUp={stopDrawing}
