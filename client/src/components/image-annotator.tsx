@@ -73,8 +73,14 @@ export function ImageAnnotator({ imageUrl, onImageUpdated, isOpen, onClose }: Im
     const image = new Image();
     image.crossOrigin = 'anonymous';
     image.onload = () => {
+      console.log('Image loaded successfully:', image.width, 'x', image.height);
       setImageLoaded(true);
-      setupCanvases(image);
+      // Add a small delay to ensure container is ready
+      setTimeout(() => setupCanvases(image), 150);
+    };
+    image.onerror = (error) => {
+      console.error('Failed to load image:', error);
+      setImageLoaded(false);
     };
     image.src = imageUrl;
 
@@ -91,12 +97,23 @@ export function ImageAnnotator({ imageUrl, onImageUpdated, isOpen, onClose }: Im
     const backgroundCanvas = backgroundCanvasRef.current;
     const container = containerRef.current;
     
-    if (!canvas || !backgroundCanvas || !container) return;
+    if (!canvas || !backgroundCanvas || !container) {
+      console.error('Missing canvas or container references');
+      return;
+    }
+
+    // Wait for container to be properly sized
+    const containerRect = container.getBoundingClientRect();
+    if (containerRect.width === 0 || containerRect.height === 0) {
+      console.log('Container not ready, retrying...');
+      setTimeout(() => setupCanvases(image), 100);
+      return;
+    }
 
     // Calculate responsive dimensions
-    const containerRect = container.getBoundingClientRect();
-    const maxWidth = Math.min(containerRect.width - 64, window.innerWidth * 0.85);
-    const maxHeight = Math.min(window.innerHeight * 0.65, 700);
+    const isMobile = window.innerWidth < 640;
+    const maxWidth = Math.min(containerRect.width - (isMobile ? 32 : 64), window.innerWidth * (isMobile ? 0.9 : 0.85));
+    const maxHeight = Math.min(window.innerHeight * (isMobile ? 0.6 : 0.65), isMobile ? 500 : 700);
 
     // Calculate display dimensions maintaining aspect ratio
     const aspectRatio = image.width / image.height;
@@ -108,8 +125,8 @@ export function ImageAnnotator({ imageUrl, onImageUpdated, isOpen, onClose }: Im
       displayWidth = displayHeight * aspectRatio;
     }
 
-    // Ensure minimum size for mobile devices
-    const minWidth = Math.min(300, window.innerWidth * 0.8);
+    // Ensure minimum usable size
+    const minWidth = isMobile ? 280 : 300;
     const minHeight = minWidth / aspectRatio;
     
     if (displayWidth < minWidth) {
@@ -117,30 +134,30 @@ export function ImageAnnotator({ imageUrl, onImageUpdated, isOpen, onClose }: Im
       displayHeight = minHeight;
     }
 
-    // Set canvas dimensions
-    const dpr = window.devicePixelRatio || 1;
-    
+    console.log('Canvas dimensions:', displayWidth, 'x', displayHeight);
+
+    // Set canvas dimensions without DPR scaling for simplicity
     [canvas, backgroundCanvas].forEach(canv => {
       canv.style.width = `${displayWidth}px`;
       canv.style.height = `${displayHeight}px`;
-      canv.width = displayWidth * dpr;
-      canv.height = displayHeight * dpr;
+      canv.width = displayWidth;
+      canv.height = displayHeight;
       
       const ctx = canv.getContext('2d');
       if (ctx) {
-        ctx.scale(dpr, dpr);
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
+        ctx.imageSmoothingEnabled = true;
       }
     });
 
-    // Draw background image with proper scaling
+    // Draw background image
     const bgCtx = backgroundCanvas.getContext('2d');
     if (bgCtx) {
-      // Clear the canvas first
+      console.log('Drawing background image...');
       bgCtx.clearRect(0, 0, displayWidth, displayHeight);
-      // Draw the image to fill the canvas
       bgCtx.drawImage(image, 0, 0, displayWidth, displayHeight);
+      console.log('Background image drawn');
     }
 
     // Clear annotation canvas
@@ -155,11 +172,8 @@ export function ImageAnnotator({ imageUrl, onImageUpdated, isOpen, onClose }: Im
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx) return;
 
-    const displayWidth = canvas.width / (window.devicePixelRatio || 1);
-    const displayHeight = canvas.height / (window.devicePixelRatio || 1);
-
     // Clear canvas
-    ctx.clearRect(0, 0, displayWidth, displayHeight);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Redraw all paths
     paths.forEach(path => {
@@ -269,9 +283,7 @@ export function ImageAnnotator({ imageUrl, onImageUpdated, isOpen, onClose }: Im
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (ctx && canvas) {
-      const displayWidth = canvas.width / (window.devicePixelRatio || 1);
-      const displayHeight = canvas.height / (window.devicePixelRatio || 1);
-      ctx.clearRect(0, 0, displayWidth, displayHeight);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
   };
 
