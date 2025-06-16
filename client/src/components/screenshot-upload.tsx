@@ -3,12 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Camera, Scissors, Smartphone, Trash2, Check, Clipboard } from "lucide-react";
+import { Camera, Scissors, Smartphone, Trash2, Check, Clipboard, Edit3, Palette } from "lucide-react";
 import { CropIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useConfetti } from "@/hooks/use-confetti";
 import ReactCrop, { type Crop as ReactCropType } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
+import { Whiteboard } from "./whiteboard";
+import { ImageAnnotator } from "./image-annotator";
 
 interface ScreenshotUploadProps {
   onImageSelect: (image: string) => void;
@@ -18,6 +20,8 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
   const [preview, setPreview] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [crop, setCrop] = useState<ReactCropType>();
+  const [isWhiteboardOpen, setIsWhiteboardOpen] = useState(false);
+  const [isAnnotatorOpen, setIsAnnotatorOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -262,6 +266,13 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
       <div className="space-y-4">
         <div className="flex items-center gap-4 flex-wrap">
           <Button
+            onClick={() => setIsWhiteboardOpen(true)}
+            className="flex items-center gap-2 transition-all duration-300 hover:shadow-md hover:scale-[1.02] bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 text-black hover:from-yellow-500 hover:via-amber-500 hover:to-yellow-600"
+          >
+            <Edit3 className="h-4 w-4" />
+            手寫白板
+          </Button>
+          <Button
             onClick={() => handleScreenshot(false)}
             className="flex items-center gap-2 transition-all duration-300 hover:shadow-md hover:scale-[1.02] bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 text-black hover:from-yellow-500 hover:via-amber-500 hover:to-yellow-600"
           >
@@ -312,7 +323,17 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
                   size="icon"
                   variant="secondary"
                   className="bg-white/80 hover:bg-white transition-all duration-300 hover:scale-110"
+                  onClick={() => setIsAnnotatorOpen(true)}
+                  title="圖片標註"
+                >
+                  <Palette className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="secondary"
+                  className="bg-white/80 hover:bg-white transition-all duration-300 hover:scale-110"
                   onClick={() => setIsEditing(true)}
+                  title="裁切圖片"
                 >
                   <CropIcon className="h-4 w-4" />
                 </Button>
@@ -321,6 +342,7 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
                   variant="destructive"
                   className="bg-white/80 hover:bg-red-500 transition-all duration-300 hover:scale-110"
                   onClick={handleDeleteImage}
+                  title="刪除圖片"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -373,6 +395,30 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Whiteboard Component */}
+      <Whiteboard
+        isOpen={isWhiteboardOpen}
+        onClose={() => setIsWhiteboardOpen(false)}
+        onImageGenerated={(image) => {
+          setPreview(image);
+          onImageSelect(image);
+          handleUploadSuccess();
+        }}
+      />
+
+      {/* Image Annotator Component */}
+      {preview && (
+        <ImageAnnotator
+          imageUrl={preview}
+          isOpen={isAnnotatorOpen}
+          onClose={() => setIsAnnotatorOpen(false)}
+          onImageUpdated={(image) => {
+            setPreview(image);
+            onImageSelect(image);
+          }}
+        />
+      )}
     </Card>
   );
 }
