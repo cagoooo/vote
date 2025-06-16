@@ -6,9 +6,9 @@ hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 channel = "stable-24_05"
 
 [deployment]
-deploymentTarget = "static"
-build = ["npm", "run", "build"]
-publicDir = "dist"
+deploymentTarget = "cloudrun"
+build = ["sh", "-c", "./build.sh"]
+run = ["sh", "-c", "npm start"]
 
 [[ports]]
 localPort = 5000
