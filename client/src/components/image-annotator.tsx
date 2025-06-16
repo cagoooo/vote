@@ -73,7 +73,6 @@ export function ImageAnnotator({ imageUrl, onImageUpdated, isOpen, onClose }: Im
     const image = new Image();
     image.crossOrigin = 'anonymous';
     image.onload = () => {
-      imageRef.current = image;
       setImageLoaded(true);
       setupCanvases(image);
     };
@@ -256,7 +255,7 @@ export function ImageAnnotator({ imageUrl, onImageUpdated, isOpen, onClose }: Im
     
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
-    if (ctx) {
+    if (ctx && canvas) {
       const displayWidth = canvas.width / (window.devicePixelRatio || 1);
       const displayHeight = canvas.height / (window.devicePixelRatio || 1);
       ctx.clearRect(0, 0, displayWidth, displayHeight);
@@ -291,7 +290,7 @@ export function ImageAnnotator({ imageUrl, onImageUpdated, isOpen, onClose }: Im
     const combinedCanvas = document.createElement('canvas');
     const combinedCtx = combinedCanvas.getContext('2d');
     
-    if (!combinedCtx) return;
+    if (!combinedCtx || !backgroundCanvas || !annotationCanvas) return;
 
     combinedCanvas.width = backgroundCanvas.width;
     combinedCanvas.height = backgroundCanvas.height;

@@ -116,7 +116,7 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
 
     // Clear and fill with white
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, canvas.width / (window.devicePixelRatio || 1), canvas.height / (window.devicePixelRatio || 1));
 
     // Redraw all paths
     paths.forEach(path => {
@@ -220,9 +220,9 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
     
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
-    if (ctx) {
+    if (ctx && canvas) {
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(0, 0, canvas.width / (window.devicePixelRatio || 1), canvas.height / (window.devicePixelRatio || 1));
     }
   };
 
