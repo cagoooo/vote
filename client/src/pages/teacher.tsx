@@ -300,74 +300,122 @@ export default function Teacher() {
           </div>
 
           {/* Correct Answer Management */}
-          <Card className="p-6 card-hover">
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-primary" />
-              正確答案管理
-            </h3>
+          <Card className="p-4 sm:p-6 card-hover shadow-lg border-0 bg-gradient-to-r from-green-50 to-blue-50">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-green-100 rounded-full">
+                <CheckCircle2 className="w-5 h-5 text-green-600" />
+              </div>
+              <h3 className="text-lg sm:text-xl font-bold text-gray-800">
+                正確答案管理
+              </h3>
+            </div>
             
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div>
-                <p className="text-sm text-muted-foreground mb-3">
-                  設定正確答案選項：
-                </p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-sm font-medium text-gray-700">
+                    設定正確答案選項：
+                  </p>
+                  {createdQuestion.correctAnswer !== null && (
+                    <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full">
+                      已設定
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                   {createdQuestion.options.map((option, index) => (
                     <Button
                       key={index}
                       variant={createdQuestion.correctAnswer === index ? "default" : "outline"}
-                      size="sm"
+                      size="default"
                       onClick={() => setCorrectAnswer.mutate(index)}
                       disabled={setCorrectAnswer.isPending}
-                      className={`text-xs ${
+                      className={`h-auto min-h-[3rem] p-3 text-left text-sm font-medium transition-all duration-200 ${
                         createdQuestion.correctAnswer === index 
-                          ? "bg-green-500 hover:bg-green-600 text-white" 
-                          : "hover:bg-green-50 hover:border-green-200"
+                          ? "bg-green-500 hover:bg-green-600 text-white shadow-lg transform hover:scale-105" 
+                          : "hover:bg-green-50 hover:border-green-300 hover:shadow-md active:scale-95"
                       }`}
                     >
-                      {index + 1}. {option.substring(0, 20)}{option.length > 20 ? '...' : ''}
+                      <div className="w-full">
+                        <div className="font-bold text-xs mb-1">選項 {index + 1}</div>
+                        <div className="text-xs leading-tight break-words">
+                          {option.length > 30 ? `${option.substring(0, 30)}...` : option}
+                        </div>
+                      </div>
                     </Button>
                   ))}
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-4 border-t">
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium">
-                    {createdQuestion.showAnswer ? "正確答案已顯示" : "正確答案已隱藏"}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {createdQuestion.showAnswer 
-                      ? "學生可以在投票結果中看到正確答案" 
-                      : "正確答案僅對老師可見"}
-                  </span>
+              <div className="bg-white rounded-lg border border-gray-200 p-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-sm font-semibold text-gray-800">
+                        答案顯示狀態
+                      </span>
+                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                        createdQuestion.showAnswer 
+                          ? "bg-green-100 text-green-700" 
+                          : "bg-gray-100 text-gray-600"
+                      }`}>
+                        {createdQuestion.showAnswer ? "已公開" : "已隱藏"}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-600 leading-relaxed">
+                      {createdQuestion.showAnswer 
+                        ? "學生現在可以在投票結果中看到正確答案標記" 
+                        : "正確答案僅對老師可見，學生無法看到"}
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => toggleShowAnswer.mutate(!createdQuestion.showAnswer)}
+                    disabled={toggleShowAnswer.isPending || createdQuestion.correctAnswer === null}
+                    variant={createdQuestion.showAnswer ? "destructive" : "default"}
+                    size="default"
+                    className={`flex items-center gap-2 min-w-[120px] h-10 font-medium transition-all duration-200 ${
+                      createdQuestion.showAnswer 
+                        ? "hover:shadow-lg" 
+                        : "bg-blue-500 hover:bg-blue-600 hover:shadow-lg"
+                    }`}
+                  >
+                    {createdQuestion.showAnswer ? (
+                      <>
+                        <EyeOff className="w-4 h-4" />
+                        隱藏答案
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="w-4 h-4" />
+                        顯示答案
+                      </>
+                    )}
+                  </Button>
                 </div>
-                <Button
-                  onClick={() => toggleShowAnswer.mutate(!createdQuestion.showAnswer)}
-                  disabled={toggleShowAnswer.isPending || createdQuestion.correctAnswer === null}
-                  variant={createdQuestion.showAnswer ? "destructive" : "default"}
-                  size="sm"
-                  className="flex items-center gap-2"
-                >
-                  {createdQuestion.showAnswer ? (
-                    <>
-                      <EyeOff className="w-4 h-4" />
-                      隱藏答案
-                    </>
-                  ) : (
-                    <>
-                      <Eye className="w-4 h-4" />
-                      顯示答案
-                    </>
-                  )}
-                </Button>
               </div>
 
               {createdQuestion.correctAnswer !== null && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                  <p className="text-sm text-green-800">
-                    <strong>目前正確答案：</strong>選項 {createdQuestion.correctAnswer + 1} - {createdQuestion.options[createdQuestion.correctAnswer]}
-                  </p>
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-300 rounded-lg p-4 shadow-sm">
+                  <div className="flex items-start gap-3">
+                    <div className="p-1 bg-green-100 rounded-full flex-shrink-0 mt-0.5">
+                      <CheckCircle2 className="w-4 h-4 text-green-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-semibold text-green-800 mb-1">
+                        目前正確答案
+                      </h4>
+                      <div className="bg-white rounded-md p-3 border border-green-200">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded">
+                            選項 {createdQuestion.correctAnswer + 1}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-700 leading-relaxed break-words">
+                          {createdQuestion.options[createdQuestion.correctAnswer]}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

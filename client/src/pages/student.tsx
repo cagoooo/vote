@@ -255,17 +255,23 @@ export default function Student() {
               </motion.div>
             ) : (
               <motion.div
-                className="grid gap-3"
+                className="space-y-4"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.5 }}
               >
-                <h2 className="text-xl font-semibold gradient-text text-center mb-2">
-                  請選擇您的答案
-                </h2>
-                {question.options.map((option, index) => (
-                  <motion.div
+                <div className="text-center mb-6">
+                  <h2 className="text-xl sm:text-2xl font-bold gradient-text mb-2">
+                    請選擇您的答案
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    點擊選項進行投票
+                  </p>
+                </div>
+                <div className="grid gap-3 sm:gap-4">
+                  {question.options.map((option, index) => (
+                    <motion.div
                     key={index}
                     initial={{ x: -20, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
@@ -322,7 +328,8 @@ export default function Student() {
                       </motion.div>
                     </Button>
                   </motion.div>
-                ))}
+                  ))}
+                </div>
               </motion.div>
             )}
             </AnimatePresence>
