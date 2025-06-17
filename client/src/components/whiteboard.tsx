@@ -310,32 +310,29 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Create a new canvas with proper aspect ratio for consistent display
+    // Create a new canvas maintaining the original aspect ratio
     const outputCanvas = document.createElement('canvas');
     const outputCtx = outputCanvas.getContext('2d');
     if (!outputCtx) return;
 
-    // Use a standard aspect ratio that works well across devices
-    const aspectRatio = 16 / 9; // Standard widescreen ratio
-    const maxWidth = 800;
-    const maxHeight = maxWidth / aspectRatio;
+    // Preserve the original canvas aspect ratio
+    const originalAspectRatio = canvas.width / canvas.height;
+    const maxDimension = 800; // Maximum size for either width or height
 
-    // Calculate dimensions while maintaining aspect ratio
-    let outputWidth = canvas.width;
-    let outputHeight = canvas.height;
+    let outputWidth, outputHeight;
 
-    // Scale down if needed while maintaining aspect ratio
-    if (outputWidth > maxWidth) {
-      outputWidth = maxWidth;
-      outputHeight = outputWidth * (canvas.height / canvas.width);
-    }
-    
-    if (outputHeight > maxHeight) {
-      outputHeight = maxHeight;
-      outputWidth = outputHeight * (canvas.width / canvas.height);
+    // Scale down while maintaining aspect ratio
+    if (canvas.width >= canvas.height) {
+      // Landscape or square - limit by width
+      outputWidth = Math.min(canvas.width, maxDimension);
+      outputHeight = outputWidth / originalAspectRatio;
+    } else {
+      // Portrait - limit by height  
+      outputHeight = Math.min(canvas.height, maxDimension);
+      outputWidth = outputHeight * originalAspectRatio;
     }
 
-    // Set output canvas dimensions
+    // Set output canvas dimensions to exact original proportions
     outputCanvas.width = outputWidth;
     outputCanvas.height = outputHeight;
 
@@ -343,7 +340,7 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
     outputCtx.fillStyle = '#ffffff';
     outputCtx.fillRect(0, 0, outputWidth, outputHeight);
 
-    // Draw the original canvas content, scaled to fit
+    // Draw the original canvas content maintaining exact proportions
     outputCtx.drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, outputWidth, outputHeight);
 
     const dataURL = outputCanvas.toDataURL('image/png', 0.95);
@@ -361,26 +358,22 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Create output canvas with consistent dimensions (same logic as saveImage)
+    // Create output canvas maintaining original aspect ratio (same logic as saveImage)
     const outputCanvas = document.createElement('canvas');
     const outputCtx = outputCanvas.getContext('2d');
     if (!outputCtx) return;
 
-    const aspectRatio = 16 / 9;
-    const maxWidth = 800;
-    const maxHeight = maxWidth / aspectRatio;
+    const originalAspectRatio = canvas.width / canvas.height;
+    const maxDimension = 800;
 
-    let outputWidth = canvas.width;
-    let outputHeight = canvas.height;
+    let outputWidth, outputHeight;
 
-    if (outputWidth > maxWidth) {
-      outputWidth = maxWidth;
-      outputHeight = outputWidth * (canvas.height / canvas.width);
-    }
-    
-    if (outputHeight > maxHeight) {
-      outputHeight = maxHeight;
-      outputWidth = outputHeight * (canvas.width / canvas.height);
+    if (canvas.width >= canvas.height) {
+      outputWidth = Math.min(canvas.width, maxDimension);
+      outputHeight = outputWidth / originalAspectRatio;
+    } else {
+      outputHeight = Math.min(canvas.height, maxDimension);
+      outputWidth = outputHeight * originalAspectRatio;
     }
 
     outputCanvas.width = outputWidth;
