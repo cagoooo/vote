@@ -7,6 +7,8 @@ export interface IStorage {
   addVote(questionId: number, optionIndex: number): Promise<Vote>;
   getVotesForQuestion(questionId: number): Promise<Vote[]>;
   resetVotes(questionId: number): Promise<void>;
+  setCorrectAnswer(questionId: number, correctAnswer: number): Promise<Question>;
+  showAnswer(questionId: number, show: boolean): Promise<Question>;
 }
 
 export class MemStorage implements IStorage {
@@ -24,9 +26,9 @@ export class MemStorage implements IStorage {
 
   async createQuestion(insertQuestion: InsertQuestion): Promise<Question> {
     // Deactivate any existing active questions
-    for (const [, question] of this.questions) {
+    Array.from(this.questions.values()).forEach(question => {
       question.active = false;
-    }
+    });
 
     const id = this.currentQuestionId++;
     const question: Question = {
@@ -34,6 +36,8 @@ export class MemStorage implements IStorage {
       imageUrl: insertQuestion.imageUrl,
       options: [...insertQuestion.options],
       active: true,
+      correctAnswer: null,
+      showAnswer: false,
     };
     this.questions.set(id, question);
     return question;
@@ -62,11 +66,35 @@ export class MemStorage implements IStorage {
 
   async resetVotes(questionId: number): Promise<void> {
     // 移除特定問題的所有投票
-    for (const [id, vote] of this.votes) {
+    const votesToDelete: number[] = [];
+    this.votes.forEach((vote, id) => {
       if (vote.questionId === questionId) {
-        this.votes.delete(id);
+        votesToDelete.push(id);
       }
+    });
+    votesToDelete.forEach(id => this.votes.delete(id));
+  }
+
+  async setCorrectAnswer(questionId: number, correctAnswer: number): Promise<Question> {
+    const question = this.questions.get(questionId);
+    if (!question) {
+      throw new Error(`Question with id ${questionId} not found`);
     }
+    
+    question.correctAnswer = correctAnswer;
+    this.questions.set(questionId, question);
+    return question;
+  }
+
+  async showAnswer(questionId: number, show: boolean): Promise<Question> {
+    const question = this.questions.get(questionId);
+    if (!question) {
+      throw new Error(`Question with id ${questionId} not found`);
+    }
+    
+    question.showAnswer = show;
+    this.questions.set(questionId, question);
+    return question;
   }
 }
 

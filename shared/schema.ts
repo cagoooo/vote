@@ -7,6 +7,8 @@ export const questions = pgTable("questions", {
   imageUrl: text("image_url").notNull(),
   options: jsonb("options").$type<string[]>().notNull(),
   active: boolean("active").notNull().default(true),
+  correctAnswer: integer("correct_answer"),
+  showAnswer: boolean("show_answer").notNull().default(false),
 });
 
 export const votes = pgTable("votes", {
