@@ -1,23 +1,9 @@
-import { useState, useRef, useEffect, useCallback } from "react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { 
-  Pencil, 
-  Eraser, 
-  Undo2, 
-  Redo2, 
-  RotateCcw, 
-  Download,
-  Palette,
-  Minus,
-  Plus,
-  Check,
-  X
-} from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import React, { useRef, useState, useCallback, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { useToast } from '@/hooks/use-toast';
+import { Palette, Eraser, Undo, Redo, Download, Trash2, Minus, Plus } from 'lucide-react';
 
 interface WhiteboardProps {
   onImageGenerated: (image: string) => void;
@@ -53,10 +39,12 @@ const BRUSH_SIZES = [1, 2, 3, 4, 6, 8, 12];
 export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const resizeTimeoutRef = useRef<number | null>(null);
+  
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentTool, setCurrentTool] = useState<'pen' | 'eraser'>('pen');
   const [currentColor, setCurrentColor] = useState(COLORS[0]);
-  const [currentLineWidth, setCurrentLineWidth] = useState(2);
+  const [currentLineWidth, setCurrentLineWidth] = useState(3);
   const [paths, setPaths] = useState<DrawPath[]>([]);
   const [currentPath, setCurrentPath] = useState<DrawPath | null>(null);
   const [undoStack, setUndoStack] = useState<DrawPath[][]>([]);
@@ -129,46 +117,36 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
     ctx.globalCompositeOperation = 'source-over';
   }, [paths]);
 
-  // Initialize canvas
-  useEffect(() => {
-    if (!isOpen) return;
-    
-    const canvas = canvasRef.current;
-    const container = containerRef.current;
-    if (!canvas || !container) {
-      console.log('Canvas or container not ready');
-      return;
+  // Debounced canvas resize function
+  const debouncedResizeCanvas = useCallback(() => {
+    if (resizeTimeoutRef.current) {
+      clearTimeout(resizeTimeoutRef.current);
     }
     
-    console.log('Initializing canvas...');
-
-    const resizeCanvas = () => {
+    resizeTimeoutRef.current = window.setTimeout(() => {
+      if (isDrawing) return; // Don't resize while drawing
+      
+      const canvas = canvasRef.current;
+      const container = containerRef.current;
+      if (!canvas || !container) return;
+      
       const rect = container.getBoundingClientRect();
-      if (rect.width === 0 || rect.height === 0) {
-        setTimeout(resizeCanvas, 100);
-        return;
-      }
+      if (rect.width === 0 || rect.height === 0) return;
       
-      console.log('Container rect:', rect.width, 'x', rect.height);
-      
-      // Create a square canvas to preserve circular shapes
+      // Create square canvas to prevent shape distortion
       const margin = 16;
       const availableWidth = rect.width - margin * 2;
       const availableHeight = rect.height - margin * 2;
-      
-      // Force square dimensions - use the smaller dimension to ensure it fits
       const size = Math.min(availableWidth, availableHeight);
-      const canvasSize = Math.max(size, 250); // Minimum viable size
+      const canvasSize = Math.max(size, 300);
       
-      console.log('Setting square canvas:', canvasSize, 'x', canvasSize);
-      
-      // Set both display and actual canvas size to be square
-      canvas.style.width = `${canvasSize}px`;
-      canvas.style.height = `${canvasSize}px`;
+      // Set canvas dimensions
       canvas.width = canvasSize;
       canvas.height = canvasSize;
+      canvas.style.width = `${canvasSize}px`;
+      canvas.style.height = `${canvasSize}px`;
       
-      console.log('Final canvas dimensions:', canvas.width, 'x', canvas.height);
+      console.log('Canvas sized to:', canvasSize, 'x', canvasSize);
       
       // Setup drawing context
       const ctx = canvas.getContext('2d');
@@ -178,66 +156,42 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
         ctx.imageSmoothingEnabled = false;
         ctx.globalCompositeOperation = 'source-over';
         
-        // Fill with white background
+        // Fill background and redraw
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, canvasSize, canvasSize);
-        
-        // Redraw existing paths
         redrawCanvas();
       }
-    };
+    }, 200); // Debounce delay
+  }, [isDrawing, redrawCanvas]);
 
-    // Force immediate canvas sizing
-    const forceResize = () => {
-      console.log('Force resize triggered');
-      const rect = container.getBoundingClientRect();
-      console.log('Force resize container:', rect.width, 'x', rect.height);
-      
-      if (rect.width > 0 && rect.height > 0) {
-        // Calculate square size
-        const maxSize = Math.min(rect.width * 0.9, rect.height * 0.7);
-        const size = Math.max(maxSize, 200);
-        
-        console.log('Force setting canvas to:', size, 'x', size);
-        
-        // Set canvas to be square
-        canvas.width = size;
-        canvas.height = size;
-        canvas.style.width = `${size}px`;
-        canvas.style.height = `${size}px`;
-        
-        console.log('Canvas forced to:', canvas.width, 'x', canvas.height);
-        
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(0, 0, size, size);
-          ctx.lineCap = 'round';
-          ctx.lineJoin = 'round';
-          redrawCanvas();
-        }
-      } else {
-        setTimeout(forceResize, 100);
-      }
-    };
-
-    // Multiple attempts to resize
-    forceResize();
-    const timeoutId1 = setTimeout(forceResize, 50);
-    const timeoutId2 = setTimeout(forceResize, 150);
-    const timeoutId3 = setTimeout(forceResize, 300);
-    const timeoutId4 = setTimeout(resizeCanvas, 500);
+  // Initialize canvas
+  useEffect(() => {
+    if (!isOpen) return;
     
-    window.addEventListener('resize', resizeCanvas);
+    // Setup with delay to ensure DOM is ready
+    const timeoutId = setTimeout(() => {
+      debouncedResizeCanvas();
+    }, 100);
+    
+    // Add resize listener
+    window.addEventListener('resize', debouncedResizeCanvas);
 
+    // Cleanup
     return () => {
-      clearTimeout(timeoutId1);
-      clearTimeout(timeoutId2);
-      clearTimeout(timeoutId3);
-      clearTimeout(timeoutId4);
-      window.removeEventListener('resize', resizeCanvas);
+      clearTimeout(timeoutId);
+      if (resizeTimeoutRef.current) {
+        clearTimeout(resizeTimeoutRef.current);
+      }
+      window.removeEventListener('resize', debouncedResizeCanvas);
     };
-  }, [isOpen, redrawCanvas]);
+  }, [isOpen, debouncedResizeCanvas]);
+
+  // Prevent canvas operations during drawing
+  useEffect(() => {
+    if (isDrawing && resizeTimeoutRef.current) {
+      clearTimeout(resizeTimeoutRef.current);
+    }
+  }, [isDrawing]);
 
   const getCanvasPoint = (e: React.MouseEvent | React.TouchEvent): DrawPoint => {
     const canvas = canvasRef.current;
@@ -260,6 +214,7 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
   const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
     const point = getCanvasPoint(e);
+    
     const newPath: DrawPath = {
       points: [point],
       color: currentColor,
@@ -275,349 +230,287 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
     setRedoStack([]);
   };
 
-  const draw = (e: React.MouseEvent | React.TouchEvent) => {
+  const continueDrawing = (e: React.MouseEvent | React.TouchEvent) => {
     if (!isDrawing || !currentPath) return;
     
     e.preventDefault();
     const point = getCanvasPoint(e);
+    
     const updatedPath = {
       ...currentPath,
       points: [...currentPath.points, point],
     };
-
+    
     setCurrentPath(updatedPath);
-
-    // Draw current stroke with smooth curves
+    
+    // Draw current stroke on canvas
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (!ctx) return;
 
-    ctx.beginPath();
     ctx.strokeStyle = currentTool === 'eraser' ? '#ffffff' : currentColor;
     ctx.lineWidth = currentLineWidth;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.globalCompositeOperation = currentTool === 'eraser' ? 'destination-out' : 'source-over';
 
+    // Draw smooth line from previous point to current point
     const points = updatedPath.points;
     if (points.length >= 2) {
-      const lastPoint = points[points.length - 2];
+      const prevPoint = points[points.length - 2];
       const currentPoint = points[points.length - 1];
       
-      // Use quadratic curves for smoother lines when we have enough points
-      if (points.length >= 3) {
-        const secondLastPoint = points[points.length - 3];
-        const midPoint = {
-          x: (lastPoint.x + currentPoint.x) / 2,
-          y: (lastPoint.y + currentPoint.y) / 2
-        };
-        
-        ctx.moveTo(secondLastPoint.x, secondLastPoint.y);
-        ctx.quadraticCurveTo(lastPoint.x, lastPoint.y, midPoint.x, midPoint.y);
-      } else {
-        ctx.moveTo(lastPoint.x, lastPoint.y);
-        ctx.lineTo(currentPoint.x, currentPoint.y);
-      }
+      ctx.beginPath();
+      ctx.moveTo(prevPoint.x, prevPoint.y);
+      ctx.lineTo(currentPoint.x, currentPoint.y);
       ctx.stroke();
     }
-
-    ctx.globalCompositeOperation = 'source-over';
   };
 
   const stopDrawing = () => {
-    if (currentPath && currentPath.points.length > 0) {
+    if (!isDrawing || !currentPath) return;
+    
+    // Add completed path to paths array
+    if (currentPath.points.length > 0) {
       setPaths(prev => [...prev, currentPath]);
     }
+    
     setCurrentPath(null);
     setIsDrawing(false);
-  };
-
-  const clearCanvas = () => {
+    
+    // Save state for undo
     setUndoStack(prev => [...prev, paths]);
     setRedoStack([]);
-    setPaths([]);
     
+    // Force redraw to ensure consistency
     const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
-    if (ctx && canvas) {
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (canvas) {
+      setTimeout(() => redrawCanvas(), 10);
     }
   };
 
   const undo = () => {
-    if (undoStack.length > 0) {
-      const previousState = undoStack[undoStack.length - 1];
-      setRedoStack(prev => [paths, ...prev]);
-      setPaths(previousState);
-      setUndoStack(prev => prev.slice(0, -1));
-    }
+    if (undoStack.length === 0) return;
+    const previousState = undoStack[undoStack.length - 1];
+    setRedoStack(prev => [...prev, paths]);
+    setPaths(previousState);
+    setUndoStack(prev => prev.slice(0, -1));
   };
 
   const redo = () => {
-    if (redoStack.length > 0) {
-      const nextState = redoStack[0];
-      setUndoStack(prev => [...prev, paths]);
-      setPaths(nextState);
-      setRedoStack(prev => prev.slice(1));
-    }
+    if (redoStack.length === 0) return;
+    const nextState = redoStack[redoStack.length - 1];
+    setUndoStack(prev => [...prev, paths]);
+    setPaths(nextState);
+    setRedoStack(prev => prev.slice(0, -1));
+  };
+
+  const clearCanvas = () => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!ctx || !canvas) return;
+
+    // Save state for undo
+    setUndoStack(prev => [...prev, paths]);
+    setRedoStack([]);
+    setPaths([]);
+
+    // Clear canvas
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
   };
 
   const saveImage = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Debug: Log original canvas dimensions
-    console.log('Original canvas dimensions:', canvas.width, 'x', canvas.height);
-    console.log('Original canvas style dimensions:', canvas.style.width, 'x', canvas.style.height);
-    console.log('Original aspect ratio:', canvas.width / canvas.height);
-
-    // Simply use the canvas as-is to preserve exact dimensions and avoid any scaling
-    const dataURL = canvas.toDataURL('image/png', 0.95);
-    
-    // Verify the saved image dimensions
-    const img = new Image();
-    img.onload = () => {
-      console.log('Saved image dimensions:', img.width, 'x', img.height);
-      console.log('Saved image aspect ratio:', img.width / img.height);
-    };
-    img.src = dataURL;
-    
-    onImageGenerated(dataURL);
-    onClose();
-    
-    toast({
-      title: "白板已保存",
-      description: "白板內容已轉換為圖片",
-      variant: "success",
-    });
+    try {
+      const imageData = canvas.toDataURL('image/png');
+      onImageGenerated(imageData);
+      onClose();
+      
+      toast({
+        title: "白板已儲存",
+        description: "您的繪圖已成功加入問題中"
+      });
+    } catch (error) {
+      console.error('Error saving canvas:', error);
+      toast({
+        title: "儲存失敗",
+        description: "無法儲存白板內容，請重試",
+        variant: "destructive"
+      });
+    }
   };
 
   const downloadImage = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Create output canvas maintaining original aspect ratio (same logic as saveImage)
-    const outputCanvas = document.createElement('canvas');
-    const outputCtx = outputCanvas.getContext('2d');
-    if (!outputCtx) return;
-
-    const originalAspectRatio = canvas.width / canvas.height;
-    const maxDimension = 800;
-
-    let outputWidth, outputHeight;
-
-    if (canvas.width >= canvas.height) {
-      outputWidth = Math.min(canvas.width, maxDimension);
-      outputHeight = outputWidth / originalAspectRatio;
-    } else {
-      outputHeight = Math.min(canvas.height, maxDimension);
-      outputWidth = outputHeight * originalAspectRatio;
+    try {
+      const link = document.createElement('a');
+      link.download = `whiteboard-${Date.now()}.png`;
+      link.href = canvas.toDataURL();
+      link.click();
+    } catch (error) {
+      console.error('Error downloading image:', error);
     }
-
-    outputCanvas.width = outputWidth;
-    outputCanvas.height = outputHeight;
-
-    outputCtx.fillStyle = '#ffffff';
-    outputCtx.fillRect(0, 0, outputWidth, outputHeight);
-    outputCtx.drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, outputWidth, outputHeight);
-
-    const link = document.createElement('a');
-    link.download = `whiteboard-${new Date().getTime()}.png`;
-    link.href = outputCanvas.toDataURL('image/png', 0.95);
-    link.click();
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[95vw] max-h-[95vh] w-full p-0 overflow-hidden">
-        <DialogHeader className="p-4 pb-2 sm:p-6 sm:pb-4">
-          <DialogTitle className="text-lg sm:text-xl font-semibold">手寫白板</DialogTitle>
+      <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>白板繪圖</DialogTitle>
         </DialogHeader>
+        
+        {/* Toolbar */}
+        <div className="flex flex-wrap items-center gap-2 p-4 bg-gray-50 rounded-lg">
+          {/* Tool Selection */}
+          <div className="flex gap-1">
+            <Button
+              variant={currentTool === 'pen' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setCurrentTool('pen')}
+            >
+              筆刷
+            </Button>
+            <Button
+              variant={currentTool === 'eraser' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setCurrentTool('eraser')}
+            >
+              <Eraser className="w-4 h-4" />
+            </Button>
+          </div>
 
-        <div className="px-4 pb-4 sm:px-6 flex flex-col h-[calc(95vh-80px)]">
-          {/* Toolbar */}
-          <div className="flex flex-wrap items-center gap-1 sm:gap-2 mb-2 p-2 bg-muted/50 rounded-lg flex-shrink-0">
-            {/* Tools */}
-            <div className="flex items-center gap-1">
-              <Button
-                size="sm"
-                variant={currentTool === 'pen' ? 'default' : 'outline'}
-                onClick={() => setCurrentTool('pen')}
-                className="h-8 sm:h-9 px-2 sm:px-3"
-              >
-                <Pencil className="h-3 w-3 sm:h-4 sm:w-4" />
-                <span className="hidden sm:inline ml-1">筆</span>
-              </Button>
-              <Button
-                size="sm"
-                variant={currentTool === 'eraser' ? 'default' : 'outline'}
-                onClick={() => setCurrentTool('eraser')}
-                className="h-8 sm:h-9 px-2 sm:px-3"
-              >
-                <Eraser className="h-3 w-3 sm:h-4 sm:w-4" />
-                <span className="hidden sm:inline ml-1">擦</span>
-              </Button>
-            </div>
+          <Separator orientation="vertical" className="h-6" />
 
-            <Separator orientation="vertical" className="h-6" />
-
-            {/* Color Picker */}
-            <div className="relative">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setShowColorPicker(!showColorPicker)}
-                className="h-9 gap-2"
-              >
-                <div 
-                  className="w-4 h-4 rounded border border-border"
-                  style={{ backgroundColor: currentColor }}
-                />
-                <Palette className="h-4 w-4" />
-              </Button>
-              
-              {showColorPicker && (
-                <div className="absolute top-full mt-1 z-10 p-2 bg-background border rounded-lg shadow-lg">
-                  <div className="grid grid-cols-4 gap-1">
-                    {COLORS.map(color => (
-                      <button
-                        key={color}
-                        className={cn(
-                          "w-8 h-8 rounded border-2 transition-all",
-                          currentColor === color ? "border-primary scale-110" : "border-border hover:scale-105"
-                        )}
-                        style={{ backgroundColor: color }}
-                        onClick={() => {
-                          setCurrentColor(color);
-                          setShowColorPicker(false);
-                        }}
-                      />
-                    ))}
-                  </div>
+          {/* Color Picker */}
+          <div className="relative">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowColorPicker(!showColorPicker)}
+            >
+              <Palette className="w-4 h-4 mr-1" />
+              <div 
+                className="w-4 h-4 rounded border"
+                style={{ backgroundColor: currentColor }}
+              />
+            </Button>
+            {showColorPicker && (
+              <div className="absolute top-full left-0 mt-1 p-2 bg-white border rounded-lg shadow-lg z-10">
+                <div className="grid grid-cols-4 gap-1">
+                  {COLORS.map((color) => (
+                    <button
+                      key={color}
+                      className={`w-8 h-8 rounded border-2 ${
+                        currentColor === color ? 'border-gray-400' : 'border-gray-200'
+                      }`}
+                      style={{ backgroundColor: color }}
+                      onClick={() => {
+                        setCurrentColor(color);
+                        setShowColorPicker(false);
+                      }}
+                    />
+                  ))}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
+          </div>
 
-            {/* Brush Size */}
-            <div className="relative">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setShowBrushSizes(!showBrushSizes)}
-                className="h-9 gap-2"
-              >
+          {/* Brush Size */}
+          <div className="relative">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowBrushSizes(!showBrushSizes)}
+            >
+              <div className="flex items-center gap-1">
+                <Minus className="w-3 h-3" />
                 <div 
-                  className="rounded-full bg-current"
+                  className="rounded-full bg-gray-600"
                   style={{ 
-                    width: Math.max(4, Math.min(16, currentLineWidth)), 
-                    height: Math.max(4, Math.min(16, currentLineWidth)) 
+                    width: `${Math.min(currentLineWidth * 2, 12)}px`,
+                    height: `${Math.min(currentLineWidth * 2, 12)}px`
                   }}
                 />
-                <span className="text-xs">{currentLineWidth}</span>
-              </Button>
-              
-              {showBrushSizes && (
-                <div className="absolute top-full mt-1 z-10 p-2 bg-background border rounded-lg shadow-lg">
-                  <div className="flex flex-col gap-1">
-                    {BRUSH_SIZES.map(size => (
-                      <button
-                        key={size}
-                        className={cn(
-                          "flex items-center gap-2 px-3 py-2 rounded hover:bg-muted transition-colors",
-                          currentLineWidth === size && "bg-muted"
-                        )}
-                        onClick={() => {
-                          setCurrentLineWidth(size);
-                          setShowBrushSizes(false);
+                <Plus className="w-3 h-3" />
+              </div>
+            </Button>
+            {showBrushSizes && (
+              <div className="absolute top-full left-0 mt-1 p-2 bg-white border rounded-lg shadow-lg z-10">
+                <div className="flex flex-col gap-1">
+                  {BRUSH_SIZES.map((size) => (
+                    <button
+                      key={size}
+                      className={`flex items-center justify-center w-12 h-8 hover:bg-gray-100 rounded ${
+                        currentLineWidth === size ? 'bg-blue-50' : ''
+                      }`}
+                      onClick={() => {
+                        setCurrentLineWidth(size);
+                        setShowBrushSizes(false);
+                      }}
+                    >
+                      <div 
+                        className="rounded-full bg-gray-600"
+                        style={{ 
+                          width: `${Math.min(size * 2, 12)}px`,
+                          height: `${Math.min(size * 2, 12)}px`
                         }}
-                      >
-                        <div 
-                          className="rounded-full bg-current"
-                          style={{ width: size, height: size }}
-                        />
-                        <span className="text-sm">{size}px</span>
-                      </button>
-                    ))}
-                  </div>
+                      />
+                    </button>
+                  ))}
                 </div>
-              )}
-            </div>
-
-            <Separator orientation="vertical" className="h-6" />
-
-            {/* Actions */}
-            <div className="flex items-center gap-1">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={undo}
-                disabled={undoStack.length === 0}
-                className="h-9"
-              >
-                <Undo2 className="h-4 w-4" />
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={redo}
-                disabled={redoStack.length === 0}
-                className="h-9"
-              >
-                <Redo2 className="h-4 w-4" />
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={clearCanvas}
-                className="h-9"
-              >
-                <RotateCcw className="h-4 w-4" />
-              </Button>
-            </div>
-
-            <Separator orientation="vertical" className="h-6" />
-
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={downloadImage}
-              className="h-9"
-            >
-              <Download className="h-4 w-4" />
-            </Button>
+              </div>
+            )}
           </div>
 
-          {/* Canvas Container */}
-          <div 
-            ref={containerRef}
-            className="relative rounded-lg overflow-hidden bg-white w-full flex-1"
-            style={{ minHeight: 'calc(100vh - 300px)' }}
-          >
-            <canvas
-              ref={canvasRef}
-              className="block cursor-crosshair touch-none w-full h-full"
-              onMouseDown={startDrawing}
-              onMouseMove={draw}
-              onMouseUp={stopDrawing}
-              onMouseLeave={stopDrawing}
-              onTouchStart={startDrawing}
-              onTouchMove={draw}
-              onTouchEnd={stopDrawing}
-            />
-          </div>
+          <Separator orientation="vertical" className="h-6" />
 
-          {/* Action Buttons */}
-          <div className="flex justify-end gap-2 mt-2 pt-2 border-t flex-shrink-0">
-            <Button variant="outline" onClick={onClose}>
-              <X className="h-4 w-4 mr-2" />
-              取消
-            </Button>
-            <Button onClick={saveImage} className="bg-green-600 hover:bg-green-700">
-              <Check className="h-4 w-4 mr-2" />
-              完成並使用
-            </Button>
-          </div>
+          {/* Actions */}
+          <Button variant="outline" size="sm" onClick={undo} disabled={undoStack.length === 0}>
+            <Undo className="w-4 h-4" />
+          </Button>
+          <Button variant="outline" size="sm" onClick={redo} disabled={redoStack.length === 0}>
+            <Redo className="w-4 h-4" />
+          </Button>
+          <Button variant="outline" size="sm" onClick={clearCanvas}>
+            <Trash2 className="w-4 h-4" />
+          </Button>
+          <Button variant="outline" size="sm" onClick={downloadImage}>
+            <Download className="w-4 h-4" />
+          </Button>
+        </div>
+
+        {/* Canvas Container */}
+        <div 
+          ref={containerRef}
+          className="flex-1 flex items-center justify-center p-4 bg-gray-100 rounded-lg overflow-hidden"
+        >
+          <canvas
+            ref={canvasRef}
+            className="border border-gray-300 rounded bg-white cursor-crosshair shadow-md"
+            onMouseDown={startDrawing}
+            onMouseMove={continueDrawing}
+            onMouseUp={stopDrawing}
+            onMouseLeave={stopDrawing}
+            onTouchStart={startDrawing}
+            onTouchMove={continueDrawing}
+            onTouchEnd={stopDrawing}
+            style={{ touchAction: 'none' }}
+          />
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex justify-end gap-2 pt-4">
+          <Button variant="outline" onClick={onClose}>
+            取消
+          </Button>
+          <Button onClick={saveImage}>
+            使用此繪圖
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
