@@ -104,13 +104,6 @@ export default function Student() {
     mutationFn: async (optionIndex: number) => {
       if (!question) return;
       
-      // 先設置投票狀態，防止重複投票
-      if (questionId) {
-        localStorage.setItem(`voted_${questionId}`, optionIndex.toString());
-        setHasVoted(true);
-        setSelectedOption(optionIndex);
-      }
-      
       await apiRequest("POST", `/api/questions/${question.id}/vote`, {
         optionIndex,
       });
@@ -123,6 +116,19 @@ export default function Student() {
       
       // 手動觸發投票數據重新獲取
       queryClient.invalidateQueries({ queryKey: [`/api/questions/${questionId}/votes`] });
+    },
+    onError: () => {
+      // 如果API調用失敗，恢復狀態
+      setHasVoted(false);
+      setSelectedOption(null);
+      if (questionId) {
+        localStorage.removeItem(`voted_${questionId}`);
+      }
+      toast({
+        title: "投票失敗",
+        description: "請重試",
+        variant: "destructive",
+      });
     },
   });
 
@@ -318,7 +324,16 @@ export default function Student() {
                   >
                     <Button
                       onClick={() => {
+                        if (hasVoted || vote.isPending) return;
+                        
+                        // 立即設置投票狀態，防止重複投票
                         setSelectedOption(index);
+                        setHasVoted(true);
+                        if (questionId) {
+                          localStorage.setItem(`voted_${questionId}`, index.toString());
+                        }
+                        
+                        // 執行投票API調用
                         vote.mutate(index);
                       }}
                       disabled={vote.isPending || hasVoted}
