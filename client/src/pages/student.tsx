@@ -28,21 +28,34 @@ export default function Student() {
   // 檢查是否已經投票，並處理重置情況
   useEffect(() => {
     if (questionId && question) {
-      if (question.active) {
-        localStorage.removeItem(`voted_${questionId}`);
-        setHasVoted(false);
+      // 只在問題真正重置時才清除投票狀態
+      // 如果只是答案顯示狀態改變，保持投票狀態
+      const voted = localStorage.getItem(`voted_${questionId}`);
+      if (voted) {
+        setHasVoted(true);
+        setSelectedOption(parseInt(voted));
       } else {
-        const voted = localStorage.getItem(`voted_${questionId}`);
-        setHasVoted(!!voted);
+        setHasVoted(false);
+        setSelectedOption(null);
       }
     }
-  }, [questionId, question]);
+  }, [questionId]); // 移除 question 依賴，避免答案狀態更新時重置投票
 
   // 獲取投票結果
   const { data: votes = [] } = useQuery<Vote[]>({
     queryKey: [`/api/questions/${questionId}/votes`],
-    refetchInterval: hasVoted ? 1000 : false,
+    refetchInterval: 1000, // 始終檢查投票更新，不論是否已投票
   });
+
+  // 檢測投票是否被重置（老師重置投票時）
+  useEffect(() => {
+    if (hasVoted && votes.length === 0 && questionId) {
+      // 如果用戶已投票但投票數據為空，表示投票被重置
+      localStorage.removeItem(`voted_${questionId}`);
+      setHasVoted(false);
+      setSelectedOption(null);
+    }
+  }, [votes, hasVoted, questionId]);
 
   // 處理動畫計數
   useEffect(() => {
