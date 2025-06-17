@@ -90,37 +90,28 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
       const rect = container.getBoundingClientRect();
       if (rect.width === 0 || rect.height === 0) return; // Wait for proper container sizing
       
-      // Calculate responsive dimensions to maximize canvas usage
+      // Calculate responsive dimensions to use maximum available space
       const isMobile = window.innerWidth < 640;
-      const containerPadding = isMobile ? 8 : 16;
       
-      // Use more of the available space
-      const availableWidth = rect.width - containerPadding;
-      const availableHeight = Math.min(
-        window.innerHeight * (isMobile ? 0.65 : 0.75), 
-        isMobile ? 500 : 700
-      );
+      // Use nearly all available space with minimal padding
+      const padding = 16; // Small padding for visual comfort
+      const availableWidth = rect.width - padding;
       
-      // Use a wider aspect ratio to utilize horizontal space better
-      const aspectRatio = isMobile ? 16 / 10 : 16 / 9;
+      // Calculate available height based on viewport and container
+      const maxViewportHeight = window.innerHeight * (isMobile ? 0.7 : 0.8);
+      const containerHeight = rect.height - padding;
+      const availableHeight = Math.min(maxViewportHeight, containerHeight, isMobile ? 600 : 800);
       
+      // Use the full available dimensions
       let displayWidth = availableWidth;
-      let displayHeight = displayWidth / aspectRatio;
+      let displayHeight = availableHeight;
       
-      // If height exceeds available space, adjust based on height
-      if (displayHeight > availableHeight) {
-        displayHeight = availableHeight;
-        displayWidth = displayHeight * aspectRatio;
-      }
+      // Ensure reasonable minimum size
+      const minWidth = isMobile ? 280 : 400;
+      const minHeight = isMobile ? 200 : 300;
       
-      // Ensure the canvas uses most of the available space
-      const minWidth = Math.min(availableWidth * 0.9, isMobile ? 300 : 500);
-      const minHeight = minWidth / aspectRatio;
-      
-      if (displayWidth < minWidth) {
-        displayWidth = minWidth;
-        displayHeight = minHeight;
-      }
+      displayWidth = Math.max(displayWidth, minWidth);
+      displayHeight = Math.max(displayHeight, minHeight);
       
       // Set display size
       canvas.style.width = `${displayWidth}px`;
@@ -324,9 +315,9 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
           <DialogTitle className="text-lg sm:text-xl font-semibold">手寫白板</DialogTitle>
         </DialogHeader>
 
-        <div className="px-4 pb-4 sm:px-6 overflow-y-auto max-h-[calc(95vh-80px)]">
+        <div className="px-4 pb-4 sm:px-6 flex flex-col h-[calc(95vh-80px)]">
           {/* Toolbar */}
-          <div className="flex flex-wrap items-center gap-1 sm:gap-2 mb-4 p-2 sm:p-3 bg-muted/50 rounded-lg">
+          <div className="flex flex-wrap items-center gap-1 sm:gap-2 mb-2 p-2 bg-muted/50 rounded-lg flex-shrink-0">
             {/* Tools */}
             <div className="flex items-center gap-1">
               <Button
@@ -480,7 +471,8 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
           {/* Canvas Container */}
           <div 
             ref={containerRef}
-            className="relative border rounded-lg overflow-hidden bg-white w-full min-h-[400px] sm:min-h-[500px] flex justify-center items-center p-2"
+            className="relative border rounded-lg overflow-hidden bg-white w-full flex-1 flex justify-center items-center"
+            style={{ minHeight: 'calc(100vh - 300px)' }}
           >
             <canvas
               ref={canvasRef}
@@ -496,7 +488,7 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
           </div>
 
           {/* Action Buttons */}
-          <div className="flex justify-end gap-2 mt-4">
+          <div className="flex justify-end gap-2 mt-2 pt-2 border-t flex-shrink-0">
             <Button variant="outline" onClick={onClose}>
               <X className="h-4 w-4 mr-2" />
               取消
