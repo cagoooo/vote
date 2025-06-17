@@ -8,6 +8,8 @@ import { apiRequest } from "@/lib/queryClient";
 import type { Question, Vote } from "@shared/schema";
 import { useParams } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
+import { CheckCircle2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 export default function Student() {
   const { toast } = useToast();
@@ -17,9 +19,10 @@ export default function Student() {
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [animatedCounts, setAnimatedCounts] = useState<Record<number, number>>({});
 
-  // 獲取問題數據
+  // 獲取問題數據，包括正確答案狀態
   const { data: question } = useQuery<Question>({
     queryKey: [questionId ? `/api/questions/${questionId}` : "/api/questions/active"],
+    refetchInterval: 1000, // 持續檢查正確答案狀態更新
   });
 
   // 檢查是否已經投票，並處理重置情況
@@ -158,18 +161,32 @@ export default function Student() {
                       transition={{ delay: index * 0.1 }}
                     >
                       <div className="flex justify-between items-center mb-1">
-                        <span className={isWinning ? "font-bold text-primary" : ""}>
-                          {option}
-                          {isWinning && (
-                            <motion.span
-                              className="inline-block ml-2"
-                              animate={{ rotate: [0, 10, -10, 0] }}
-                              transition={{ duration: 0.5, repeat: Infinity }}
+                        <div className="flex items-center gap-2">
+                          <span className={isWinning ? "font-bold text-primary" : ""}>
+                            {option}
+                            {isWinning && (
+                              <motion.span
+                                className="inline-block ml-2"
+                                animate={{ rotate: [0, 10, -10, 0] }}
+                                transition={{ duration: 0.5, repeat: Infinity }}
+                              >
+                                🌟
+                              </motion.span>
+                            )}
+                          </span>
+                          {question.showAnswer && question.correctAnswer === index && (
+                            <motion.div
+                              initial={{ scale: 0, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              transition={{ type: "spring", stiffness: 300, delay: 0.2 }}
                             >
-                              🌟
-                            </motion.span>
+                              <Badge variant="default" className="bg-green-100 text-green-800 border-green-300 flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3" />
+                                正確答案
+                              </Badge>
+                            </motion.div>
                           )}
-                        </span>
+                        </div>
                         <motion.span
                           className="font-semibold"
                           key={`count-${count}`}
@@ -257,7 +274,19 @@ export default function Student() {
                         whileTap={{ scale: 0.98 }}
                       >
                         <div className="relative z-10 flex items-center justify-center gap-2">
-                          {option}
+                          <span>{option}</span>
+                          {question.showAnswer && question.correctAnswer === index && (
+                            <motion.div
+                              initial={{ scale: 0, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              transition={{ type: "spring", stiffness: 300, delay: 0.2 }}
+                            >
+                              <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-300 flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3" />
+                                正確
+                              </Badge>
+                            </motion.div>
+                          )}
                           <motion.div
                             className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/10 to-primary/0"
                             animate={{
