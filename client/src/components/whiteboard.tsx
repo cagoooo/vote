@@ -215,6 +215,21 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
     e.preventDefault();
     const point = getCanvasPoint(e);
     
+    // Setup drawing context immediately
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (ctx) {
+      ctx.strokeStyle = currentTool === 'eraser' ? '#ffffff' : currentColor;
+      ctx.lineWidth = currentLineWidth;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.globalCompositeOperation = currentTool === 'eraser' ? 'destination-out' : 'source-over';
+      
+      // Start the path for continuous drawing
+      ctx.beginPath();
+      ctx.moveTo(point.x, point.y);
+    }
+    
     const newPath: DrawPath = {
       points: [point],
       color: currentColor,
@@ -236,35 +251,24 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
     e.preventDefault();
     const point = getCanvasPoint(e);
     
-    const updatedPath = {
-      ...currentPath,
-      points: [...currentPath.points, point],
-    };
-    
-    setCurrentPath(updatedPath);
-    
-    // Draw current stroke on canvas
+    // Draw immediately with optimized performance
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
-    if (!ctx) return;
-
-    ctx.strokeStyle = currentTool === 'eraser' ? '#ffffff' : currentColor;
-    ctx.lineWidth = currentLineWidth;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.globalCompositeOperation = currentTool === 'eraser' ? 'destination-out' : 'source-over';
-
-    // Draw smooth line from previous point to current point
-    const points = updatedPath.points;
-    if (points.length >= 2) {
-      const prevPoint = points[points.length - 2];
-      const currentPoint = points[points.length - 1];
-      
-      ctx.beginPath();
-      ctx.moveTo(prevPoint.x, prevPoint.y);
-      ctx.lineTo(currentPoint.x, currentPoint.y);
+    if (ctx) {
+      // Continue the existing path for smoother lines
+      ctx.lineTo(point.x, point.y);
       ctx.stroke();
+      
+      // Move to current point for next line segment
+      ctx.beginPath();
+      ctx.moveTo(point.x, point.y);
     }
+    
+    // Update path state
+    setCurrentPath(prev => prev ? {
+      ...prev,
+      points: [...prev.points, point]
+    } : null);
   };
 
   const stopDrawing = () => {
@@ -282,11 +286,7 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
     setUndoStack(prev => [...prev, paths]);
     setRedoStack([]);
     
-    // Force redraw to ensure consistency
-    const canvas = canvasRef.current;
-    if (canvas) {
-      setTimeout(() => redrawCanvas(), 10);
-    }
+    // No redraw needed since we've been drawing in real-time
   };
 
   const undo = () => {
