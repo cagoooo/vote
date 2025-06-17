@@ -266,6 +266,7 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
       <div className="space-y-4">
         <div className="flex items-center gap-4 flex-wrap">
           <Button
+            type="button"
             onClick={() => setIsWhiteboardOpen(true)}
             className="flex items-center gap-2 transition-all duration-300 hover:shadow-md hover:scale-[1.02] bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 text-black hover:from-yellow-500 hover:via-amber-500 hover:to-yellow-600"
           >
@@ -273,6 +274,7 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
             手寫白板
           </Button>
           <Button
+            type="button"
             onClick={() => handleScreenshot(false)}
             className="flex items-center gap-2 transition-all duration-300 hover:shadow-md hover:scale-[1.02] bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 text-black hover:from-yellow-500 hover:via-amber-500 hover:to-yellow-600"
           >
@@ -280,6 +282,7 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
             電腦截圖
           </Button>
           <Button
+            type="button"
             onClick={() => handleScreenshot(true)}
             className="flex items-center gap-2 transition-all duration-300 hover:shadow-md hover:scale-[1.02] bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 text-black hover:from-yellow-500 hover:via-amber-500 hover:to-yellow-600"
           >
@@ -287,6 +290,7 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
             手機/平板截圖
           </Button>
           <Button
+            type="button"
             onClick={() => fileInputRef.current?.click()}
             className="flex items-center gap-2 transition-all duration-300 hover:shadow-md hover:scale-[1.02] bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 text-black hover:from-yellow-500 hover:via-amber-500 hover:to-yellow-600"
           >
@@ -294,6 +298,7 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
             上傳圖片
           </Button>
           <Button
+            type="button"
             onClick={() => handlePaste()}
             className="flex items-center gap-2 transition-all duration-300 hover:shadow-md hover:scale-[1.02] bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 text-black hover:from-yellow-500 hover:via-amber-500 hover:to-yellow-600"
           >
@@ -320,6 +325,7 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
               </div>
               <div className="absolute top-2 right-2 flex gap-2">
                 <Button
+                  type="button"
                   size="icon"
                   variant="secondary"
                   className="bg-white/80 hover:bg-white transition-all duration-300 hover:scale-110"
@@ -329,6 +335,7 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
                   <Palette className="h-4 w-4" />
                 </Button>
                 <Button
+                  type="button"
                   size="icon"
                   variant="secondary"
                   className="bg-white/80 hover:bg-white transition-all duration-300 hover:scale-110"
@@ -338,6 +345,7 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
                   <CropIcon className="h-4 w-4" />
                 </Button>
                 <Button
+                  type="button"
                   size="icon"
                   variant="destructive"
                   className="bg-white/80 hover:bg-red-500 transition-all duration-300 hover:scale-110"
@@ -379,12 +387,14 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
           </div>
           <div className="flex justify-end gap-2 mt-4 sticky bottom-0 bg-background p-4 border-t">
             <Button
+              type="button"
               variant="ghost"
               onClick={() => setIsEditing(false)}
             >
               取消
             </Button>
             <Button
+              type="button"
               onClick={handleCropComplete}
               className="flex items-center gap-2"
               disabled={!crop}
