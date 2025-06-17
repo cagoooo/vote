@@ -90,26 +90,31 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
       const rect = container.getBoundingClientRect();
       if (rect.width === 0 || rect.height === 0) return; // Wait for proper container sizing
       
-      // Calculate responsive dimensions with better mobile support
+      // Calculate responsive dimensions to maximize canvas usage
       const isMobile = window.innerWidth < 640;
-      const containerPadding = isMobile ? 16 : 32;
-      const maxWidth = Math.min(rect.width - containerPadding, window.innerWidth * (isMobile ? 0.95 : 0.85));
-      const maxHeight = Math.min(window.innerHeight * (isMobile ? 0.5 : 0.6), isMobile ? 400 : 600);
+      const containerPadding = isMobile ? 8 : 16;
       
-      // Use a more suitable aspect ratio for mobile
-      const aspectRatio = isMobile ? 3 / 2 : 4 / 3;
+      // Use more of the available space
+      const availableWidth = rect.width - containerPadding;
+      const availableHeight = Math.min(
+        window.innerHeight * (isMobile ? 0.65 : 0.75), 
+        isMobile ? 500 : 700
+      );
       
-      let displayWidth = maxWidth;
+      // Use a wider aspect ratio to utilize horizontal space better
+      const aspectRatio = isMobile ? 16 / 10 : 16 / 9;
+      
+      let displayWidth = availableWidth;
       let displayHeight = displayWidth / aspectRatio;
       
-      // Adjust if height exceeds maximum
-      if (displayHeight > maxHeight) {
-        displayHeight = maxHeight;
+      // If height exceeds available space, adjust based on height
+      if (displayHeight > availableHeight) {
+        displayHeight = availableHeight;
         displayWidth = displayHeight * aspectRatio;
       }
       
-      // Ensure minimum usable size
-      const minWidth = isMobile ? 280 : 400;
+      // Ensure the canvas uses most of the available space
+      const minWidth = Math.min(availableWidth * 0.9, isMobile ? 300 : 500);
       const minHeight = minWidth / aspectRatio;
       
       if (displayWidth < minWidth) {
@@ -475,11 +480,11 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
           {/* Canvas Container */}
           <div 
             ref={containerRef}
-            className="relative border rounded-lg overflow-hidden bg-white w-full min-h-[300px] sm:min-h-[400px] flex justify-center items-center"
+            className="relative border rounded-lg overflow-hidden bg-white w-full min-h-[400px] sm:min-h-[500px] flex justify-center items-center p-2"
           >
             <canvas
               ref={canvasRef}
-              className="block cursor-crosshair touch-none border border-gray-200 rounded max-w-full max-h-full"
+              className="block cursor-crosshair touch-none border border-gray-200 rounded shadow-sm"
               onMouseDown={startDrawing}
               onMouseMove={draw}
               onMouseUp={stopDrawing}
