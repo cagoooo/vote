@@ -90,15 +90,21 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
       const rect = container.getBoundingClientRect();
       if (rect.width === 0 || rect.height === 0) return;
       
+      console.log('Container rect:', rect.width, 'x', rect.height);
+      
       // Use a square or nearly square aspect ratio to prevent distortion
       const margin = 4;
       const availableWidth = rect.width - margin * 2;
       const availableHeight = rect.height - margin * 2;
       
+      console.log('Available space:', availableWidth, 'x', availableHeight);
+      
       // Create a more square canvas to prevent circular shapes from becoming ovals
       const size = Math.min(availableWidth, availableHeight);
       const displayWidth = size;
-      const displayHeight = size * 0.75; // Slightly rectangular but not too extreme
+      const displayHeight = size; // Make it square to preserve circular shapes
+      
+      console.log('Setting canvas to:', displayWidth, 'x', displayHeight);
       
       // Set display size
       canvas.style.width = `${displayWidth}px`;
