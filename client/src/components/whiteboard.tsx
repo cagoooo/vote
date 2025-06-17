@@ -48,7 +48,7 @@ const COLORS = [
   '#FF69B4', // 粉紅色
 ];
 
-const BRUSH_SIZES = [2, 4, 6, 8, 12, 16, 20];
+const BRUSH_SIZES = [1, 2, 3, 4, 6, 8, 12];
 
 export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -56,7 +56,7 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentTool, setCurrentTool] = useState<'pen' | 'eraser'>('pen');
   const [currentColor, setCurrentColor] = useState(COLORS[0]);
-  const [currentLineWidth, setCurrentLineWidth] = useState(4);
+  const [currentLineWidth, setCurrentLineWidth] = useState(2);
   const [paths, setPaths] = useState<DrawPath[]>([]);
   const [currentPath, setCurrentPath] = useState<DrawPath | null>(null);
   const [undoStack, setUndoStack] = useState<DrawPath[][]>([]);
@@ -103,12 +103,13 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
       canvas.width = displayWidth;
       canvas.height = displayHeight;
       
-      // Setup context
+      // Setup context with optimized settings for crisp drawing
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingEnabled = false; // Disable for sharper lines
+        ctx.globalCompositeOperation = 'source-over';
         
         // Fill with white background
         ctx.fillStyle = '#ffffff';
@@ -139,18 +140,40 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Redraw all paths
+    // Redraw all paths with smooth curves
     paths.forEach(path => {
       if (path.points.length < 2) return;
 
       ctx.beginPath();
       ctx.strokeStyle = path.tool === 'eraser' ? '#ffffff' : path.color;
       ctx.lineWidth = path.lineWidth;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
       ctx.globalCompositeOperation = path.tool === 'eraser' ? 'destination-out' : 'source-over';
 
-      ctx.moveTo(path.points[0].x, path.points[0].y);
-      for (let i = 1; i < path.points.length; i++) {
-        ctx.lineTo(path.points[i].x, path.points[i].y);
+      // Draw with smooth curves for better quality
+      if (path.points.length >= 3) {
+        ctx.moveTo(path.points[0].x, path.points[0].y);
+        
+        for (let i = 1; i < path.points.length - 1; i++) {
+          const currentPoint = path.points[i];
+          const nextPoint = path.points[i + 1];
+          const midPoint = {
+            x: (currentPoint.x + nextPoint.x) / 2,
+            y: (currentPoint.y + nextPoint.y) / 2
+          };
+          
+          ctx.quadraticCurveTo(currentPoint.x, currentPoint.y, midPoint.x, midPoint.y);
+        }
+        
+        // Draw to the last point
+        const lastPoint = path.points[path.points.length - 1];
+        const secondLastPoint = path.points[path.points.length - 2];
+        ctx.quadraticCurveTo(secondLastPoint.x, secondLastPoint.y, lastPoint.x, lastPoint.y);
+      } else {
+        // Fallback for simple lines
+        ctx.moveTo(path.points[0].x, path.points[0].y);
+        ctx.lineTo(path.points[1].x, path.points[1].y);
       }
       ctx.stroke();
     });
@@ -207,7 +230,7 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
 
     setCurrentPath(updatedPath);
 
-    // Draw current stroke
+    // Draw current stroke with smooth curves
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (!ctx) return;
@@ -215,6 +238,8 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
     ctx.beginPath();
     ctx.strokeStyle = currentTool === 'eraser' ? '#ffffff' : currentColor;
     ctx.lineWidth = currentLineWidth;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     ctx.globalCompositeOperation = currentTool === 'eraser' ? 'destination-out' : 'source-over';
 
     const points = updatedPath.points;
@@ -222,8 +247,20 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
       const lastPoint = points[points.length - 2];
       const currentPoint = points[points.length - 1];
       
-      ctx.moveTo(lastPoint.x, lastPoint.y);
-      ctx.lineTo(currentPoint.x, currentPoint.y);
+      // Use quadratic curves for smoother lines when we have enough points
+      if (points.length >= 3) {
+        const secondLastPoint = points[points.length - 3];
+        const midPoint = {
+          x: (lastPoint.x + currentPoint.x) / 2,
+          y: (lastPoint.y + currentPoint.y) / 2
+        };
+        
+        ctx.moveTo(secondLastPoint.x, secondLastPoint.y);
+        ctx.quadraticCurveTo(lastPoint.x, lastPoint.y, midPoint.x, midPoint.y);
+      } else {
+        ctx.moveTo(lastPoint.x, lastPoint.y);
+        ctx.lineTo(currentPoint.x, currentPoint.y);
+      }
       ctx.stroke();
     }
 
