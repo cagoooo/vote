@@ -78,77 +78,6 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
     }
   }, [isOpen]);
 
-  // Initialize canvas
-  useEffect(() => {
-    if (!isOpen) return;
-    
-    const canvas = canvasRef.current;
-    const container = containerRef.current;
-    if (!canvas || !container) return;
-
-    const resizeCanvas = () => {
-      const rect = container.getBoundingClientRect();
-      if (rect.width === 0 || rect.height === 0) {
-        // If container not ready, try again later
-        setTimeout(resizeCanvas, 100);
-        return;
-      }
-      
-      console.log('Container rect:', rect.width, 'x', rect.height);
-      
-      // Force canvas to be square to prevent circular distortion
-      const margin = 8;
-      const availableWidth = rect.width - margin * 2;
-      const availableHeight = rect.height - margin * 2;
-      
-      console.log('Available space:', availableWidth, 'x', availableHeight);
-      
-      // Use minimum dimension to create a square canvas
-      const size = Math.min(availableWidth, availableHeight * 0.8); // Use 80% of height to leave room for UI
-      const canvasSize = Math.max(size, 200); // Minimum 200px
-      
-      console.log('Setting canvas to square:', canvasSize, 'x', canvasSize);
-      
-      // Force square dimensions
-      canvas.style.width = `${canvasSize}px`;
-      canvas.style.height = `${canvasSize}px`;
-      canvas.width = canvasSize;
-      canvas.height = canvasSize;
-      
-      console.log('Canvas dimensions after setting:', canvas.width, 'x', canvas.height);
-      
-      // Setup context with optimized settings for crisp drawing
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.imageSmoothingEnabled = false; // Disable for sharper lines
-        ctx.globalCompositeOperation = 'source-over';
-        
-        // Fill with white background
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, canvasSize, canvasSize);
-        
-        // Redraw all paths
-        redrawCanvas();
-      }
-    };
-
-    // Initial resize with multiple attempts to ensure it takes effect
-    resizeCanvas();
-    const timeoutId1 = setTimeout(resizeCanvas, 50);
-    const timeoutId2 = setTimeout(resizeCanvas, 100);
-    const timeoutId3 = setTimeout(resizeCanvas, 200);
-    window.addEventListener('resize', resizeCanvas);
-
-    return () => {
-      clearTimeout(timeoutId1);
-      clearTimeout(timeoutId2);
-      clearTimeout(timeoutId3);
-      window.removeEventListener('resize', resizeCanvas);
-    };
-  }, [isOpen]);
-
   const redrawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
@@ -199,6 +128,116 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
     // Reset composite operation
     ctx.globalCompositeOperation = 'source-over';
   }, [paths]);
+
+  // Initialize canvas
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    if (!canvas || !container) {
+      console.log('Canvas or container not ready');
+      return;
+    }
+    
+    console.log('Initializing canvas...');
+
+    const resizeCanvas = () => {
+      const rect = container.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) {
+        setTimeout(resizeCanvas, 100);
+        return;
+      }
+      
+      console.log('Container rect:', rect.width, 'x', rect.height);
+      
+      // Create a square canvas to preserve circular shapes
+      const margin = 16;
+      const availableWidth = rect.width - margin * 2;
+      const availableHeight = rect.height - margin * 2;
+      
+      // Force square dimensions - use the smaller dimension to ensure it fits
+      const size = Math.min(availableWidth, availableHeight);
+      const canvasSize = Math.max(size, 250); // Minimum viable size
+      
+      console.log('Setting square canvas:', canvasSize, 'x', canvasSize);
+      
+      // Set both display and actual canvas size to be square
+      canvas.style.width = `${canvasSize}px`;
+      canvas.style.height = `${canvasSize}px`;
+      canvas.width = canvasSize;
+      canvas.height = canvasSize;
+      
+      console.log('Final canvas dimensions:', canvas.width, 'x', canvas.height);
+      
+      // Setup drawing context
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.imageSmoothingEnabled = false;
+        ctx.globalCompositeOperation = 'source-over';
+        
+        // Fill with white background
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvasSize, canvasSize);
+        
+        // Redraw existing paths
+        redrawCanvas();
+      }
+    };
+
+    // Force immediate canvas sizing
+    const forceResize = () => {
+      console.log('Force resize triggered');
+      const rect = container.getBoundingClientRect();
+      console.log('Force resize container:', rect.width, 'x', rect.height);
+      
+      if (rect.width > 0 && rect.height > 0) {
+        // Calculate square size
+        const maxSize = Math.min(rect.width * 0.9, rect.height * 0.7);
+        const size = Math.max(maxSize, 200);
+        
+        console.log('Force setting canvas to:', size, 'x', size);
+        
+        // Set canvas to be square
+        canvas.width = size;
+        canvas.height = size;
+        canvas.style.width = `${size}px`;
+        canvas.style.height = `${size}px`;
+        
+        console.log('Canvas forced to:', canvas.width, 'x', canvas.height);
+        
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, size, size);
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          redrawCanvas();
+        }
+      } else {
+        setTimeout(forceResize, 100);
+      }
+    };
+
+    // Multiple attempts to resize
+    forceResize();
+    const timeoutId1 = setTimeout(forceResize, 50);
+    const timeoutId2 = setTimeout(forceResize, 150);
+    const timeoutId3 = setTimeout(forceResize, 300);
+    const timeoutId4 = setTimeout(resizeCanvas, 500);
+    
+    window.addEventListener('resize', resizeCanvas);
+
+    return () => {
+      clearTimeout(timeoutId1);
+      clearTimeout(timeoutId2);
+      clearTimeout(timeoutId3);
+      clearTimeout(timeoutId4);
+      window.removeEventListener('resize', resizeCanvas);
+    };
+  }, [isOpen, redrawCanvas]);
 
   const getCanvasPoint = (e: React.MouseEvent | React.TouchEvent): DrawPoint => {
     const canvas = canvasRef.current;
