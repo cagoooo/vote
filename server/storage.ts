@@ -4,8 +4,9 @@ export interface IStorage {
   createQuestion(question: InsertQuestion): Promise<Question>;
   getQuestion(id: number): Promise<Question | undefined>;
   getActiveQuestion(): Promise<Question | undefined>;
-  addVote(questionId: number, optionIndex: number): Promise<Vote>;
+  addVote(questionId: number, optionIndex: number, sessionId?: string): Promise<Vote>;
   getVotesForQuestion(questionId: number): Promise<Vote[]>;
+  hasUserVoted(questionId: number, sessionId: string): Promise<boolean>;
   resetVotes(questionId: number): Promise<void>;
   setCorrectAnswer(questionId: number, correctAnswer: number): Promise<Question>;
   showAnswer(questionId: number, show: boolean): Promise<Question>;
@@ -16,12 +17,14 @@ export class MemStorage implements IStorage {
   private votes: Map<number, Vote>;
   private currentQuestionId: number;
   private currentVoteId: number;
+  private userVotes: Map<string, Set<number>>; // sessionId -> Set of questionIds
 
   constructor() {
     this.questions = new Map();
     this.votes = new Map();
     this.currentQuestionId = 1;
     this.currentVoteId = 1;
+    this.userVotes = new Map();
   }
 
   async createQuestion(insertQuestion: InsertQuestion): Promise<Question> {

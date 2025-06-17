@@ -51,7 +51,16 @@ export async function registerRoutes(app: Express) {
       return;
     }
 
-    const vote = await storage.addVote(id, optionIndex);
+    // Check if this session has already voted for this question
+    const sessionId = req.sessionID || `session_${Date.now()}_${Math.random()}`;
+    const hasVoted = await storage.hasUserVoted(id, sessionId);
+    
+    if (hasVoted) {
+      res.status(400).json({ error: "User has already voted for this question" });
+      return;
+    }
+
+    const vote = await storage.addVote(id, optionIndex, sessionId);
     res.json(vote);
   });
 

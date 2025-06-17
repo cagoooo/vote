@@ -56,13 +56,22 @@ export default function Student() {
 
   // 檢測投票是否被重置（老師重置投票時）
   useEffect(() => {
-    if (hasVoted && votes.length === 0 && questionId) {
-      // 如果用戶已投票但投票數據為空，表示投票被重置
-      localStorage.removeItem(`voted_${questionId}`);
-      setHasVoted(false);
-      setSelectedOption(null);
+    if (hasVoted && votes.length === 0 && questionId && selectedOption !== null) {
+      // 檢查是否是真的被重置：localStorage中有投票記錄但服務器沒有
+      const storedVote = localStorage.getItem(`voted_${questionId}`);
+      if (storedVote && votes.length === 0) {
+        // 延遲檢查，避免在投票剛提交時誤判
+        setTimeout(() => {
+          const currentVotes = queryClient.getQueryData([`/api/questions/${questionId}/votes`]) as Vote[] || [];
+          if (currentVotes.length === 0) {
+            localStorage.removeItem(`voted_${questionId}`);
+            setHasVoted(false);
+            setSelectedOption(null);
+          }
+        }, 2000);
+      }
     }
-  }, [votes, hasVoted, questionId]);
+  }, [votes, hasVoted, questionId, selectedOption, queryClient]);
 
   // 處理動畫計數
   useEffect(() => {

@@ -15,6 +15,7 @@ export const votes = pgTable("votes", {
   id: serial("id").primaryKey(),
   questionId: integer("question_id").notNull(),
   optionIndex: integer("option_index").notNull(),
+  sessionId: text("session_id"),
 });
 
 export const insertQuestionSchema = createInsertSchema(questions).pick({
