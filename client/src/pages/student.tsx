@@ -165,7 +165,12 @@ export default function Student() {
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.5 }}
               >
-                <h2 className="text-xl font-semibold mb-4 gradient-text">投票結果</h2>
+                <div className="text-center mb-6">
+                  <h2 className="text-xl sm:text-2xl font-bold gradient-text mb-2">投票結果</h2>
+                  <p className="text-sm text-muted-foreground">
+                    即時更新中...
+                  </p>
+                </div>
                 {question.options.map((option, index) => {
                   const count = totals[index] || 0;
                   const percentage = totalVotes ? (count / totalVotes) * 100 : 0;
@@ -174,14 +179,21 @@ export default function Student() {
                   return (
                     <motion.div
                       key={index}
-                      className="space-y-2"
+                      className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition-all duration-200"
                       initial={{ x: -20, opacity: 0 }}
                       animate={{ x: 0, opacity: 1 }}
                       transition={{ delay: index * 0.1 }}
                     >
-                      <div className="flex justify-between items-center mb-1">
-                        <div className="flex items-center gap-2">
-                          <span className={isWinning ? "font-bold text-primary" : ""}>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                            isWinning ? "bg-primary text-primary-foreground" : "bg-gray-100 text-gray-600"
+                          }`}>
+                            <span className="text-sm font-bold">{index + 1}</span>
+                          </div>
+                          <span className={`text-sm sm:text-base font-medium break-words leading-tight ${
+                            isWinning ? "text-primary font-bold" : "text-gray-800"
+                          }`}>
                             {option}
                             {isWinning && (
                               <motion.span
@@ -198,60 +210,73 @@ export default function Student() {
                               initial={{ scale: 0, opacity: 0 }}
                               animate={{ scale: 1, opacity: 1 }}
                               transition={{ type: "spring", stiffness: 300, delay: 0.2 }}
+                              className="flex-shrink-0"
                             >
-                              <Badge variant="default" className="bg-green-100 text-green-800 border-green-300 flex items-center gap-1">
+                              <Badge variant="default" className="bg-green-100 text-green-800 border-green-300 flex items-center gap-1 text-xs">
                                 <CheckCircle2 className="w-3 h-3" />
                                 正確答案
                               </Badge>
                             </motion.div>
                           )}
                         </div>
-                        <motion.span
-                          className="font-semibold"
-                          key={`count-${count}`}
-                          initial={{ scale: 0.5, opacity: 0 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          transition={{ type: "spring", stiffness: 200, damping: 10 }}
-                        >
-                          {animatedCounts[index] || 0} 票
-                        </motion.span>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div className="flex-1">
-                          <motion.div
-                            className="h-2 bg-primary/20 rounded-full overflow-hidden"
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                          <motion.span
+                            className={`font-bold text-lg ${isWinning ? "text-primary" : "text-gray-700"}`}
+                            key={`count-${count}`}
+                            initial={{ scale: 0.5, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ type: "spring", stiffness: 200, damping: 10 }}
+                          >
+                            {animatedCounts[index] || 0} 票
+                          </motion.span>
+                          <motion.span
+                            className="text-sm text-muted-foreground font-medium"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
-                            transition={{ duration: 0.5 }}
+                            transition={{ duration: 0.5, delay: 0.2 }}
                           >
-                            <motion.div
-                              className="h-full bg-primary"
-                              initial={{ width: "0%" }}
-                              animate={{ width: `${percentage}%` }}
-                              transition={{ duration: 0.8, ease: "easeOut" }}
-                            />
-                          </motion.div>
+                            ({percentage.toFixed(1)}%)
+                          </motion.span>
                         </div>
-                        <motion.span
-                          className="text-sm text-muted-foreground min-w-[4rem] text-right"
+                      </div>
+                      <div className="mt-3">
+                        <motion.div
+                          className="h-3 bg-gray-100 rounded-full overflow-hidden"
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
-                          transition={{ duration: 0.5, delay: 0.2 }}
+                          transition={{ duration: 0.5 }}
                         >
-                          {percentage.toFixed(1)}%
-                        </motion.span>
+                          <motion.div
+                            className={`h-full rounded-full ${
+                              isWinning ? "bg-gradient-to-r from-primary to-primary/80" : "bg-primary/70"
+                            }`}
+                            initial={{ width: "0%" }}
+                            animate={{ width: `${percentage}%` }}
+                            transition={{ duration: 0.8, ease: "easeOut" }}
+                          />
+                        </motion.div>
                       </div>
                     </motion.div>
                   );
                 })}
-                <motion.p
-                  className="mt-6 text-sm text-muted-foreground text-center"
+                <motion.div
+                  className="mt-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 border border-blue-200"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.5 }}
                 >
-                  總投票數：{totalVotes}
-                </motion.p>
+                  <div className="flex items-center justify-center gap-3">
+                    <div className="p-2 bg-blue-100 rounded-full">
+                      <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                      </svg>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm font-medium text-gray-700">總投票數</p>
+                      <p className="text-xl font-bold text-blue-600">{totalVotes}</p>
+                    </div>
+                  </div>
+                </motion.div>
               </motion.div>
             ) : (
               <motion.div

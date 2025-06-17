@@ -422,23 +422,23 @@ export default function Teacher() {
           </Card>
 
           {/* Additional Controls */}
-          <div className="flex gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <Button
               onClick={() => resetVotes.mutate()}
               disabled={resetVotes.isPending}
               variant="outline"
-              className="flex-1 flex items-center justify-center gap-2 h-12 hover:bg-orange-500/10 hover:border-orange-200 text-orange-600"
+              className="flex items-center justify-center gap-2 h-12 sm:h-14 font-medium transition-all duration-200 hover:bg-orange-50 hover:border-orange-300 text-orange-600 hover:shadow-md active:scale-95 border-2"
             >
-              <RefreshCw className="w-5 h-5" />
-              重置投票
+              <RefreshCw className={`w-5 h-5 ${resetVotes.isPending ? 'animate-spin' : ''}`} />
+              <span className="text-sm sm:text-base">重置投票</span>
             </Button>
             <Button
               onClick={resetAll}
-              className="flex-1 flex items-center justify-center gap-2 h-12 bg-red-500/10 hover:bg-red-500/20 text-red-600"
+              className="flex items-center justify-center gap-2 h-12 sm:h-14 font-medium transition-all duration-200 bg-red-50 hover:bg-red-100 text-red-600 hover:shadow-md active:scale-95 border-2 border-red-200 hover:border-red-300"
               variant="ghost"
             >
               <RefreshCw className="w-5 h-5" />
-              重新建立投票
+              <span className="text-sm sm:text-base">重新建立投票</span>
             </Button>
           </div>
         </div>
