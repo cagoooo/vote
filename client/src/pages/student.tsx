@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -15,6 +15,7 @@ export default function Student() {
   const { toast } = useToast();
   const params = useParams<{ id: string }>();
   const questionId = params.id;
+  const queryClient = useQueryClient();
   const [hasVoted, setHasVoted] = useState(false);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [animatedCounts, setAnimatedCounts] = useState<Record<number, number>>({});
@@ -31,9 +32,15 @@ export default function Student() {
       // 只在問題真正重置時才清除投票狀態
       // 如果只是答案顯示狀態改變，保持投票狀態
       const voted = localStorage.getItem(`voted_${questionId}`);
-      if (voted) {
+      if (voted && voted !== "true") {
+        // 如果localStorage存儲的是選項索引
+        const optionIndex = parseInt(voted);
         setHasVoted(true);
-        setSelectedOption(parseInt(voted));
+        setSelectedOption(optionIndex);
+      } else if (voted === "true") {
+        // 兼容舊格式，但需要從投票記錄中恢復選項
+        setHasVoted(true);
+        setSelectedOption(null);
       } else {
         setHasVoted(false);
         setSelectedOption(null);
@@ -96,6 +103,14 @@ export default function Student() {
   const vote = useMutation({
     mutationFn: async (optionIndex: number) => {
       if (!question) return;
+      
+      // 先設置投票狀態，防止重複投票
+      if (questionId) {
+        localStorage.setItem(`voted_${questionId}`, optionIndex.toString());
+        setHasVoted(true);
+        setSelectedOption(optionIndex);
+      }
+      
       await apiRequest("POST", `/api/questions/${question.id}/vote`, {
         optionIndex,
       });
@@ -105,10 +120,9 @@ export default function Student() {
         title: "投票成功",
         description: "感謝您的參與！",
       });
-      if (questionId) {
-        localStorage.setItem(`voted_${questionId}`, "true");
-        setHasVoted(true);
-      }
+      
+      // 手動觸發投票數據重新獲取
+      queryClient.invalidateQueries({ queryKey: [`/api/questions/${questionId}/votes`] });
     },
   });
 
