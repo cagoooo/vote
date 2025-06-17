@@ -310,7 +310,43 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const dataURL = canvas.toDataURL('image/png');
+    // Create a new canvas with proper aspect ratio for consistent display
+    const outputCanvas = document.createElement('canvas');
+    const outputCtx = outputCanvas.getContext('2d');
+    if (!outputCtx) return;
+
+    // Use a standard aspect ratio that works well across devices
+    const aspectRatio = 16 / 9; // Standard widescreen ratio
+    const maxWidth = 800;
+    const maxHeight = maxWidth / aspectRatio;
+
+    // Calculate dimensions while maintaining aspect ratio
+    let outputWidth = canvas.width;
+    let outputHeight = canvas.height;
+
+    // Scale down if needed while maintaining aspect ratio
+    if (outputWidth > maxWidth) {
+      outputWidth = maxWidth;
+      outputHeight = outputWidth * (canvas.height / canvas.width);
+    }
+    
+    if (outputHeight > maxHeight) {
+      outputHeight = maxHeight;
+      outputWidth = outputHeight * (canvas.width / canvas.height);
+    }
+
+    // Set output canvas dimensions
+    outputCanvas.width = outputWidth;
+    outputCanvas.height = outputHeight;
+
+    // Fill with white background
+    outputCtx.fillStyle = '#ffffff';
+    outputCtx.fillRect(0, 0, outputWidth, outputHeight);
+
+    // Draw the original canvas content, scaled to fit
+    outputCtx.drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, outputWidth, outputHeight);
+
+    const dataURL = outputCanvas.toDataURL('image/png', 0.95);
     onImageGenerated(dataURL);
     onClose();
     
@@ -325,9 +361,38 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    // Create output canvas with consistent dimensions (same logic as saveImage)
+    const outputCanvas = document.createElement('canvas');
+    const outputCtx = outputCanvas.getContext('2d');
+    if (!outputCtx) return;
+
+    const aspectRatio = 16 / 9;
+    const maxWidth = 800;
+    const maxHeight = maxWidth / aspectRatio;
+
+    let outputWidth = canvas.width;
+    let outputHeight = canvas.height;
+
+    if (outputWidth > maxWidth) {
+      outputWidth = maxWidth;
+      outputHeight = outputWidth * (canvas.height / canvas.width);
+    }
+    
+    if (outputHeight > maxHeight) {
+      outputHeight = maxHeight;
+      outputWidth = outputHeight * (canvas.width / canvas.height);
+    }
+
+    outputCanvas.width = outputWidth;
+    outputCanvas.height = outputHeight;
+
+    outputCtx.fillStyle = '#ffffff';
+    outputCtx.fillRect(0, 0, outputWidth, outputHeight);
+    outputCtx.drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, outputWidth, outputHeight);
+
     const link = document.createElement('a');
     link.download = `whiteboard-${new Date().getTime()}.png`;
-    link.href = canvas.toDataURL();
+    link.href = outputCanvas.toDataURL('image/png', 0.95);
     link.click();
   };
 
