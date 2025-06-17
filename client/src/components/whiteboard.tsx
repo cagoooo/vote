@@ -65,6 +65,19 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
   const [showBrushSizes, setShowBrushSizes] = useState(false);
   const { toast } = useToast();
 
+  // Clean up state when whiteboard opens
+  useEffect(() => {
+    if (isOpen) {
+      setPaths([]);
+      setCurrentPath(null);
+      setUndoStack([]);
+      setRedoStack([]);
+      setIsDrawing(false);
+      setShowColorPicker(false);
+      setShowBrushSizes(false);
+    }
+  }, [isOpen]);
+
   // Initialize canvas
   useEffect(() => {
     if (!isOpen) return;
@@ -76,8 +89,6 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
     const resizeCanvas = () => {
       const rect = container.getBoundingClientRect();
       if (rect.width === 0 || rect.height === 0) return; // Wait for proper container sizing
-      
-      const dpr = window.devicePixelRatio || 1;
       
       // Calculate responsive dimensions with better mobile support
       const isMobile = window.innerWidth < 640;
@@ -110,35 +121,36 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
       canvas.style.width = `${displayWidth}px`;
       canvas.style.height = `${displayHeight}px`;
       
-      // Set actual size in memory (scaled for DPI)
-      canvas.width = displayWidth * dpr;
-      canvas.height = displayHeight * dpr;
+      // Set actual size in memory (without DPR scaling for simplicity)
+      canvas.width = displayWidth;
+      canvas.height = displayHeight;
       
-      // Scale context for DPI
+      // Setup context
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        ctx.scale(dpr, dpr);
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
+        ctx.imageSmoothingEnabled = true;
         
         // Fill with white background
         ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+        ctx.fillRect(0, 0, displayWidth, displayHeight);
         
         // Redraw all paths
         redrawCanvas();
       }
     };
 
-    // Initial resize with a small delay to ensure container is rendered
-    const timeoutId = setTimeout(resizeCanvas, 100);
+    // Initial resize immediately and with backup timing
+    resizeCanvas();
+    const timeoutId = setTimeout(resizeCanvas, 50);
     window.addEventListener('resize', resizeCanvas);
 
     return () => {
       clearTimeout(timeoutId);
       window.removeEventListener('resize', resizeCanvas);
     };
-  }, [isOpen, paths]);
+  }, [isOpen]);
 
   const redrawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -147,7 +159,7 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
 
     // Clear and fill with white
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width / (window.devicePixelRatio || 1), canvas.height / (window.devicePixelRatio || 1));
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Redraw all paths
     paths.forEach(path => {
@@ -253,7 +265,7 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
     const ctx = canvas?.getContext('2d');
     if (ctx && canvas) {
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, canvas.width / (window.devicePixelRatio || 1), canvas.height / (window.devicePixelRatio || 1));
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
   };
 
