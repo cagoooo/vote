@@ -138,19 +138,25 @@ export default function Student() {
   const maxVotes = Math.max(...Object.values(totals));
 
   return (
-    <div className="page-container max-w-2xl">
-      <Card className="overflow-hidden card-hover">
-        <motion.img
-          src={question.imageUrl}
-          alt="問題圖片"
-          className="w-full h-auto"
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-        />
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-2 sm:p-4">
+      <div className="max-w-2xl mx-auto">
+        <Card className="overflow-hidden shadow-xl border-0 bg-white/95 backdrop-blur-sm">
+          <div className="relative">
+            <motion.img
+              src={question.imageUrl}
+              alt="問題圖片"
+              className="w-full h-auto max-h-[50vh] object-contain bg-gray-50"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5 }}
+            />
+            <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 text-sm font-medium text-gray-600 shadow-lg">
+              即時投票
+            </div>
+          </div>
 
-        <div className="p-6 space-y-4">
-          <AnimatePresence mode="wait">
+          <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+            <AnimatePresence mode="wait">
             {hasVoted ? (
               <motion.div
                 className="space-y-4"
@@ -272,10 +278,10 @@ export default function Student() {
                       }}
                       disabled={vote.isPending || hasVoted}
                       variant={selectedOption === index ? "default" : "outline"}
-                      className={`w-full h-12 text-lg transition-all duration-300 relative overflow-hidden ${
+                      className={`w-full h-14 sm:h-12 text-base sm:text-lg font-medium transition-all duration-300 relative overflow-hidden touch-manipulation ${
                         selectedOption === index
-                          ? "bg-primary text-primary-foreground transform hover:scale-[1.02] hover:shadow-lg"
-                          : "hover:bg-primary/10 hover:border-primary/50"
+                          ? "bg-primary text-primary-foreground transform hover:scale-[1.02] hover:shadow-lg shadow-md"
+                          : "hover:bg-primary/10 hover:border-primary/50 active:bg-primary/5"
                       }`}
                       asChild
                     >
@@ -319,9 +325,10 @@ export default function Student() {
                 ))}
               </motion.div>
             )}
-          </AnimatePresence>
-        </div>
-      </Card>
+            </AnimatePresence>
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }
