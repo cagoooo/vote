@@ -310,40 +310,22 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Create a new canvas maintaining the original aspect ratio
-    const outputCanvas = document.createElement('canvas');
-    const outputCtx = outputCanvas.getContext('2d');
-    if (!outputCtx) return;
+    // Debug: Log original canvas dimensions
+    console.log('Original canvas dimensions:', canvas.width, 'x', canvas.height);
+    console.log('Original canvas style dimensions:', canvas.style.width, 'x', canvas.style.height);
+    console.log('Original aspect ratio:', canvas.width / canvas.height);
 
-    // Preserve the original canvas aspect ratio
-    const originalAspectRatio = canvas.width / canvas.height;
-    const maxDimension = 800; // Maximum size for either width or height
-
-    let outputWidth, outputHeight;
-
-    // Scale down while maintaining aspect ratio
-    if (canvas.width >= canvas.height) {
-      // Landscape or square - limit by width
-      outputWidth = Math.min(canvas.width, maxDimension);
-      outputHeight = outputWidth / originalAspectRatio;
-    } else {
-      // Portrait - limit by height  
-      outputHeight = Math.min(canvas.height, maxDimension);
-      outputWidth = outputHeight * originalAspectRatio;
-    }
-
-    // Set output canvas dimensions to exact original proportions
-    outputCanvas.width = outputWidth;
-    outputCanvas.height = outputHeight;
-
-    // Fill with white background
-    outputCtx.fillStyle = '#ffffff';
-    outputCtx.fillRect(0, 0, outputWidth, outputHeight);
-
-    // Draw the original canvas content maintaining exact proportions
-    outputCtx.drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, outputWidth, outputHeight);
-
-    const dataURL = outputCanvas.toDataURL('image/png', 0.95);
+    // Simply use the canvas as-is to preserve exact dimensions and avoid any scaling
+    const dataURL = canvas.toDataURL('image/png', 0.95);
+    
+    // Verify the saved image dimensions
+    const img = new Image();
+    img.onload = () => {
+      console.log('Saved image dimensions:', img.width, 'x', img.height);
+      console.log('Saved image aspect ratio:', img.width / img.height);
+    };
+    img.src = dataURL;
+    
     onImageGenerated(dataURL);
     onClose();
     

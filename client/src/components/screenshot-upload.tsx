@@ -316,11 +316,12 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
 
         {preview && (
             <div className="mt-4 relative rounded-lg overflow-hidden border border-border">
-              <div className="flex justify-center items-center">
+              <div className="flex justify-center items-center min-h-[200px]">
                 <img
                   src={preview}
                   alt="預覽圖"
-                  className="max-w-full max-h-[70vh] w-auto h-auto object-contain mx-auto"
+                  className="max-w-full max-h-[70vh] w-auto h-auto object-contain mx-auto block"
+                  style={{ aspectRatio: 'auto' }}
                 />
               </div>
               <div className="absolute top-2 right-2 flex gap-2">
