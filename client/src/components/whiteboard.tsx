@@ -167,9 +167,13 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
 
+    // Calculate scaling factors between display size and actual canvas size
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
     return {
-      x: clientX - rect.left,
-      y: clientY - rect.top,
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY,
     };
   };
 
