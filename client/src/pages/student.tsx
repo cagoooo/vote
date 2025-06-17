@@ -126,18 +126,29 @@ export default function Student() {
       // 手動觸發投票數據重新獲取
       queryClient.invalidateQueries({ queryKey: [`/api/questions/${questionId}/votes`] });
     },
-    onError: () => {
+    onError: (error: any) => {
       // 如果API調用失敗，恢復狀態
       setHasVoted(false);
       setSelectedOption(null);
       if (questionId) {
         localStorage.removeItem(`voted_${questionId}`);
       }
-      toast({
-        title: "投票失敗",
-        description: "請重試",
-        variant: "destructive",
-      });
+      
+      // 檢查是否為重複投票錯誤
+      const errorMessage = error?.message || "";
+      if (errorMessage.includes("already voted")) {
+        toast({
+          title: "重複投票",
+          description: "您已經為此問題投過票了",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "投票失敗",
+          description: "請重試",
+          variant: "destructive",
+        });
+      }
     },
   });
 

@@ -54,11 +54,25 @@ export class MemStorage implements IStorage {
     return Array.from(this.questions.values()).find((q) => q.active);
   }
 
-  async addVote(questionId: number, optionIndex: number): Promise<Vote> {
+  async addVote(questionId: number, optionIndex: number, sessionId?: string): Promise<Vote> {
     const id = this.currentVoteId++;
-    const vote: Vote = { id, questionId, optionIndex };
+    const vote: Vote = { id, questionId, optionIndex, sessionId: sessionId || null };
     this.votes.set(id, vote);
+    
+    // Track this vote for duplicate prevention
+    if (sessionId) {
+      if (!this.userVotes.has(sessionId)) {
+        this.userVotes.set(sessionId, new Set());
+      }
+      this.userVotes.get(sessionId)!.add(questionId);
+    }
+    
     return vote;
+  }
+
+  async hasUserVoted(questionId: number, sessionId: string): Promise<boolean> {
+    const userQuestions = this.userVotes.get(sessionId);
+    return userQuestions ? userQuestions.has(questionId) : false;
   }
 
   async getVotesForQuestion(questionId: number): Promise<Vote[]> {
@@ -76,6 +90,11 @@ export class MemStorage implements IStorage {
       }
     });
     votesToDelete.forEach(id => this.votes.delete(id));
+    
+    // 清除用戶投票追蹤記錄
+    this.userVotes.forEach((questionIds, sessionId) => {
+      questionIds.delete(questionId);
+    });
   }
 
   async setCorrectAnswer(questionId: number, correctAnswer: number): Promise<Question> {
