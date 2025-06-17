@@ -11,7 +11,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useVotingSound } from "@/hooks/use-voting-sounds";
 import type { Question, Vote } from "@shared/schema"; // Assuming Vote type exists
-import { Plus, Minus, Sparkles, RefreshCw } from "lucide-react";
+import { Plus, Minus, Sparkles, RefreshCw, CheckCircle2, Eye, EyeOff } from "lucide-react";
 
 export default function Teacher() {
   const [imageUrl, setImageUrl] = useState("");
@@ -42,6 +42,78 @@ export default function Teacher() {
     onError: (error: Error) => {
       toast({
         title: "建立問題失敗",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const setCorrectAnswer = useMutation({
+    mutationFn: async (correctAnswer: number) => {
+      if (!createdQuestion) throw new Error("No question created");
+      const res = await apiRequest("POST", `/api/questions/${createdQuestion.id}/correct-answer`, {
+        correctAnswer,
+      });
+      return res.json();
+    },
+    onSuccess: (question) => {
+      setCreatedQuestion(question);
+      toast({
+        title: "正確答案已設定",
+        description: `選項 ${question.correctAnswer! + 1} 已設為正確答案`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "設定失敗",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const toggleShowAnswer = useMutation({
+    mutationFn: async (show: boolean) => {
+      if (!createdQuestion) throw new Error("No question created");
+      const res = await apiRequest("POST", `/api/questions/${createdQuestion.id}/show-answer`, {
+        show,
+      });
+      return res.json();
+    },
+    onSuccess: (question) => {
+      setCreatedQuestion(question);
+      toast({
+        title: question.showAnswer ? "正確答案已顯示" : "正確答案已隱藏",
+        description: question.showAnswer 
+          ? "學生現在可以看到正確答案" 
+          : "正確答案已從投票結果中隱藏",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "操作失敗",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const resetVotes = useMutation({
+    mutationFn: async () => {
+      if (!createdQuestion) throw new Error("No question created");
+      const res = await apiRequest("POST", `/api/questions/${createdQuestion.id}/reset-votes`, {});
+      return res.json();
+    },
+    onSuccess: () => {
+      setVotes([]);
+      toast({
+        title: "投票已重置",
+        description: "所有投票記錄已清除",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "重置失敗",
         description: error.message,
         variant: "destructive",
       });
@@ -227,14 +299,100 @@ export default function Teacher() {
             <VotingStats question={createdQuestion} onVoteReceived={handleVoteReceived} />
           </div>
 
-          <Button
-            onClick={resetAll}
-            className="w-full flex items-center justify-center gap-2 h-12 text-lg bg-red-500/10 hover:bg-red-500/20 text-red-600"
-            variant="ghost"
-          >
-            <RefreshCw className="w-5 h-5" />
-            重新建立投票
-          </Button>
+          {/* Correct Answer Management */}
+          <Card className="p-6 card-hover">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-primary" />
+              正確答案管理
+            </h3>
+            
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-muted-foreground mb-3">
+                  設定正確答案選項：
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                  {createdQuestion.options.map((option, index) => (
+                    <Button
+                      key={index}
+                      variant={createdQuestion.correctAnswer === index ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCorrectAnswer.mutate(index)}
+                      disabled={setCorrectAnswer.isPending}
+                      className={`text-xs ${
+                        createdQuestion.correctAnswer === index 
+                          ? "bg-green-500 hover:bg-green-600 text-white" 
+                          : "hover:bg-green-50 hover:border-green-200"
+                      }`}
+                    >
+                      {index + 1}. {option.substring(0, 20)}{option.length > 20 ? '...' : ''}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-4 border-t">
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium">
+                    {createdQuestion.showAnswer ? "正確答案已顯示" : "正確答案已隱藏"}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {createdQuestion.showAnswer 
+                      ? "學生可以在投票結果中看到正確答案" 
+                      : "正確答案僅對老師可見"}
+                  </span>
+                </div>
+                <Button
+                  onClick={() => toggleShowAnswer.mutate(!createdQuestion.showAnswer)}
+                  disabled={toggleShowAnswer.isPending || createdQuestion.correctAnswer === null}
+                  variant={createdQuestion.showAnswer ? "destructive" : "default"}
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  {createdQuestion.showAnswer ? (
+                    <>
+                      <EyeOff className="w-4 h-4" />
+                      隱藏答案
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="w-4 h-4" />
+                      顯示答案
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {createdQuestion.correctAnswer !== null && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                  <p className="text-sm text-green-800">
+                    <strong>目前正確答案：</strong>選項 {createdQuestion.correctAnswer + 1} - {createdQuestion.options[createdQuestion.correctAnswer]}
+                  </p>
+                </div>
+              )}
+            </div>
+          </Card>
+
+          {/* Additional Controls */}
+          <div className="flex gap-3">
+            <Button
+              onClick={() => resetVotes.mutate()}
+              disabled={resetVotes.isPending}
+              variant="outline"
+              className="flex-1 flex items-center justify-center gap-2 h-12 hover:bg-orange-500/10 hover:border-orange-200 text-orange-600"
+            >
+              <RefreshCw className="w-5 h-5" />
+              重置投票
+            </Button>
+            <Button
+              onClick={resetAll}
+              className="flex-1 flex items-center justify-center gap-2 h-12 bg-red-500/10 hover:bg-red-500/20 text-red-600"
+              variant="ghost"
+            >
+              <RefreshCw className="w-5 h-5" />
+              重新建立投票
+            </Button>
+          </div>
         </div>
       )}
     </div>

@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { Progress } from "@/components/ui/progress";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import type { Question, Vote } from "@shared/schema";
 import { motion, useAnimation, AnimatePresence } from "framer-motion";
-import { BarChart } from "lucide-react";
+import { BarChart, CheckCircle2 } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 
 interface VotingStatsProps {
@@ -144,13 +145,27 @@ export function VotingStats({ question, onVoteReceived }: VotingStatsProps) {
                 className="space-y-2"
               >
                 <div className="flex justify-between items-center mb-1">
-                  <motion.span 
-                    className={`font-medium text-base bg-gradient-to-r ${gradientClass} bg-clip-text text-transparent`}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                  >
-                    {option}
-                  </motion.span>
+                  <div className="flex items-center gap-2">
+                    <motion.span 
+                      className={`font-medium text-base bg-gradient-to-r ${gradientClass} bg-clip-text text-transparent`}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                    >
+                      {option}
+                    </motion.span>
+                    {question.showAnswer && question.correctAnswer === index && (
+                      <motion.div
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ type: "spring", stiffness: 300, delay: 0.2 }}
+                      >
+                        <Badge variant="default" className="bg-green-100 text-green-800 border-green-300 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" />
+                          正確答案
+                        </Badge>
+                      </motion.div>
+                    )}
+                  </div>
                   <motion.span 
                     className={`font-bold text-lg bg-gradient-to-r ${gradientClass} bg-clip-text text-transparent`}
                     initial={{ scale: 0 }}
