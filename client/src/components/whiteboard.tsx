@@ -88,36 +88,18 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
 
     const resizeCanvas = () => {
       const rect = container.getBoundingClientRect();
-      if (rect.width === 0 || rect.height === 0) return; // Wait for proper container sizing
+      if (rect.width === 0 || rect.height === 0) return;
       
-      // Calculate responsive dimensions to use maximum available space
-      const isMobile = window.innerWidth < 640;
+      // Use the full container dimensions with minimal margin
+      const margin = 4;
+      const displayWidth = rect.width - margin * 2;
+      const displayHeight = rect.height - margin * 2;
       
-      // Use nearly all available space with minimal padding
-      const padding = 16; // Small padding for visual comfort
-      const availableWidth = rect.width - padding;
-      
-      // Calculate available height based on viewport and container
-      const maxViewportHeight = window.innerHeight * (isMobile ? 0.7 : 0.8);
-      const containerHeight = rect.height - padding;
-      const availableHeight = Math.min(maxViewportHeight, containerHeight, isMobile ? 600 : 800);
-      
-      // Use the full available dimensions
-      let displayWidth = availableWidth;
-      let displayHeight = availableHeight;
-      
-      // Ensure reasonable minimum size
-      const minWidth = isMobile ? 280 : 400;
-      const minHeight = isMobile ? 200 : 300;
-      
-      displayWidth = Math.max(displayWidth, minWidth);
-      displayHeight = Math.max(displayHeight, minHeight);
-      
-      // Set display size
+      // Set display size to fill the entire container
       canvas.style.width = `${displayWidth}px`;
       canvas.style.height = `${displayHeight}px`;
       
-      // Set actual size in memory (without DPR scaling for simplicity)
+      // Set actual canvas resolution
       canvas.width = displayWidth;
       canvas.height = displayHeight;
       
@@ -471,12 +453,12 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
           {/* Canvas Container */}
           <div 
             ref={containerRef}
-            className="relative border rounded-lg overflow-hidden bg-white w-full flex-1 flex justify-center items-center"
+            className="relative rounded-lg overflow-hidden bg-white w-full flex-1"
             style={{ minHeight: 'calc(100vh - 300px)' }}
           >
             <canvas
               ref={canvasRef}
-              className="block cursor-crosshair touch-none border border-gray-200 rounded shadow-sm"
+              className="block cursor-crosshair touch-none w-full h-full"
               onMouseDown={startDrawing}
               onMouseMove={draw}
               onMouseUp={stopDrawing}
