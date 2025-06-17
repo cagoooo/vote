@@ -127,22 +127,25 @@ export default function Student() {
       queryClient.invalidateQueries({ queryKey: [`/api/questions/${questionId}/votes`] });
     },
     onError: (error: any) => {
-      // 如果API調用失敗，恢復狀態
-      setHasVoted(false);
-      setSelectedOption(null);
-      if (questionId) {
-        localStorage.removeItem(`voted_${questionId}`);
-      }
-      
       // 檢查是否為重複投票錯誤
       const errorMessage = error?.message || "";
       if (errorMessage.includes("already voted")) {
+        // 如果是重複投票，設定為已投票狀態並進入結果頁面
+        setHasVoted(true);
+        if (questionId) {
+          localStorage.setItem(`voted_${questionId}`, "true");
+        }
         toast({
-          title: "重複投票",
-          description: "您已經為此問題投過票了",
-          variant: "destructive",
+          title: "已完成投票",
+          description: "您已經為此問題投過票了，現在查看即時結果",
         });
       } else {
+        // 其他錯誤才恢復狀態
+        setHasVoted(false);
+        setSelectedOption(null);
+        if (questionId) {
+          localStorage.removeItem(`voted_${questionId}`);
+        }
         toast({
           title: "投票失敗",
           description: "請重試",
