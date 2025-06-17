@@ -88,31 +88,34 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
 
     const resizeCanvas = () => {
       const rect = container.getBoundingClientRect();
-      if (rect.width === 0 || rect.height === 0) return;
+      if (rect.width === 0 || rect.height === 0) {
+        // If container not ready, try again later
+        setTimeout(resizeCanvas, 100);
+        return;
+      }
       
       console.log('Container rect:', rect.width, 'x', rect.height);
       
-      // Use a square or nearly square aspect ratio to prevent distortion
-      const margin = 4;
+      // Force canvas to be square to prevent circular distortion
+      const margin = 8;
       const availableWidth = rect.width - margin * 2;
       const availableHeight = rect.height - margin * 2;
       
       console.log('Available space:', availableWidth, 'x', availableHeight);
       
-      // Create a more square canvas to prevent circular shapes from becoming ovals
-      const size = Math.min(availableWidth, availableHeight);
-      const displayWidth = size;
-      const displayHeight = size; // Make it square to preserve circular shapes
+      // Use minimum dimension to create a square canvas
+      const size = Math.min(availableWidth, availableHeight * 0.8); // Use 80% of height to leave room for UI
+      const canvasSize = Math.max(size, 200); // Minimum 200px
       
-      console.log('Setting canvas to:', displayWidth, 'x', displayHeight);
+      console.log('Setting canvas to square:', canvasSize, 'x', canvasSize);
       
-      // Set display size
-      canvas.style.width = `${displayWidth}px`;
-      canvas.style.height = `${displayHeight}px`;
+      // Force square dimensions
+      canvas.style.width = `${canvasSize}px`;
+      canvas.style.height = `${canvasSize}px`;
+      canvas.width = canvasSize;
+      canvas.height = canvasSize;
       
-      // Set actual canvas resolution to match display size
-      canvas.width = displayWidth;
-      canvas.height = displayHeight;
+      console.log('Canvas dimensions after setting:', canvas.width, 'x', canvas.height);
       
       // Setup context with optimized settings for crisp drawing
       const ctx = canvas.getContext('2d');
@@ -124,20 +127,24 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
         
         // Fill with white background
         ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, displayWidth, displayHeight);
+        ctx.fillRect(0, 0, canvasSize, canvasSize);
         
         // Redraw all paths
         redrawCanvas();
       }
     };
 
-    // Initial resize immediately and with backup timing
+    // Initial resize with multiple attempts to ensure it takes effect
     resizeCanvas();
-    const timeoutId = setTimeout(resizeCanvas, 50);
+    const timeoutId1 = setTimeout(resizeCanvas, 50);
+    const timeoutId2 = setTimeout(resizeCanvas, 100);
+    const timeoutId3 = setTimeout(resizeCanvas, 200);
     window.addEventListener('resize', resizeCanvas);
 
     return () => {
-      clearTimeout(timeoutId);
+      clearTimeout(timeoutId1);
+      clearTimeout(timeoutId2);
+      clearTimeout(timeoutId3);
       window.removeEventListener('resize', resizeCanvas);
     };
   }, [isOpen]);
