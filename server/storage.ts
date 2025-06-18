@@ -2,27 +2,32 @@ import { type Question, type InsertQuestion, type Vote } from "@shared/schema";
 
 export interface IStorage {
   createQuestion(question: InsertQuestion): Promise<Question>;
-  getQuestion(id: number): Promise<Question | undefined>;
+  getQuestion(id: string): Promise<Question | undefined>;
   getActiveQuestion(): Promise<Question | undefined>;
-  addVote(questionId: number, optionIndex: number, sessionId?: string): Promise<Vote>;
-  getVotesForQuestion(questionId: number): Promise<Vote[]>;
-  hasUserVoted(questionId: number, sessionId: string): Promise<boolean>;
-  resetVotes(questionId: number): Promise<void>;
-  setCorrectAnswer(questionId: number, correctAnswer: number): Promise<Question>;
-  showAnswer(questionId: number, show: boolean): Promise<Question>;
+  addVote(questionId: string, optionIndex: number, sessionId?: string): Promise<Vote>;
+  getVotesForQuestion(questionId: string): Promise<Vote[]>;
+  hasUserVoted(questionId: string, sessionId: string): Promise<boolean>;
+  resetVotes(questionId: string): Promise<void>;
+  setCorrectAnswer(questionId: string, correctAnswer: number): Promise<Question>;
+  showAnswer(questionId: string, show: boolean): Promise<Question>;
+}
+
+// 生成隨機流水號
+function generateRandomId(): string {
+  const timestamp = Date.now().toString(36);
+  const randomPart = Math.random().toString(36).substring(2, 8);
+  return `${timestamp}${randomPart}`;
 }
 
 export class MemStorage implements IStorage {
-  private questions: Map<number, Question>;
+  private questions: Map<string, Question>;
   private votes: Map<number, Vote>;
-  private currentQuestionId: number;
   private currentVoteId: number;
-  private userVotes: Map<string, Set<number>>; // sessionId -> Set of questionIds
+  private userVotes: Map<string, Set<string>>; // sessionId -> Set of questionIds
 
   constructor() {
     this.questions = new Map();
     this.votes = new Map();
-    this.currentQuestionId = 1;
     this.currentVoteId = 1;
     this.userVotes = new Map();
   }
@@ -33,7 +38,7 @@ export class MemStorage implements IStorage {
       question.active = false;
     });
 
-    const id = this.currentQuestionId++;
+    const id = generateRandomId();
     const question: Question = {
       id,
       imageUrl: insertQuestion.imageUrl,
@@ -46,7 +51,7 @@ export class MemStorage implements IStorage {
     return question;
   }
 
-  async getQuestion(id: number): Promise<Question | undefined> {
+  async getQuestion(id: string): Promise<Question | undefined> {
     return this.questions.get(id);
   }
 
@@ -54,7 +59,7 @@ export class MemStorage implements IStorage {
     return Array.from(this.questions.values()).find((q) => q.active);
   }
 
-  async addVote(questionId: number, optionIndex: number, sessionId?: string): Promise<Vote> {
+  async addVote(questionId: string, optionIndex: number, sessionId?: string): Promise<Vote> {
     const id = this.currentVoteId++;
     const vote: Vote = { id, questionId, optionIndex, sessionId: sessionId || null };
     this.votes.set(id, vote);
@@ -70,7 +75,7 @@ export class MemStorage implements IStorage {
     return vote;
   }
 
-  async hasUserVoted(questionId: number, sessionId: string): Promise<boolean> {
+  async hasUserVoted(questionId: string, sessionId: string): Promise<boolean> {
     const userQuestions = this.userVotes.get(sessionId);
     return userQuestions ? userQuestions.has(questionId) : false;
   }

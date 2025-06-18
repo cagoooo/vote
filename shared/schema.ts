@@ -3,7 +3,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 export const questions = pgTable("questions", {
-  id: serial("id").primaryKey(),
+  id: text("id").primaryKey(),
   imageUrl: text("image_url").notNull(),
   options: jsonb("options").$type<string[]>().notNull(),
   active: boolean("active").notNull().default(true),
@@ -13,7 +13,7 @@ export const questions = pgTable("questions", {
 
 export const votes = pgTable("votes", {
   id: serial("id").primaryKey(),
-  questionId: integer("question_id").notNull(),
+  questionId: text("question_id").notNull(),
   optionIndex: integer("option_index").notNull(),
   sessionId: text("session_id"),
 });
