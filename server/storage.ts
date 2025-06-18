@@ -80,13 +80,13 @@ export class MemStorage implements IStorage {
     return userQuestions ? userQuestions.has(questionId) : false;
   }
 
-  async getVotesForQuestion(questionId: number): Promise<Vote[]> {
+  async getVotesForQuestion(questionId: string): Promise<Vote[]> {
     return Array.from(this.votes.values()).filter(
       (vote) => vote.questionId === questionId
     );
   }
 
-  async resetVotes(questionId: number): Promise<void> {
+  async resetVotes(questionId: string): Promise<void> {
     // 移除特定問題的所有投票
     const votesToDelete: number[] = [];
     this.votes.forEach((vote, id) => {
@@ -102,7 +102,7 @@ export class MemStorage implements IStorage {
     });
   }
 
-  async setCorrectAnswer(questionId: number, correctAnswer: number): Promise<Question> {
+  async setCorrectAnswer(questionId: string, correctAnswer: number): Promise<Question> {
     const question = this.questions.get(questionId);
     if (!question) {
       throw new Error(`Question with id ${questionId} not found`);
@@ -113,7 +113,7 @@ export class MemStorage implements IStorage {
     return question;
   }
 
-  async showAnswer(questionId: number, show: boolean): Promise<Question> {
+  async showAnswer(questionId: string, show: boolean): Promise<Question> {
     const question = this.questions.get(questionId);
     if (!question) {
       throw new Error(`Question with id ${questionId} not found`);

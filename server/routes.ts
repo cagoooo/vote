@@ -18,7 +18,7 @@ export async function registerRoutes(app: Express) {
   });
 
   app.get("/api/questions/:id", async (req, res) => {
-    const id = parseInt(req.params.id);
+    const id = req.params.id;
     const question = await storage.getQuestion(id);
     if (!question) {
       res.status(404).json({ error: "Question not found" });
@@ -37,7 +37,7 @@ export async function registerRoutes(app: Express) {
   });
 
   app.post("/api/questions/:id/vote", async (req, res) => {
-    const id = parseInt(req.params.id);
+    const id = req.params.id;
     const optionIndex = z.number().parse(req.body.optionIndex);
 
     const question = await storage.getQuestion(id);
@@ -65,20 +65,20 @@ export async function registerRoutes(app: Express) {
   });
 
   app.get("/api/questions/:id/votes", async (req, res) => {
-    const id = parseInt(req.params.id);
+    const id = req.params.id;
     const votes = await storage.getVotesForQuestion(id);
     res.json(votes);
   });
 
   app.post("/api/questions/:id/reset-votes", async (req, res) => {
-    const id = parseInt(req.params.id);
+    const id = req.params.id;
     await storage.resetVotes(id);
     res.json({ success: true });
   });
 
   app.post("/api/questions/:id/correct-answer", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id;
       const correctAnswer = z.number().parse(req.body.correctAnswer);
       
       const question = await storage.getQuestion(id);
@@ -101,7 +101,7 @@ export async function registerRoutes(app: Express) {
 
   app.post("/api/questions/:id/show-answer", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id;
       const show = z.boolean().parse(req.body.show);
       
       const question = await storage.getQuestion(id);
