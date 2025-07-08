@@ -94,6 +94,9 @@ This is a real-time voting system designed for classroom environments, built wit
 
 ## Changelog
 - July 08, 2025. Initial setup
+- July 08, 2025. Added floating advertisement button with modern gradient design and animations
+- July 08, 2025. Implemented secure session-based voting system with duplicate vote prevention
+- July 08, 2025. Enhanced privacy with random string IDs for voting URLs
 
 ## User Preferences
 

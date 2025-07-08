@@ -5,22 +5,26 @@ import { X, Sparkles } from "lucide-react";
 export function FloatingAdButton() {
   const [isVisible, setIsVisible] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
+  const [isClicking, setIsClicking] = useState(false);
 
   if (!isVisible) return null;
 
   const handleClick = (e: React.MouseEvent) => {
-    console.log("=== 廣告按鈕被點擊了！===");
-    console.log("Event target:", e.target);
-    console.log("Event currentTarget:", e.currentTarget);
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // 防止重複點擊
+    if (isClicking) return;
+    
+    setIsClicking(true);
     
     const url = "https://document-ai-companion-ipad4.replit.app";
     
     try {
-      console.log("嘗試開啟URL:", url);
       const newWindow = window.open(url, "_blank", "noopener,noreferrer");
       
       if (!newWindow) {
-        console.log("彈出視窗被阻擋，使用備用方案");
+        // 彈出視窗被阻擋，使用備用方案
         const link = document.createElement('a');
         link.href = url;
         link.target = '_blank';
@@ -29,15 +33,20 @@ export function FloatingAdButton() {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-      } else {
-        console.log("新視窗已開啟");
       }
     } catch (error) {
       console.error("開啟連結錯誤:", error);
+    } finally {
+      // 1秒後重新允許點擊
+      setTimeout(() => {
+        setIsClicking(false);
+      }, 1000);
     }
   };
 
-  const handleClose = () => {
+  const handleClose = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     setIsVisible(false);
   };
 
@@ -52,10 +61,14 @@ export function FloatingAdButton() {
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
         >
-          {/* 測試用背景 - 檢查是否可見 */}
+          {/* 背景光暈效果 */}
           <div 
-            className="absolute inset-0 bg-red-500 opacity-10 pointer-events-none"
-            style={{ zIndex: -1 }}
+            className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 blur-md opacity-60 pointer-events-none"
+            style={{ 
+              zIndex: -1,
+              transform: isHovered ? 'scale(1.1)' : 'scale(1)',
+              transition: 'transform 0.3s ease'
+            }}
           />
 
           {/* 關閉按鈕 */}
@@ -71,8 +84,7 @@ export function FloatingAdButton() {
           {/* 簡化的主按鈕 - 直接可點擊 */}
           <button
             onClick={handleClick}
-            onMouseDown={() => console.log("按鈕按下")}
-            onMouseUp={() => console.log("按鈕放開")}
+
             className="relative bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 
                       rounded-xl p-3 shadow-2xl border border-white/20
                       w-40 md:w-44 text-center cursor-pointer z-[9999]
