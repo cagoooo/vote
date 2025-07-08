@@ -29,16 +29,11 @@ export function FloatingAdButton() {
     const url = "https://document-ai-companion-ipad4.replit.app";
     
     try {
-      console.log("開始開啟視窗 - 時間:", new Date().toISOString());
-      
-      // 直接使用 window.open，不使用備用方案避免雙重執行
+      // 直接使用 window.open，避免雙重執行
       const newWindow = window.open(url, "_blank", "noopener,noreferrer");
       
       if (newWindow) {
-        console.log("視窗開啟成功");
         newWindow.focus();
-      } else {
-        console.log("視窗開啟失敗，可能被阻擋");
       }
     } catch (error) {
       console.error("開啟連結錯誤:", error);

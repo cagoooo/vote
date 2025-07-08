@@ -45,6 +45,7 @@ This is a real-time voting system designed for classroom environments, built wit
 ### User Interface
 - **Teacher View**: Question creation, QR code display, live results, and control panel
 - **Student View**: Mobile-optimized voting interface with visual feedback
+- **Floating Advertisement**: Modern gradient-designed promotional button with click protection
 - **Responsive Design**: Optimized for both desktop and mobile devices
 - **Accessibility**: ARIA labels and keyboard navigation support
 
@@ -97,6 +98,7 @@ This is a real-time voting system designed for classroom environments, built wit
 - July 08, 2025. Added floating advertisement button with modern gradient design and animations
 - July 08, 2025. Implemented secure session-based voting system with duplicate vote prevention
 - July 08, 2025. Enhanced privacy with random string IDs for voting URLs
+- July 08, 2025. Fixed floating button double-click issue with global click protection mechanism
 
 ## User Preferences
 
