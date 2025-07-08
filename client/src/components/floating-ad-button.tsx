@@ -9,8 +9,20 @@ export function FloatingAdButton() {
 
   if (!isVisible) return null;
 
-  const handleClick = () => {
-    window.open("https://document-ai-companion-ipad4.replit.app", "_blank");
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log("廣告按鈕被點擊了");
+    try {
+      const newWindow = window.open("https://document-ai-companion-ipad4.replit.app", "_blank", "noopener,noreferrer");
+      if (!newWindow) {
+        console.error("無法開啟新視窗，可能被瀏覽器攔截");
+        // 如果被攔截，直接在當前頁面開啟
+        window.location.href = "https://document-ai-companion-ipad4.replit.app";
+      }
+    } catch (error) {
+      console.error("開啟連結時發生錯誤:", error);
+    }
   };
 
   const handleClose = (e: React.MouseEvent) => {
@@ -32,25 +44,25 @@ export function FloatingAdButton() {
           {/* 關閉按鈕 */}
           <motion.button
             onClick={handleClose}
-            className="absolute -top-2 -right-2 w-6 h-6 bg-gray-800 text-white rounded-full 
+            className="absolute -top-1 -right-1 w-5 h-5 bg-gray-800 text-white rounded-full 
                      flex items-center justify-center text-xs hover:bg-gray-700 transition-colors z-10
                      shadow-lg border border-gray-600"
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
           >
-            <X size={12} />
+            <X size={10} />
           </motion.button>
 
           {/* 主按鈕 */}
-          <motion.div
+          <motion.button
             onClick={handleClick}
-            className="relative cursor-pointer"
+            className="relative cursor-pointer bg-transparent border-none p-0"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
             {/* 背景光暈效果 */}
             <motion.div
-              className="absolute inset-0 rounded-2xl bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 blur-lg opacity-75"
+              className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 blur-md opacity-75"
               animate={{
                 scale: isHovered ? 1.1 : 1,
                 opacity: isHovered ? 0.9 : 0.6,
@@ -60,12 +72,12 @@ export function FloatingAdButton() {
 
             {/* 按鈕本體 */}
             <div className="relative bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 
-                          rounded-2xl p-4 md:p-6 shadow-2xl border border-white/20 backdrop-blur-sm
-                          min-w-[200px] md:min-w-[250px] text-center">
+                          rounded-xl p-2 md:p-3 shadow-2xl border border-white/20 backdrop-blur-sm
+                          min-w-[140px] md:min-w-[160px] text-center">
               
               {/* 閃爍效果 */}
               <motion.div
-                className="absolute top-2 right-2"
+                className="absolute top-1 right-1"
                 animate={{
                   rotate: [0, 360],
                   scale: [1, 1.2, 1],
@@ -76,23 +88,23 @@ export function FloatingAdButton() {
                   ease: "easeInOut",
                 }}
               >
-                <Sparkles className="text-yellow-300 w-4 h-4 md:w-5 md:h-5" />
+                <Sparkles className="text-yellow-300 w-3 h-3 md:w-4 md:h-4" />
               </motion.div>
 
               {/* 文字內容 */}
               <div className="text-white">
-                <div className="text-lg md:text-xl font-bold mb-1 tracking-wide">
+                <div className="text-sm md:text-base font-bold mb-1 tracking-wide">
                   創建專屬助手
                 </div>
-                <div className="text-2xl md:text-3xl mb-2">🦄</div>
-                <div className="text-xs md:text-sm opacity-90 font-medium">
+                <div className="text-lg md:text-xl mb-1">🦄</div>
+                <div className="text-xs opacity-90 font-medium">
                   點擊開始使用
                 </div>
               </div>
 
               {/* 底部裝飾線 */}
               <motion.div
-                className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-yellow-400 to-pink-400 rounded-b-2xl"
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-yellow-400 to-pink-400 rounded-b-xl"
                 animate={{
                   opacity: [0.7, 1, 0.7],
                 }}
@@ -103,7 +115,7 @@ export function FloatingAdButton() {
                 }}
               />
             </div>
-          </motion.div>
+          </motion.button>
 
           {/* 脈動效果圈 */}
           <motion.div
