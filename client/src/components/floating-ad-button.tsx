@@ -9,20 +9,9 @@ export function FloatingAdButton() {
 
   if (!isVisible) return null;
 
-  const handleClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleClick = () => {
     console.log("廣告按鈕被點擊了");
-    try {
-      const newWindow = window.open("https://document-ai-companion-ipad4.replit.app", "_blank", "noopener,noreferrer");
-      if (!newWindow) {
-        console.error("無法開啟新視窗，可能被瀏覽器攔截");
-        // 如果被攔截，直接在當前頁面開啟
-        window.location.href = "https://document-ai-companion-ipad4.replit.app";
-      }
-    } catch (error) {
-      console.error("開啟連結時發生錯誤:", error);
-    }
+    window.open("https://document-ai-companion-ipad4.replit.app", "_blank");
   };
 
   const handleClose = (e: React.MouseEvent) => {
@@ -54,9 +43,8 @@ export function FloatingAdButton() {
           </motion.button>
 
           {/* 主按鈕 */}
-          <motion.button
-            onClick={handleClick}
-            className="relative cursor-pointer bg-transparent border-none p-0"
+          <motion.div
+            className="relative"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
@@ -70,14 +58,18 @@ export function FloatingAdButton() {
               transition={{ duration: 0.3 }}
             />
 
-            {/* 按鈕本體 */}
-            <div className="relative bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 
-                          rounded-xl p-2 md:p-3 shadow-2xl border border-white/20 backdrop-blur-sm
-                          min-w-[140px] md:min-w-[160px] text-center">
-              
+            {/* 可點擊的按鈕本體 */}
+            <button
+              onClick={handleClick}
+              className="relative bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 
+                        rounded-xl p-2 md:p-3 shadow-2xl border border-white/20 backdrop-blur-sm
+                        min-w-[140px] md:min-w-[160px] text-center cursor-pointer
+                        hover:from-purple-500 hover:via-pink-500 hover:to-orange-500
+                        transition-all duration-200 w-full"
+            >
               {/* 閃爍效果 */}
               <motion.div
-                className="absolute top-1 right-1"
+                className="absolute top-1 right-1 pointer-events-none"
                 animate={{
                   rotate: [0, 360],
                   scale: [1, 1.2, 1],
@@ -92,7 +84,7 @@ export function FloatingAdButton() {
               </motion.div>
 
               {/* 文字內容 */}
-              <div className="text-white">
+              <div className="text-white pointer-events-none">
                 <div className="text-sm md:text-base font-bold mb-1 tracking-wide">
                   創建專屬助手
                 </div>
@@ -104,7 +96,7 @@ export function FloatingAdButton() {
 
               {/* 底部裝飾線 */}
               <motion.div
-                className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-yellow-400 to-pink-400 rounded-b-xl"
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-yellow-400 to-pink-400 rounded-b-xl pointer-events-none"
                 animate={{
                   opacity: [0.7, 1, 0.7],
                 }}
@@ -114,8 +106,8 @@ export function FloatingAdButton() {
                   ease: "easeInOut",
                 }}
               />
-            </div>
-          </motion.button>
+            </button>
+          </motion.div>
 
           {/* 脈動效果圈 */}
           <motion.div
