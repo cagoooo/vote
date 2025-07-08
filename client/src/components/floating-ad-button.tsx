@@ -1,11 +1,14 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Sparkles } from "lucide-react";
+
+// 全域防重複點擊標記
+let isGlobalClicking = false;
 
 export function FloatingAdButton() {
   const [isVisible, setIsVisible] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
-  const [isClicking, setIsClicking] = useState(false);
+  const lastClickTime = useRef(0);
 
   if (!isVisible) return null;
 
@@ -13,35 +16,38 @@ export function FloatingAdButton() {
     e.preventDefault();
     e.stopPropagation();
     
-    // 防止重複點擊
-    if (isClicking) return;
+    const now = Date.now();
     
-    setIsClicking(true);
+    // 防止重複點擊 - 使用時間戳和全域標記雙重保護
+    if (isGlobalClicking || now - lastClickTime.current < 2000) {
+      return;
+    }
+    
+    lastClickTime.current = now;
+    isGlobalClicking = true;
     
     const url = "https://document-ai-companion-ipad4.replit.app";
     
     try {
+      console.log("開始開啟視窗 - 時間:", new Date().toISOString());
+      
+      // 直接使用 window.open，不使用備用方案避免雙重執行
       const newWindow = window.open(url, "_blank", "noopener,noreferrer");
       
-      if (!newWindow) {
-        // 彈出視窗被阻擋，使用備用方案
-        const link = document.createElement('a');
-        link.href = url;
-        link.target = '_blank';
-        link.rel = 'noopener noreferrer';
-        link.style.display = 'none';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+      if (newWindow) {
+        console.log("視窗開啟成功");
+        newWindow.focus();
+      } else {
+        console.log("視窗開啟失敗，可能被阻擋");
       }
     } catch (error) {
       console.error("開啟連結錯誤:", error);
-    } finally {
-      // 1秒後重新允許點擊
-      setTimeout(() => {
-        setIsClicking(false);
-      }, 1000);
     }
+    
+    // 2秒後重新允許點擊
+    setTimeout(() => {
+      isGlobalClicking = false;
+    }, 2000);
   };
 
   const handleClose = (e: React.MouseEvent) => {
