@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useVotingSound } from "@/hooks/use-voting-sounds";
 import * as firestore from "@/lib/firestore-voting";
 import { Plus, Minus, Sparkles, RefreshCw, CheckCircle2, Eye, EyeOff } from "lucide-react";
+import { motion } from "framer-motion";
 
 export default function Teacher() {
   const [imageUrl, setImageUrl] = useState("");
