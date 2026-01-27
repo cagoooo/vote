@@ -1,8 +1,8 @@
 import useSound from 'use-sound';
 
 // Sound URLs - Using simpler encoded sounds
-const VOTE_SUBMITTED = '/sounds/vote-submitted.mp3';
-const VOTE_SESSION_START = '/sounds/vote-start.mp3';
+const VOTE_SUBMITTED = 'sounds/vote-submitted.mp3';
+const VOTE_SESSION_START = 'sounds/vote-start.mp3';
 
 export function useVotingSound() {
   // Sound for when a vote is submitted

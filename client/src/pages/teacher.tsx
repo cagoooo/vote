@@ -193,7 +193,7 @@ export default function Teacher() {
           className="relative group p-2 rounded-lg transition-all duration-300 hover:bg-yellow-100/10">
           <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/20 to-amber-500/20 rounded-lg blur opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
           <img
-            src="/logo.png"
+            src="logo.png"
             alt="Logo"
             className="h-10 sm:h-12 md:h-16 lg:h-20 w-auto object-contain relative transition-all duration-300 
               group-hover:scale-110 group-hover:rotate-3 group-hover:brightness-110 
