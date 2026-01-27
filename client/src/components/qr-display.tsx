@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Scan } from "lucide-react";
 
 interface QRDisplayProps {
-  questionId: number;
+  questionId: string | number;
 }
 
 export function QRDisplay({ questionId }: QRDisplayProps) {

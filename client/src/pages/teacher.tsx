@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -7,28 +7,47 @@ import { ScreenshotUpload } from "@/components/screenshot-upload";
 import { QRDisplay } from "@/components/qr-display";
 import { VotingStats } from "@/components/voting-stats";
 import { ShareButton } from "@/components/share-button";
-import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useVotingSound } from "@/hooks/use-voting-sounds";
-import type { Question, Vote } from "@shared/schema"; // Assuming Vote type exists
+import * as firestore from "@/lib/firestore-voting";
 import { Plus, Minus, Sparkles, RefreshCw, CheckCircle2, Eye, EyeOff } from "lucide-react";
 
 export default function Teacher() {
   const [imageUrl, setImageUrl] = useState("");
   const [options, setOptions] = useState<string[]>(["", "", ""]);
-  const [createdQuestion, setCreatedQuestion] = useState<Question | null>(null);
-  const [votes, setVotes] = useState<Vote[]>([]); // Added votes state
+  const [createdQuestion, setCreatedQuestion] = useState<any | null>(null);
+  const [votesStats, setVotesStats] = useState<Record<number, number>>({});
   const { toast } = useToast();
   const { playVoteSessionStart, playVoteSubmitted } = useVotingSound();
+
+  // 監聽活動問題
+  useEffect(() => {
+    const unsubscribe = firestore.getActiveQuestion((question) => {
+      setCreatedQuestion(question);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // 監聽投票統計
+  useEffect(() => {
+    if (createdQuestion?.id) {
+      const unsubscribe = firestore.getVotesStats(createdQuestion.id, (stats) => {
+        // 檢查是否有新投票（總數增加）
+        const oldTotal = Object.values(votesStats).reduce((a, b) => a + b, 0);
+        const newTotal = Object.values(stats).reduce((a, b) => a + b, 0);
+        if (newTotal > oldTotal) {
+          playVoteSubmitted();
+        }
+        setVotesStats(stats);
+      });
+      return () => unsubscribe();
+    }
+  }, [createdQuestion?.id, votesStats, playVoteSubmitted]);
 
   const createQuestion = useMutation({
     mutationFn: async () => {
       const filteredOptions = options.filter(Boolean);
-      const res = await apiRequest("POST", "/api/questions", {
-        imageUrl,
-        options: filteredOptions,
-      });
-      return res.json();
+      return await firestore.createQuestion(imageUrl, filteredOptions);
     },
     onSuccess: (question) => {
       setCreatedQuestion(question);
@@ -51,16 +70,12 @@ export default function Teacher() {
   const setCorrectAnswer = useMutation({
     mutationFn: async (correctAnswer: number) => {
       if (!createdQuestion) throw new Error("No question created");
-      const res = await apiRequest("POST", `/api/questions/${createdQuestion.id}/correct-answer`, {
-        correctAnswer,
-      });
-      return res.json();
+      await firestore.setCorrectAnswer(createdQuestion.id, correctAnswer);
     },
-    onSuccess: (question) => {
-      setCreatedQuestion(question);
+    onSuccess: (_, correctAnswer) => {
       toast({
         title: "正確答案已設定",
-        description: `選項 ${question.correctAnswer! + 1} 已設為正確答案`,
+        description: `選項 ${correctAnswer + 1} 已設為正確答案`,
       });
     },
     onError: (error: Error) => {
@@ -75,17 +90,13 @@ export default function Teacher() {
   const toggleShowAnswer = useMutation({
     mutationFn: async (show: boolean) => {
       if (!createdQuestion) throw new Error("No question created");
-      const res = await apiRequest("POST", `/api/questions/${createdQuestion.id}/show-answer`, {
-        show,
-      });
-      return res.json();
+      await firestore.toggleShowAnswer(createdQuestion.id, show);
     },
-    onSuccess: (question) => {
-      setCreatedQuestion(question);
+    onSuccess: (_, show) => {
       toast({
-        title: question.showAnswer ? "正確答案已顯示" : "正確答案已隱藏",
-        description: question.showAnswer 
-          ? "學生現在可以看到正確答案" 
+        title: show ? "正確答案已顯示" : "正確答案已隱藏",
+        description: show
+          ? "學生現在可以看到正確答案"
           : "正確答案已從投票結果中隱藏",
       });
     },
@@ -101,11 +112,10 @@ export default function Teacher() {
   const resetVotes = useMutation({
     mutationFn: async () => {
       if (!createdQuestion) throw new Error("No question created");
-      const res = await apiRequest("POST", `/api/questions/${createdQuestion.id}/reset-votes`, {});
-      return res.json();
+      await firestore.resetVotes(createdQuestion.id);
     },
     onSuccess: () => {
-      setVotes([]);
+      setVotesStats({});
       toast({
         title: "投票已重置",
         description: "所有投票記錄已清除",
@@ -124,7 +134,7 @@ export default function Teacher() {
     setImageUrl("");
     setOptions(["", "", ""]);
     setCreatedQuestion(null);
-    setVotes([]); // Reset votes
+    setVotesStats({});
     toast({
       title: "已重置所有設定",
       description: "您可以重新開始建立新的投票",
@@ -173,11 +183,6 @@ export default function Teacher() {
     setImageUrl(image);
   };
 
-  const handleVoteReceived = (newVotes: Vote[]) => { //updated handleVoteReceived
-    playVoteSubmitted();
-    setVotes(newVotes); // Update votes state
-  };
-
   const validOptionCount = options.filter(Boolean).length;
   const canSubmit = imageUrl && validOptionCount >= 2;
 
@@ -185,7 +190,7 @@ export default function Teacher() {
     <div className="page-container max-w-4xl">
       <div className="flex items-center justify-center gap-2 sm:gap-3 md:gap-4 mb-6 md:mb-8 transition-all duration-300">
         <a href="https://www.smes.tyc.edu.tw/" target="_blank" rel="noopener noreferrer"
-           className="relative group p-2 rounded-lg transition-all duration-300 hover:bg-yellow-100/10">
+          className="relative group p-2 rounded-lg transition-all duration-300 hover:bg-yellow-100/10">
           <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/20 to-amber-500/20 rounded-lg blur opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
           <img
             src="/logo.png"
@@ -280,7 +285,7 @@ export default function Teacher() {
             <ShareButton
               url={window.location.href}
               question={createdQuestion}
-              votes={votes} // Added votes prop
+              votes={[]} // 傳遞空陣列以保持相容性
             />
           </div>
 
@@ -296,7 +301,7 @@ export default function Teacher() {
 
           <div className="grid md:grid-cols-2 gap-6">
             <QRDisplay questionId={createdQuestion.id} />
-            <VotingStats question={createdQuestion} onVoteReceived={handleVoteReceived} />
+            <VotingStats question={createdQuestion} />
           </div>
 
           {/* Correct Answer Management */}
@@ -309,7 +314,7 @@ export default function Teacher() {
                 正確答案管理
               </h3>
             </div>
-            
+
             <div className="space-y-6">
               <div>
                 <div className="flex items-center justify-between mb-4">
@@ -323,18 +328,17 @@ export default function Teacher() {
                   )}
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                  {createdQuestion.options.map((option, index) => (
+                  {createdQuestion.options.map((option: string, index: number) => (
                     <Button
                       key={index}
                       variant={createdQuestion.correctAnswer === index ? "default" : "outline"}
                       size="default"
                       onClick={() => setCorrectAnswer.mutate(index)}
                       disabled={setCorrectAnswer.isPending}
-                      className={`h-auto min-h-[3rem] p-3 text-left text-sm font-medium transition-all duration-200 ${
-                        createdQuestion.correctAnswer === index 
-                          ? "bg-green-500 hover:bg-green-600 text-white shadow-lg transform hover:scale-105" 
-                          : "hover:bg-green-50 hover:border-green-300 hover:shadow-md active:scale-95"
-                      }`}
+                      className={`h-auto min-h-[3rem] p-3 text-left text-sm font-medium transition-all duration-200 ${createdQuestion.correctAnswer === index
+                        ? "bg-green-500 hover:bg-green-600 text-white shadow-lg transform hover:scale-105"
+                        : "hover:bg-green-50 hover:border-green-300 hover:shadow-md active:scale-95"
+                        }`}
                     >
                       <div className="w-full">
                         <div className="font-bold text-xs mb-1">選項 {index + 1}</div>
@@ -354,17 +358,16 @@ export default function Teacher() {
                       <span className="text-sm font-semibold text-gray-800">
                         答案顯示狀態
                       </span>
-                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                        createdQuestion.showAnswer 
-                          ? "bg-green-100 text-green-700" 
-                          : "bg-gray-100 text-gray-600"
-                      }`}>
+                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${createdQuestion.showAnswer
+                        ? "bg-green-100 text-green-700"
+                        : "bg-gray-100 text-gray-600"
+                        }`}>
                         {createdQuestion.showAnswer ? "已公開" : "已隱藏"}
                       </span>
                     </div>
                     <p className="text-xs text-gray-600 leading-relaxed">
-                      {createdQuestion.showAnswer 
-                        ? "學生現在可以在投票結果中看到正確答案標記" 
+                      {createdQuestion.showAnswer
+                        ? "學生現在可以在投票結果中看到正確答案標記"
                         : "正確答案僅對老師可見，學生無法看到"}
                     </p>
                   </div>
@@ -373,11 +376,10 @@ export default function Teacher() {
                     disabled={toggleShowAnswer.isPending || createdQuestion.correctAnswer === null}
                     variant={createdQuestion.showAnswer ? "destructive" : "default"}
                     size="default"
-                    className={`flex items-center gap-2 min-w-[120px] h-10 font-medium transition-all duration-200 ${
-                      createdQuestion.showAnswer 
-                        ? "hover:shadow-lg" 
-                        : "bg-blue-500 hover:bg-blue-600 hover:shadow-lg"
-                    }`}
+                    className={`flex items-center gap-2 min-w-[120px] h-10 font-medium transition-all duration-200 ${createdQuestion.showAnswer
+                      ? "hover:shadow-lg"
+                      : "bg-blue-500 hover:bg-blue-600 hover:shadow-lg"
+                      }`}
                   >
                     {createdQuestion.showAnswer ? (
                       <>

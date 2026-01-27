@@ -1,15 +1,14 @@
-import { useQuery } from "@tanstack/react-query";
 import { Progress } from "@/components/ui/progress";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { Question, Vote } from "@shared/schema";
 import { motion, useAnimation, AnimatePresence } from "framer-motion";
 import { BarChart, CheckCircle2 } from "lucide-react";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
+import * as firestore from "@/lib/firestore-voting";
 
 interface VotingStatsProps {
-  question: Question;
-  onVoteReceived?: (votes: Vote[]) => void;
+  question: any;
+  onVoteReceived?: (votes: any[]) => void;
 }
 
 // 預定義的漸層色彩配置，增加飽和度
@@ -23,32 +22,31 @@ const gradients = [
 ];
 
 export function VotingStats({ question, onVoteReceived }: VotingStatsProps) {
-  const { data: votes = [] } = useQuery<Vote[]>({
-    queryKey: [`/api/questions/${question.id}/votes`],
-    refetchInterval: 1000,
-  });
-
+  const [totals, setTotals] = useState<Record<number, number>>({});
+  const [totalVotes, setTotalVotes] = useState(0);
   const [animatedPercentages, setAnimatedPercentages] = useState<Record<number, number>>({});
   const controls = useAnimation();
-  
 
-  const totals = votes.reduce((acc, vote) => {
-    acc[vote.optionIndex] = (acc[vote.optionIndex] || 0) + 1;
-    return acc;
-  }, {} as Record<number, number>);
-
-  const totalVotes = votes.length;
-
-  // 監控投票數變化並觸發音效
+  // 監聽投票統計
   useEffect(() => {
-    if (onVoteReceived) {
-      onVoteReceived(votes);
+    if (question?.id) {
+      const unsubscribe = firestore.getVotesStats(question.id, (stats) => {
+        setTotals(stats);
+        const total = Object.values(stats).reduce((a, b) => a + b, 0);
+        setTotalVotes(total);
+
+        if (onVoteReceived) {
+          // 為了相容性，傳遞一個模擬的 votes 陣列
+          onVoteReceived(new Array(total).fill({}));
+        }
+      });
+      return () => unsubscribe();
     }
-  }, [votes, onVoteReceived]);
+  }, [question?.id, onVoteReceived]);
 
   // Animate percentages when votes change
   useEffect(() => {
-    question.options.forEach((_, index) => {
+    question.options.forEach((_: string, index: number) => {
       const count = totals[index] || 0;
       const targetPercentage = totalVotes ? (count / totalVotes) * 100 : 0;
 
@@ -97,12 +95,12 @@ export function VotingStats({ question, onVoteReceived }: VotingStatsProps) {
   };
 
   const itemVariants = {
-    hidden: { 
+    hidden: {
       opacity: 0,
       x: -20,
       scale: 0.95
     },
-    visible: { 
+    visible: {
       opacity: 1,
       x: 0,
       scale: 1,
@@ -132,7 +130,7 @@ export function VotingStats({ question, onVoteReceived }: VotingStatsProps) {
         className="space-y-6"
       >
         <AnimatePresence>
-          {question.options.map((option, index) => {
+          {question.options.map((option: string, index: number) => {
             const count = totals[index] || 0;
             const percentage = animatedPercentages[index] || 0;
             const gradientClass = gradients[index % gradients.length];
@@ -146,7 +144,7 @@ export function VotingStats({ question, onVoteReceived }: VotingStatsProps) {
               >
                 <div className="flex justify-between items-center mb-1">
                   <div className="flex items-center gap-2">
-                    <motion.span 
+                    <motion.span
                       className={`font-medium text-base bg-gradient-to-r ${gradientClass} bg-clip-text text-transparent`}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
@@ -166,7 +164,7 @@ export function VotingStats({ question, onVoteReceived }: VotingStatsProps) {
                       </motion.div>
                     )}
                   </div>
-                  <motion.span 
+                  <motion.span
                     className={`font-bold text-lg bg-gradient-to-r ${gradientClass} bg-clip-text text-transparent`}
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
@@ -192,7 +190,7 @@ export function VotingStats({ question, onVoteReceived }: VotingStatsProps) {
                       />
                     </motion.div>
                   </div>
-                  <motion.span 
+                  <motion.span
                     className={`text-base font-bold bg-gradient-to-r ${gradientClass} bg-clip-text text-transparent min-w-[4rem] text-right`}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -207,7 +205,7 @@ export function VotingStats({ question, onVoteReceived }: VotingStatsProps) {
         </AnimatePresence>
       </motion.div>
 
-      <motion.p 
+      <motion.p
         className="mt-6 text-sm text-center bg-primary/10 py-2 px-4 rounded-full font-medium"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
