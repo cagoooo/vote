@@ -7,8 +7,7 @@ interface QRDisplayProps {
 }
 
 export function QRDisplay({ questionId }: QRDisplayProps) {
-  const currentHost = window.location.host;
-  const url = `${window.location.protocol}//${currentHost}/vote/${questionId}`;
+  const url = `${window.location.origin}${import.meta.env.BASE_URL}${questionId}`;
 
   return (
     <Card className="p-6 flex flex-col items-center gap-4 card-hover">

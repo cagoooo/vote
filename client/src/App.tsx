@@ -13,7 +13,7 @@ function AppRouter() {
   return (
     <Switch>
       <Route path="/" component={Teacher} />
-      <Route path="/vote/:id" component={Student} />
+      <Route path="/:id" component={Student} />
       <Route component={NotFound} />
     </Switch>
   );

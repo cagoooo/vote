@@ -37,7 +37,7 @@ export function ShareButton({ url = window.location.href, question, votes }: Sha
     });
     shareText += `\n📈 總投票數：${totalVotes}票\n\n`;
     // Use the QR code URL instead of the direct URL
-    shareText += `👉 參與投票：${window.location.origin}/vote/${question.id}`;
+    shareText += `👉 參與投票：${window.location.origin}${import.meta.env.BASE_URL}${question.id}`;
 
     return shareText;
   };
@@ -102,7 +102,7 @@ export function ShareButton({ url = window.location.href, question, votes }: Sha
         textArea.select();
         const successful = document.execCommand('copy');
         document.body.removeChild(textArea);
-        
+
         if (successful) {
           toast({
             title: "複製成功",
