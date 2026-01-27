@@ -30,6 +30,18 @@ export default function Teacher() {
     return () => unsubscribe();
   }, []);
 
+  // 監聽目前管理的特定問題 (確保 correctAnswer/showAnswer 同步)
+  useEffect(() => {
+    if (createdQuestion?.id) {
+      const unsubscribe = firestore.listenToQuestion(createdQuestion.id, (question) => {
+        if (question) {
+          setCreatedQuestion(question);
+        }
+      });
+      return () => unsubscribe();
+    }
+  }, [createdQuestion?.id]);
+
   // 監聽投票統計
   useEffect(() => {
     if (createdQuestion?.id) {

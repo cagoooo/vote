@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Camera, Scissors, Smartphone, Trash2, Check, Clipboard, Edit3, Palette } from "lucide-react";
 import { CropIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -315,49 +315,49 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
         </div>
 
         {preview && (
-            <div className="mt-4 relative rounded-lg overflow-hidden border border-border">
-              <div className="flex justify-center items-center min-h-[200px]">
-                <img
-                  src={preview}
-                  alt="預覽圖"
-                  className="max-w-full max-h-[70vh] w-auto h-auto object-contain mx-auto block"
-                  style={{ aspectRatio: 'auto' }}
-                />
-              </div>
-              <div className="absolute top-2 right-2 flex gap-2">
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="secondary"
-                  className="bg-white/80 hover:bg-white transition-all duration-300 hover:scale-110"
-                  onClick={() => setIsAnnotatorOpen(true)}
-                  title="圖片標註"
-                >
-                  <Palette className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="secondary"
-                  className="bg-white/80 hover:bg-white transition-all duration-300 hover:scale-110"
-                  onClick={() => setIsEditing(true)}
-                  title="裁切圖片"
-                >
-                  <CropIcon className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="destructive"
-                  className="bg-white/80 hover:bg-red-500 transition-all duration-300 hover:scale-110"
-                  onClick={handleDeleteImage}
-                  title="刪除圖片"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
+          <div className="mt-4 relative rounded-lg overflow-hidden border border-border">
+            <div className="flex justify-center items-center min-h-[200px]">
+              <img
+                src={preview}
+                alt="預覽圖"
+                className="max-w-full max-h-[70vh] w-auto h-auto object-contain mx-auto block"
+                style={{ aspectRatio: 'auto' }}
+              />
             </div>
-          )}
+            <div className="absolute top-2 right-2 flex gap-2">
+              <Button
+                type="button"
+                size="icon"
+                variant="secondary"
+                className="bg-white/80 hover:bg-white transition-all duration-300 hover:scale-110"
+                onClick={() => setIsAnnotatorOpen(true)}
+                title="圖片標註"
+              >
+                <Palette className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                size="icon"
+                variant="secondary"
+                className="bg-white/80 hover:bg-white transition-all duration-300 hover:scale-110"
+                onClick={() => setIsEditing(true)}
+                title="裁切圖片"
+              >
+                <CropIcon className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                size="icon"
+                variant="destructive"
+                className="bg-white/80 hover:bg-red-500 transition-all duration-300 hover:scale-110"
+                onClick={handleDeleteImage}
+                title="刪除圖片"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* 只在非編輯模式下顯示驗證提示 */}
         {!isEditing && !preview && (
@@ -371,6 +371,9 @@ export function ScreenshotUpload({ onImageSelect }: ScreenshotUploadProps) {
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>裁切圖片</DialogTitle>
+            <DialogDescription>
+              調整藍色框框以選擇您想要保留的區域。
+            </DialogDescription>
           </DialogHeader>
           <div className="mt-4">
             <ReactCrop

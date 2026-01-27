@@ -84,6 +84,18 @@ export const getQuestion = async (id: string) => {
     return null;
 };
 
+// 監聽特定問題
+export const listenToQuestion = (id: string, callback: (question: FirestoreQuestion | null) => void) => {
+    const docRef = doc(db, "questions", id);
+    return onSnapshot(docRef, (d) => {
+        if (d.exists()) {
+            callback({ id: d.id, ...d.data() } as FirestoreQuestion);
+        } else {
+            callback(null);
+        }
+    });
+};
+
 // 投票
 export const addVote = async (questionId: string, optionIndex: number) => {
     const userId = auth.currentUser?.uid;

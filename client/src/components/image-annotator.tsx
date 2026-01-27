@@ -1,13 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { 
-  Pencil, 
-  Eraser, 
-  Undo2, 
-  Redo2, 
-  RotateCcw, 
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Pencil,
+  Eraser,
+  Undo2,
+  Redo2,
+  RotateCcw,
   Palette,
   Check,
   X
@@ -52,7 +52,7 @@ export function ImageAnnotator({ imageUrl, onImageUpdated, isOpen, onClose }: Im
   const backgroundCanvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
-  
+
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentTool, setCurrentTool] = useState<'pen' | 'eraser'>('pen');
   const [currentColor, setCurrentColor] = useState(COLORS[0]);
@@ -96,7 +96,7 @@ export function ImageAnnotator({ imageUrl, onImageUpdated, isOpen, onClose }: Im
     const canvas = canvasRef.current;
     const backgroundCanvas = backgroundCanvasRef.current;
     const container = containerRef.current;
-    
+
     if (!canvas || !backgroundCanvas || !container) {
       console.error('Missing canvas or container references');
       return;
@@ -128,7 +128,7 @@ export function ImageAnnotator({ imageUrl, onImageUpdated, isOpen, onClose }: Im
     // Ensure minimum usable size
     const minWidth = isMobile ? 280 : 300;
     const minHeight = minWidth / aspectRatio;
-    
+
     if (displayWidth < minWidth) {
       displayWidth = minWidth;
       displayHeight = minHeight;
@@ -142,7 +142,7 @@ export function ImageAnnotator({ imageUrl, onImageUpdated, isOpen, onClose }: Im
       canv.style.height = `${displayHeight}px`;
       canv.width = displayWidth;
       canv.height = displayHeight;
-      
+
       const ctx = canv.getContext('2d');
       if (ctx) {
         ctx.lineCap = 'round';
@@ -226,7 +226,7 @@ export function ImageAnnotator({ imageUrl, onImageUpdated, isOpen, onClose }: Im
 
     setCurrentPath(newPath);
     setIsDrawing(true);
-    
+
     // Save state for undo
     setUndoStack(prev => [...prev, paths]);
     setRedoStack([]);
@@ -234,7 +234,7 @@ export function ImageAnnotator({ imageUrl, onImageUpdated, isOpen, onClose }: Im
 
   const draw = (e: React.MouseEvent | React.TouchEvent) => {
     if (!isDrawing || !currentPath) return;
-    
+
     e.preventDefault();
     const point = getCanvasPoint(e);
     const updatedPath = {
@@ -258,7 +258,7 @@ export function ImageAnnotator({ imageUrl, onImageUpdated, isOpen, onClose }: Im
     if (points.length >= 2) {
       const lastPoint = points[points.length - 2];
       const currentPoint = points[points.length - 1];
-      
+
       ctx.moveTo(lastPoint.x, lastPoint.y);
       ctx.lineTo(currentPoint.x, currentPoint.y);
       ctx.stroke();
@@ -279,7 +279,7 @@ export function ImageAnnotator({ imageUrl, onImageUpdated, isOpen, onClose }: Im
     setUndoStack(prev => [...prev, paths]);
     setRedoStack([]);
     setPaths([]);
-    
+
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (ctx && canvas) {
@@ -308,13 +308,13 @@ export function ImageAnnotator({ imageUrl, onImageUpdated, isOpen, onClose }: Im
   const saveAnnotatedImage = () => {
     const backgroundCanvas = backgroundCanvasRef.current;
     const annotationCanvas = canvasRef.current;
-    
+
     if (!backgroundCanvas || !annotationCanvas) return;
 
     // Create a new canvas to combine both layers
     const combinedCanvas = document.createElement('canvas');
     const combinedCtx = combinedCanvas.getContext('2d');
-    
+
     if (!combinedCtx || !backgroundCanvas || !annotationCanvas) return;
 
     combinedCanvas.width = backgroundCanvas.width;
@@ -322,14 +322,14 @@ export function ImageAnnotator({ imageUrl, onImageUpdated, isOpen, onClose }: Im
 
     // Draw background image
     combinedCtx.drawImage(backgroundCanvas, 0, 0);
-    
+
     // Draw annotations on top
     combinedCtx.drawImage(annotationCanvas, 0, 0);
 
     const dataURL = combinedCanvas.toDataURL('image/png');
     onImageUpdated(dataURL);
     onClose();
-    
+
     toast({
       title: "標註已保存",
       description: "圖片標註已完成並保存",
@@ -343,6 +343,9 @@ export function ImageAnnotator({ imageUrl, onImageUpdated, isOpen, onClose }: Im
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>載入中...</DialogTitle>
+            <DialogDescription>
+              正在準備標註工具，請稍候。
+            </DialogDescription>
           </DialogHeader>
           <div className="flex justify-center p-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -357,6 +360,9 @@ export function ImageAnnotator({ imageUrl, onImageUpdated, isOpen, onClose }: Im
       <DialogContent className="max-w-[95vw] max-h-[95vh] w-full p-0 overflow-hidden">
         <DialogHeader className="p-4 pb-2 sm:p-6 sm:pb-4">
           <DialogTitle className="text-lg sm:text-xl font-semibold">圖片標註</DialogTitle>
+          <DialogDescription>
+            在圖片上進行標註以強調重點。
+          </DialogDescription>
         </DialogHeader>
 
         <div className="px-4 pb-4 sm:px-6 overflow-y-auto max-h-[calc(95vh-80px)]">
@@ -392,13 +398,13 @@ export function ImageAnnotator({ imageUrl, onImageUpdated, isOpen, onClose }: Im
                 onClick={() => setShowColorPicker(!showColorPicker)}
                 className="h-9 gap-2"
               >
-                <div 
+                <div
                   className="w-4 h-4 rounded border border-border"
                   style={{ backgroundColor: currentColor }}
                 />
                 <Palette className="h-4 w-4" />
               </Button>
-              
+
               {showColorPicker && (
                 <div className="absolute top-full mt-1 z-10 p-2 bg-background border rounded-lg shadow-lg">
                   <div className="grid grid-cols-4 gap-1">
@@ -429,16 +435,16 @@ export function ImageAnnotator({ imageUrl, onImageUpdated, isOpen, onClose }: Im
                 onClick={() => setShowBrushSizes(!showBrushSizes)}
                 className="h-9 gap-2"
               >
-                <div 
+                <div
                   className="rounded-full bg-current"
-                  style={{ 
-                    width: Math.max(4, Math.min(16, currentLineWidth)), 
-                    height: Math.max(4, Math.min(16, currentLineWidth)) 
+                  style={{
+                    width: Math.max(4, Math.min(16, currentLineWidth)),
+                    height: Math.max(4, Math.min(16, currentLineWidth))
                   }}
                 />
                 <span className="text-xs">{currentLineWidth}</span>
               </Button>
-              
+
               {showBrushSizes && (
                 <div className="absolute top-full mt-1 z-10 p-2 bg-background border rounded-lg shadow-lg">
                   <div className="flex flex-col gap-1">
@@ -454,7 +460,7 @@ export function ImageAnnotator({ imageUrl, onImageUpdated, isOpen, onClose }: Im
                           setShowBrushSizes(false);
                         }}
                       >
-                        <div 
+                        <div
                           className="rounded-full bg-current"
                           style={{ width: size, height: size }}
                         />
@@ -500,7 +506,7 @@ export function ImageAnnotator({ imageUrl, onImageUpdated, isOpen, onClose }: Im
           </div>
 
           {/* Canvas Container */}
-          <div 
+          <div
             ref={containerRef}
             className="relative border rounded-lg overflow-hidden bg-white flex justify-center items-center min-h-[400px]"
           >

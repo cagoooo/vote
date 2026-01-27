@@ -1,5 +1,5 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
@@ -40,7 +40,7 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const resizeTimeoutRef = useRef<number | null>(null);
-  
+
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentTool, setCurrentTool] = useState<'pen' | 'eraser'>('pen');
   const [currentColor, setCurrentColor] = useState(COLORS[0]);
@@ -89,7 +89,7 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
       // Draw with smooth curves for better quality
       if (path.points.length >= 3) {
         ctx.moveTo(path.points[0].x, path.points[0].y);
-        
+
         for (let i = 1; i < path.points.length - 1; i++) {
           const currentPoint = path.points[i];
           const nextPoint = path.points[i + 1];
@@ -97,10 +97,10 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
             x: (currentPoint.x + nextPoint.x) / 2,
             y: (currentPoint.y + nextPoint.y) / 2
           };
-          
+
           ctx.quadraticCurveTo(currentPoint.x, currentPoint.y, midPoint.x, midPoint.y);
         }
-        
+
         // Draw to the last point
         const lastPoint = path.points[path.points.length - 1];
         const secondLastPoint = path.points[path.points.length - 2];
@@ -122,32 +122,32 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
     if (resizeTimeoutRef.current) {
       clearTimeout(resizeTimeoutRef.current);
     }
-    
+
     resizeTimeoutRef.current = window.setTimeout(() => {
       if (isDrawing) return; // Don't resize while drawing
-      
+
       const canvas = canvasRef.current;
       const container = containerRef.current;
       if (!canvas || !container) return;
-      
+
       const rect = container.getBoundingClientRect();
       if (rect.width === 0 || rect.height === 0) return;
-      
+
       // Create square canvas to prevent shape distortion
       const margin = 16;
       const availableWidth = rect.width - margin * 2;
       const availableHeight = rect.height - margin * 2;
       const size = Math.min(availableWidth, availableHeight);
       const canvasSize = Math.max(size, 300);
-      
+
       // Set canvas dimensions
       canvas.width = canvasSize;
       canvas.height = canvasSize;
       canvas.style.width = `${canvasSize}px`;
       canvas.style.height = `${canvasSize}px`;
-      
+
       console.log('Canvas sized to:', canvasSize, 'x', canvasSize);
-      
+
       // Setup drawing context
       const ctx = canvas.getContext('2d');
       if (ctx) {
@@ -155,7 +155,7 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
         ctx.lineJoin = 'round';
         ctx.imageSmoothingEnabled = false;
         ctx.globalCompositeOperation = 'source-over';
-        
+
         // Fill background and redraw
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, canvasSize, canvasSize);
@@ -167,12 +167,12 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
   // Initialize canvas
   useEffect(() => {
     if (!isOpen) return;
-    
+
     // Setup with delay to ensure DOM is ready
     const timeoutId = setTimeout(() => {
       debouncedResizeCanvas();
     }, 100);
-    
+
     // Add resize listener
     window.addEventListener('resize', debouncedResizeCanvas);
 
@@ -214,7 +214,7 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
   const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
     const point = getCanvasPoint(e);
-    
+
     // Setup drawing context immediately
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
@@ -224,12 +224,12 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       ctx.globalCompositeOperation = currentTool === 'eraser' ? 'destination-out' : 'source-over';
-      
+
       // Start the path for continuous drawing
       ctx.beginPath();
       ctx.moveTo(point.x, point.y);
     }
-    
+
     const newPath: DrawPath = {
       points: [point],
       color: currentColor,
@@ -239,7 +239,7 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
 
     setCurrentPath(newPath);
     setIsDrawing(true);
-    
+
     // Save state for undo
     setUndoStack(prev => [...prev, paths]);
     setRedoStack([]);
@@ -247,10 +247,10 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
 
   const continueDrawing = (e: React.MouseEvent | React.TouchEvent) => {
     if (!isDrawing || !currentPath) return;
-    
+
     e.preventDefault();
     const point = getCanvasPoint(e);
-    
+
     // Draw immediately with optimized performance
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
@@ -258,12 +258,12 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
       // Continue the existing path for smoother lines
       ctx.lineTo(point.x, point.y);
       ctx.stroke();
-      
+
       // Move to current point for next line segment
       ctx.beginPath();
       ctx.moveTo(point.x, point.y);
     }
-    
+
     // Update path state
     setCurrentPath(prev => prev ? {
       ...prev,
@@ -273,19 +273,19 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
 
   const stopDrawing = () => {
     if (!isDrawing || !currentPath) return;
-    
+
     // Add completed path to paths array
     if (currentPath.points.length > 0) {
       setPaths(prev => [...prev, currentPath]);
     }
-    
+
     setCurrentPath(null);
     setIsDrawing(false);
-    
+
     // Save state for undo
     setUndoStack(prev => [...prev, paths]);
     setRedoStack([]);
-    
+
     // No redraw needed since we've been drawing in real-time
   };
 
@@ -328,7 +328,7 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
       const imageData = canvas.toDataURL('image/png');
       onImageGenerated(imageData);
       onClose();
-      
+
       toast({
         title: "白板已儲存",
         description: "您的繪圖已成功加入問題中"
@@ -362,8 +362,11 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
       <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>白板繪圖</DialogTitle>
+          <DialogDescription>
+            使用畫筆或橡皮擦在白板上繪製題目。
+          </DialogDescription>
         </DialogHeader>
-        
+
         {/* Toolbar */}
         <div className="flex flex-wrap items-center gap-2 p-4 bg-gray-50 rounded-lg">
           {/* Tool Selection */}
@@ -394,7 +397,7 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
               onClick={() => setShowColorPicker(!showColorPicker)}
             >
               <Palette className="w-4 h-4 mr-1" />
-              <div 
+              <div
                 className="w-4 h-4 rounded border"
                 style={{ backgroundColor: currentColor }}
               />
@@ -405,9 +408,8 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
                   {COLORS.map((color) => (
                     <button
                       key={color}
-                      className={`w-8 h-8 rounded border-2 ${
-                        currentColor === color ? 'border-gray-400' : 'border-gray-200'
-                      }`}
+                      className={`w-8 h-8 rounded border-2 ${currentColor === color ? 'border-gray-400' : 'border-gray-200'
+                        }`}
                       style={{ backgroundColor: color }}
                       onClick={() => {
                         setCurrentColor(color);
@@ -429,9 +431,9 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
             >
               <div className="flex items-center gap-1">
                 <Minus className="w-3 h-3" />
-                <div 
+                <div
                   className="rounded-full bg-gray-600"
-                  style={{ 
+                  style={{
                     width: `${Math.min(currentLineWidth * 2, 12)}px`,
                     height: `${Math.min(currentLineWidth * 2, 12)}px`
                   }}
@@ -445,17 +447,16 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
                   {BRUSH_SIZES.map((size) => (
                     <button
                       key={size}
-                      className={`flex items-center justify-center w-12 h-8 hover:bg-gray-100 rounded ${
-                        currentLineWidth === size ? 'bg-blue-50' : ''
-                      }`}
+                      className={`flex items-center justify-center w-12 h-8 hover:bg-gray-100 rounded ${currentLineWidth === size ? 'bg-blue-50' : ''
+                        }`}
                       onClick={() => {
                         setCurrentLineWidth(size);
                         setShowBrushSizes(false);
                       }}
                     >
-                      <div 
+                      <div
                         className="rounded-full bg-gray-600"
-                        style={{ 
+                        style={{
                           width: `${Math.min(size * 2, 12)}px`,
                           height: `${Math.min(size * 2, 12)}px`
                         }}
@@ -485,7 +486,7 @@ export function Whiteboard({ onImageGenerated, isOpen, onClose }: WhiteboardProp
         </div>
 
         {/* Canvas Container */}
-        <div 
+        <div
           ref={containerRef}
           className="flex-1 flex items-center justify-center p-4 bg-gray-100 rounded-lg overflow-hidden"
         >

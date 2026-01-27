@@ -23,8 +23,8 @@ export default function Student() {
   // 獲取問題數據與投票統計
   useEffect(() => {
     if (questionId) {
-      // 獲取問題
-      firestore.getQuestion(questionId).then((q) => {
+      // 監聽特定問題
+      const unsubscribeQuestion = firestore.listenToQuestion(questionId, (q) => {
         if (q) setQuestion(q);
       });
 
@@ -34,7 +34,10 @@ export default function Student() {
         setTotalVotes(Object.values(stats).reduce((a, b) => a + b, 0));
       });
 
-      return () => unsubscribeVotes();
+      return () => {
+        unsubscribeQuestion();
+        unsubscribeVotes();
+      };
     } else {
       // 獲取活動問題
       const unsubscribeQuestion = firestore.getActiveQuestion((q) => {
