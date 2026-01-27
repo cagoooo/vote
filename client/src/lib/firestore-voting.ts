@@ -140,3 +140,8 @@ export const setCorrectAnswer = async (questionId: string, index: number) => {
 export const toggleShowAnswer = async (questionId: string, show: boolean) => {
     await updateDoc(doc(db, "questions", questionId), { showAnswer: show });
 };
+
+// 停用問題
+export const deactivateQuestion = async (questionId: string) => {
+    await updateDoc(doc(db, "questions", questionId), { active: false });
+};

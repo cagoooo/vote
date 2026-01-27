@@ -16,14 +16,15 @@ export default function Teacher() {
   const [imageUrl, setImageUrl] = useState("");
   const [options, setOptions] = useState<string[]>(["", "", ""]);
   const [createdQuestion, setCreatedQuestion] = useState<any | null>(null);
+  const [globalActiveQuestion, setGlobalActiveQuestion] = useState<any | null>(null);
   const [votesStats, setVotesStats] = useState<Record<number, number>>({});
   const { toast } = useToast();
   const { playVoteSessionStart, playVoteSubmitted } = useVotingSound();
 
-  // 監聽活動問題
+  // 監聽背景活動問題 (用於顯示提示)
   useEffect(() => {
     const unsubscribe = firestore.getActiveQuestion((question) => {
-      setCreatedQuestion(question);
+      setGlobalActiveQuestion(question);
     });
     return () => unsubscribe();
   }, []);
@@ -130,7 +131,10 @@ export default function Teacher() {
     },
   });
 
-  const resetAll = () => {
+  const resetAll = async () => {
+    if (createdQuestion?.id) {
+      await firestore.deactivateQuestion(createdQuestion.id);
+    }
     setImageUrl("");
     setOptions(["", "", ""]);
     setCreatedQuestion(null);
@@ -208,6 +212,32 @@ export default function Teacher() {
 
       {!createdQuestion ? (
         <form onSubmit={handleSubmit} className="space-y-6">
+          {globalActiveQuestion && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-blue-50 border border-blue-200 p-4 rounded-lg flex items-center justify-between gap-4 shadow-sm"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 rounded-full">
+                  <Eye className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-blue-800">目前有一個進行中的投票</p>
+                  <p className="text-xs text-blue-600">您可以繼續管理它，或直接建立新問題（舊問題將自動停用）</p>
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setCreatedQuestion(globalActiveQuestion)}
+                className="bg-white hover:bg-blue-100 border-blue-200 text-blue-700 whitespace-nowrap"
+              >
+                查看目前結果
+              </Button>
+            </motion.div>
+          )}
           <ScreenshotUpload onImageSelect={handleImageSelect} />
 
           <Card className="p-6 card-hover">
