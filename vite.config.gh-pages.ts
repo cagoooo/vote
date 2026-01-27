@@ -20,7 +20,7 @@ export default defineConfig({
         },
     },
     root: path.resolve(__dirname, "client"),
-    base: process.env.VITE_BASE_URL || "/",
+    base: "/vote/",
     build: {
         outDir: path.resolve(__dirname, "dist/public"),
         emptyOutDir: true,
