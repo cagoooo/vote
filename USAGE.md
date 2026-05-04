@@ -74,6 +74,23 @@
 
 ## 📅 開發進度紀錄
 
+### 2026-05-04（傍晚） — P1-1 老師儀表板 ✅ 已完成
+
+新頁面 `/dashboard`：
+- **Login gate**：未 Google 登入顯示登入卡片，匿名用戶不開放（避免顯示空清單造成困惑）
+- **卡片網格**：縮圖 + 選項預覽（最多 4 個，正解高亮藍底）+ 狀態 badge（進行中 / 已過期 / 已停用 / 已設答案）+ 票數 + 相對時間（「3 分鐘前 / 2 小時前 / 5 天前」）
+- **重新啟用**：把自己其他 active 題關掉、自身設 active 並重置 `expiresAt = now + 4h`
+- **刪除**：confirm 後同步移除 question 與其所有 votes（避免 orphan vote 累積）
+- **查看**：導向 `/?q=<id>`，由 teacher 頁載入該題；載入後自動抹掉 query string 避免重整重複觸發
+
+teacher.tsx 加「我的題目」按鈕（只給 Google 登入者）。
+
+**順手修的潛在 bug**：原本 `App.tsx` 無條件呼叫 `loginAnonymously()`，理論上會在 Google session 重整時被覆蓋成匿名 user。改為 `onAuthStateChanged` 確認 user 為 null 才匿名登入。
+
+**新增 composite index**：`teacherId ASC + createdAt DESC`（dashboard 列表查詢用），已部署。
+
+---
+
 ### 2026-05-04（下午） — P0 四項補洞 ✅ 已完成
 
 | 項目 | 狀態 | 說明 |
@@ -164,11 +181,8 @@ P0-1 / P0-2 / P0-3 / P0-4 已全部完成，詳見上方 2026-05-04 進度紀錄
 
 ### 🟡 P1 中期想做（讓多老師體驗完整）
 
-#### P1-1. 老師儀表板 / 歷史題庫
-- 新增 `/dashboard` 頁面，列出 `where teacherId == myUid orderBy createdAt desc` 的所有題目
-- 每題顯示：縮圖、選項、總票數、建立時間
-- 操作：重新啟用為 active、檢視當時投票分佈、刪除
-- **前置條件**：P0-3（Google 登入）必須先做，否則匿名 uid 換瀏覽器就抓不到歷史
+#### ✅ P1-1. 老師儀表板 / 歷史題庫（已完成 2026-05-04）
+詳見上方進度紀錄。
 
 #### P1-2. 房間代碼 / Room Code
 - 建題時自動生成 4-6 碼短碼（如 `K3X7`），存在 question 文件
