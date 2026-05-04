@@ -12,8 +12,9 @@ import { useVotingSound } from "@/hooks/use-voting-sounds";
 import * as firestore from "@/lib/firestore-voting";
 import { auth, signInWithGoogle, signOut } from "@/lib/firebase";
 import { onAuthStateChanged, type User } from "firebase/auth";
-import { Plus, Minus, Sparkles, RefreshCw, CheckCircle2, Eye, EyeOff, LogIn, LogOut, UserCircle } from "lucide-react";
+import { Plus, Minus, Sparkles, RefreshCw, CheckCircle2, Eye, EyeOff, LogIn, LogOut, UserCircle, LayoutGrid } from "lucide-react";
 import { motion } from "framer-motion";
+import { Link } from "wouter";
 
 export default function Teacher() {
   const [imageUrl, setImageUrl] = useState("");
@@ -26,6 +27,20 @@ export default function Teacher() {
   const { playVoteSessionStart, playVoteSubmitted } = useVotingSound();
 
   useEffect(() => onAuthStateChanged(auth, setCurrentUser), []);
+
+  // 從 dashboard「查看」按鈕進來時，URL 會帶 ?q=<id>，自動載入該題
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const qid = params.get("q");
+    if (!qid) return;
+    firestore.getQuestion(qid).then((q) => {
+      if (q) setCreatedQuestion(q);
+    });
+    // 載入後把 query string 從網址抹掉，避免重新整理重複載入
+    const url = new URL(window.location.href);
+    url.searchParams.delete("q");
+    window.history.replaceState({}, "", url.toString());
+  }, []);
 
   const handleGoogleSignIn = async () => {
     try {
@@ -284,6 +299,16 @@ export default function Teacher() {
                 <span className="text-[10px] text-green-700 font-medium">已登入 · 跨裝置同步</span>
               </div>
             </div>
+            <Link href="/dashboard">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9 gap-1.5 border-blue-200 text-blue-700 hover:bg-blue-50"
+              >
+                <LayoutGrid className="w-4 h-4" />我的題目
+              </Button>
+            </Link>
             <Button
               type="button"
               variant="ghost"

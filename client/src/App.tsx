@@ -4,15 +4,18 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { FloatingAdButton } from "@/components/floating-ad-button";
-import { loginAnonymously } from "./lib/firebase";
+import { auth, loginAnonymously } from "./lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 import Teacher from "@/pages/teacher";
 import Student from "@/pages/student";
+import Dashboard from "@/pages/dashboard";
 import NotFound from "@/pages/not-found";
 
 function AppRouter() {
   return (
     <Switch>
       <Route path="/" component={Teacher} />
+      <Route path="/dashboard" component={Dashboard} />
       <Route path="/:id" component={Student} />
       <Route component={NotFound} />
     </Switch>
@@ -21,10 +24,13 @@ function AppRouter() {
 
 function App() {
   useEffect(() => {
-    loginAnonymously().catch(console.error);
+    return onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        loginAnonymously().catch(console.error);
+      }
+    });
   }, []);
 
-  // 根據環境判斷 base path
   const base = import.meta.env.VITE_GH_PAGES ? "/vote" : "";
 
   return (
