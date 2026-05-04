@@ -74,6 +74,36 @@
 
 ## 📅 開發進度紀錄
 
+### 2026-05-04（中午 11 點） — A1 多選題 ✅ 已完成
+
+**Schema 升級**：
+- `FirestoreQuestion.questionType: "single" | "multiple"`（預設 single）
+- `FirestoreQuestion.correctAnswers: number[] | null`（多選正解集合）
+- `FirestoreVote.optionIndices: number[]`（多選新欄位，舊單選 `optionIndex` 仍保留）
+- `firestore.rules` 接受兩者其一，多選 size 限制 1-20
+
+**API 升級**：
+- `addVote(qId, selection)` 接受 `number | number[]`，多選自動去重排序
+- `getVotesStats` callback 加 `totalVoters` 參數（多選一張票貢獻多個 stat，sum ≠ 投票人數，舊邏輯不能用）
+- `setCorrectAnswers(qId, indices)` 多選正解設定
+
+**Teacher 建題 UI**：
+- 選項區頂部加單選/多選 toggle（Circle / CheckSquare 圖示）
+- 正確答案管理：多選時 toggle 加入/移出正解集合，「已設定 N 項」徽章
+
+**Student 投票 UI**：
+- 多選每選項前面加 checkbox 圖示
+- 標題改「可複選後送出」+ 即時「已選 N 項」
+- 多選底部加大顆「✅ 送出我的 N 個選擇」漸層按鈕
+- 顯示答案時 `correctAnswers` 集合中所有選項都打正確 badge
+
+**向後相容**：
+- 舊 question 沒 `questionType` → 預設 single，行為不變
+- 舊 vote 用 `optionIndex` (number)，新多選用 `optionIndices` (array)
+- `getVotesStats` 同時相容兩種格式
+
+---
+
 ### 2026-05-04（早上 09 點） — C 系列效能三連擊 ✅
 
 **C1 圖片改 Firebase Storage**（解 base64 in Firestore 痛點根本）：
@@ -492,7 +522,7 @@ P0-1 / P0-2 / P0-3 / P0-4 已全部完成，詳見上方 2026-05-04 進度紀錄
 
 | # | 項目 | 難度 | 說明 |
 |---|---|---|---|
-| **A1** | **多選題** | 🟡 | option index 改 array，rules 限 size，UI 用 checkbox。最常被老師問到的需求 |
+| ✅ **A1** | **多選題** | 🟡 | 已完成 2026-05-04，詳見上方進度紀錄 |
 | **A2** | **簡答題 / 文字回應** | 🟡 | 學生輸入文字，老師端 word cloud 即時顯示 |
 | **A3** | **排序題** | 🔴 | 拖曳排序，計分用 Spearman correlation |
 | **A4** | **是非題** | 🟢 | 單選題快捷模式，UI 簡化成兩顆大按鈕 |
