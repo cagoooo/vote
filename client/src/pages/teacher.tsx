@@ -12,7 +12,8 @@ import { useVotingSound } from "@/hooks/use-voting-sounds";
 import * as firestore from "@/lib/firestore-voting";
 import { auth, signInWithGoogle, signOut } from "@/lib/firebase";
 import { onAuthStateChanged, type User } from "firebase/auth";
-import { Plus, Minus, Sparkles, RefreshCw, CheckCircle2, Eye, EyeOff, LogIn, LogOut, UserCircle, LayoutGrid, Download, Monitor, Timer, UserCheck, X as XIcon, CheckSquare, Circle } from "lucide-react";
+import { Plus, Minus, Sparkles, RefreshCw, CheckCircle2, Eye, EyeOff, LogIn, LogOut, UserCircle, LayoutGrid, Download, Monitor, Timer, UserCheck, X as XIcon, CheckSquare, Circle, Pencil } from "lucide-react";
+import { EditQuestionDialog } from "@/components/edit-question-dialog";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { exportQuestionVotes } from "@/lib/csv-export";
@@ -23,6 +24,7 @@ export default function Teacher() {
   const [imageUrl, setImageUrl] = useState("");
   const [options, setOptions] = useState<string[]>(["", "", ""]);
   const [questionType, setQuestionType] = useState<"single" | "multiple">("single");
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [requireIdentity, setRequireIdentity] = useState(false);
   const [createdQuestion, setCreatedQuestion] = useState<any | null>(null);
   const [globalActiveQuestion, setGlobalActiveQuestion] = useState<any | null>(null);
@@ -526,6 +528,16 @@ export default function Teacher() {
           <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
             <h2 className="text-xl font-semibold gradient-text">投票進行中</h2>
             <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setEditDialogOpen(true)}
+                className="gap-1.5 border-blue-200 text-blue-700 hover:bg-blue-50"
+                title="編輯題目（選項打錯時用）"
+              >
+                <Pencil className="w-4 h-4" />編輯題目
+              </Button>
               <Link href={`/present/${createdQuestion.id}`}>
                 <Button
                   type="button"
@@ -773,6 +785,13 @@ export default function Teacher() {
           </div>
         </div>
       )}
+
+      <EditQuestionDialog
+        question={createdQuestion}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onSaved={(updated) => setCreatedQuestion(updated)}
+      />
     </div>
   );
 }

@@ -21,7 +21,9 @@ import {
   AlertTriangle,
   Calendar,
   Loader2,
+  Pencil,
 } from "lucide-react";
+import { EditQuestionDialog } from "@/components/edit-question-dialog";
 
 function formatDate(ts: any): string {
   if (!ts?.toMillis) return "—";
@@ -44,6 +46,7 @@ export default function Dashboard() {
   const [, setLocation] = useLocation();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState<firestore.FirestoreQuestion | null>(null);
 
   useEffect(
     () =>
@@ -261,6 +264,15 @@ export default function Dashboard() {
                         >
                           <Eye className="w-3.5 h-3.5" />查看
                         </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setEditingQuestion(q)}
+                          className="gap-1 min-w-0 border-blue-200 text-blue-700 hover:bg-blue-50"
+                          title="編輯題目"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </Button>
                         {!isActive && (
                           <Button
                             size="sm"
@@ -294,6 +306,12 @@ export default function Dashboard() {
           </AnimatePresence>
         </div>
       )}
+
+      <EditQuestionDialog
+        question={editingQuestion}
+        open={!!editingQuestion}
+        onOpenChange={(o) => !o && setEditingQuestion(null)}
+      />
     </div>
   );
 }

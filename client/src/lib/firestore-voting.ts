@@ -340,6 +340,26 @@ export const resetVotes = async (questionId: string) => {
     }
 };
 
+// 編輯題目（限定可改的欄位，避免老師意外動到 teacherId / roomCode 等系統欄位）
+export interface UpdateQuestionPatch {
+    imageUrl?: string;
+    options?: string[];
+    questionType?: QuestionType;
+    requireIdentity?: boolean;
+    /** 若改了選項數量或題型，原 correctAnswer/correctAnswers 可能失效，由呼叫方決定是否清除 */
+    correctAnswer?: number | null;
+    correctAnswers?: number[] | null;
+}
+
+export const updateQuestion = async (questionId: string, patch: UpdateQuestionPatch) => {
+    const cleaned: Record<string, any> = {};
+    Object.entries(patch).forEach(([k, v]) => {
+        if (v !== undefined) cleaned[k] = v;
+    });
+    if (Object.keys(cleaned).length === 0) return;
+    await updateDoc(doc(db, "questions", questionId), cleaned);
+};
+
 // 設定正確答案（單選）
 export const setCorrectAnswer = async (questionId: string, index: number) => {
     await updateDoc(doc(db, "questions", questionId), { correctAnswer: index });
