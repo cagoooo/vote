@@ -1,8 +1,42 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // 問題：每位老師只能改自己的題目，但所有登入者都能讀（學生掃 QR 要看題目）
+    match /questions/{questionId} {
+      allow read: if request.auth != null;
+
+      allow create: if request.auth != null
+                    && request.resource.data.teacherId == request.auth.uid
+                    && request.resource.data.keys().hasAll(['imageUrl', 'options', 'active', 'teacherId', 'createdAt']);
+
+      // owner 才能改；teacherId 不可被改寫
+      allow update: if request.auth != null
+                    && resource.data.teacherId == request.auth.uid
+                    && request.resource.data.teacherId == resource.data.teacherId;
+
+      allow delete: if request.auth != null
+                    && resource.data.teacherId == request.auth.uid;
+    }
+
+    // 投票：任何登入者可寫入自己的票；read 公開（投票統計需要）；
+    // 刪除限定該題的 owner（用於 resetVotes）；不允許改票
+    match /votes/{voteId} {
+      allow read: if request.auth != null;
+
+      allow create: if request.auth != null
+                    && request.resource.data.userId == request.auth.uid
+                    && request.resource.data.keys().hasAll(['questionId', 'optionIndex', 'userId', 'timestamp']);
+
+      allow update: if false;
+
+      allow delete: if request.auth != null
+                    && get(/databases/$(database)/documents/questions/$(resource.data.questionId)).data.teacherId == request.auth.uid;
+    }
+
+    // 其他 collection 一律拒絕
     match /{document=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if false;
     }
   }
 }

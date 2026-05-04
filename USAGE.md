@@ -72,27 +72,174 @@
 
 ---
 
+## 📅 開發進度紀錄
+
+### 2026-05-04 — 多老師教室隔離（Phase 1）✅ 已完成
+
+**動機**：原本全專案只有一個「目前活躍題目」，A 老師建題時會把 B 老師的題目踢成 inactive，且任何登入者都能改別人的題目／正確答案。多老師同時上課會嚴重互相干擾。
+
+**已完成的改動**：
+
+| 項目 | 檔案 | 說明 |
+|---|---|---|
+| Schema 加 `teacherId` | `client/src/lib/firestore-voting.ts` | `FirestoreQuestion` interface 新增 `teacherId: string` 欄位，建題時自動寫入 `auth.currentUser.uid` |
+| `getActiveQuestion` 限定本人 | 同上 | 內部讀 uid 並加 `where("teacherId","==",uid)` 過濾，每位老師只看到自己的活躍題目 |
+| `createQuestion` deactivate 限定本人 | 同上 | 建立新題只關掉「自己」的舊題，不再影響其他老師 |
+| Firestore 規則 owner-only | `firestore.rules` | questions 只有 owner 能 update/delete；votes 任何人能 create 自己的票，但只有該題 owner 能 delete（用於 resetVotes） |
+| 新 composite index | `firestore.indexes.json` | 新增 `active + teacherId + createdAt desc` 三欄複合索引 |
+| Firebase 專案連結 | `.firebaserc` | default = `vote-9db54`（cagooo@gmail.com 帳號） |
+
+**部署狀態**：
+- ✅ Firestore rules 已部署上線
+- ✅ Firestore indexes 已部署上線
+- ⚠️ **前端程式碼尚未 build / push** — 需執行 `npm run build:gh-pages` 並推到 `gh-pages` 分支才會在線上生效
+
+**剩餘風險（待處理）**：
+1. 既有舊題目沒有 `teacherId` 欄位，在新規則下無法被 update/delete。建議到 Firestore Console 整批清除 `questions` collection 內舊資料，或執行一次性 backfill script 補欄位。
+2. 目前老師身份是 Firebase **匿名登入**，清掉瀏覽器資料就會變成「新老師」，看不到自己舊題。Phase 2 會升級為 Google 登入（見下方 P0-3）。
+
+---
+
 ## 🚀 未來優化建議與技術藍圖
 
-為了讓這套系統更強大，以下是您可以考慮的後續開發方向：
+依優先級分組，從「補洞」到「擴功能」。
 
-### 1. 多教室/多頻道支援 (Multi-room)
-- **現狀**：目前全專案共享一個「活動問題」。
-- **建議**：引入 `Room ID` 概念，讓不同老師可以同時在各自的教室進行投票而不互相干擾。
+### 🔴 P0 短期必做（補架構漏洞）
 
-### 2. 歷史紀錄與數據導出
-- **建議**：建立「歷史投票」頁面，讓老師能回顧過往的教學數據。
-- **功能**：支援將投票結果導出為 CSV 或 Excel 檔案，方便進行平時成績計算。
+#### P0-1. 舊資料 backfill / 清除
+**問題**：Phase 1 部署後，沒有 `teacherId` 的舊 question 文件變成「孤兒」，無法被任何人改/刪。
+**做法**（任選）：
+- **A 案（簡單）**：到 [Firestore Console](https://console.firebase.google.com/project/vote-9db54/firestore) 直接刪掉 `questions` 內所有舊資料。
+- **B 案（保留歷史）**：寫一支 admin script，用 firebase-admin SDK 把所有 `teacherId` 不存在的文件補上你的 uid。
 
-### 3. 學生身份識別
-- **建議**：增加選填「姓名/學號」的功能，以便追蹤個別學生的學習狀況。
-- **隱私**：可保留目前的匿名模式作為預設，僅在需要時開啟實名制。
+**建議**：教學投票題本來就是用過即丟，A 案最省事。
 
-### 4. 進階題型支援
-- **建議**：除了單選題，可以開發「多選題」、「簡答題」或「排序題」，增加互動的多樣性。
+#### P0-2. 題目自動失效機制
+**問題**：老師關閉瀏覽器後 question 仍 `active=true`，遲到的學生掃 QR 還是能投，且老師端再次開啟會看到「沒下課」的舊題。
+**做法**：
+- 在 question 文件加 `expiresAt` timestamp（例如建題時 + 4 小時）
+- 學生端 `listenToQuestion` 收到後先比對 `expiresAt`，過期就顯示「投票已結束」
+- 或加 Cloud Function 用 scheduler 每小時把過期的 `active` 改 false
 
-### 5. PWA 行動裝置優化
-- **建議**：將網站轉化為 PWA (Progressive Web App)，讓老師與學生可以將網頁「安裝」到手機桌面，獲得更像原生 App 的流暢體驗。
+#### P0-3. 升級匿名登入 → Google 登入
+**問題**：匿名 uid 跟瀏覽器綁，換裝置／清 cookie 就變成新老師，舊題永遠找不回來。
+**做法**：
+- `firebase.ts` 改用 `signInWithPopup(GoogleAuthProvider)`
+- 老師端首頁加「用 Google 登入」按鈕
+- 學生端維持匿名（學生不用登入體驗才順）
+- 規則不用改，uid 概念一樣
 
-### 6. 即時反饋與表情符號
-- **建議**：允許學生在投票時發送簡單的表情符號（如：👍、😮、🤔），增加課堂趣味性與即時互動感。
+**好處**：老師換電腦也能繼續看自己的歷史題目；為 P1-1（老師儀表板）鋪路。
+
+#### P0-4. Storage 規則同步加 owner 限制
+**現狀未驗證**：圖片如果存在 Firebase Storage（不是 base64 塞 Firestore），需要 `storage.rules` 同樣只允許 owner 寫、所有人讀。先確認圖片儲存方式再決定要不要做。
+
+---
+
+### 🟡 P1 中期想做（讓多老師體驗完整）
+
+#### P1-1. 老師儀表板 / 歷史題庫
+- 新增 `/dashboard` 頁面，列出 `where teacherId == myUid orderBy createdAt desc` 的所有題目
+- 每題顯示：縮圖、選項、總票數、建立時間
+- 操作：重新啟用為 active、檢視當時投票分佈、刪除
+- **前置條件**：P0-3（Google 登入）必須先做，否則匿名 uid 換瀏覽器就抓不到歷史
+
+#### P1-2. 房間代碼 / Room Code
+- 建題時自動生成 4-6 碼短碼（如 `K3X7`），存在 question 文件
+- 學生可以掃 QR **或** 到 `/join` 輸入代碼進入投票
+- 對教學現場很實用：投影機壞掉、學生手機相機差時的備案
+
+#### P1-3. CSV / Excel 匯出
+- 老師端「結果頁」加「匯出」按鈕
+- 內容：選項、票數、百分比、是否為正解、各 vote 的時間戳
+- 用前端 CSV 生成（不用後端）：`papaparse` 或手刻 + `Blob` download
+
+#### P1-4. resetVotes 改用 Cloud Function 批次刪
+**現狀問題**：`firestore-voting.ts` 的 `resetVotes` 是 client side 一筆一筆 `deleteDoc`，30 票要 30 次 round trip + 30 次 rules 計費（rules 內還有 `get()` 查 owner 又多一次 read）。
+**做法**：寫一支 callable Cloud Function `resetVotes(questionId)`，用 admin SDK 在後端 `bulkWriter` 批次刪，前端只發一個 RPC。
+
+**優先級**：教學量級（一題 30 人）其實不痛，量大或對成本敏感再做。
+
+#### P1-5. Firestore 收費監控與告警
+- 在 GCP Console 設預算告警（$1 / $5 / $10）
+- 加 BigQuery export → 看每天 read/write 用量趨勢
+- 每月免費額度：50K read / 20K write / 1GB storage，正常教學量不會爆
+
+---
+
+### 🟢 P2 長期想做（功能擴充）
+
+#### P2-1. 進階題型
+- **多選題**：選項從 radio 變 checkbox，vote 文件 `optionIndex` 改 `optionIndices: number[]`
+- **排序題**：學生拖曳排序，計分算 Spearman correlation
+- **簡答題**：text input，老師端可以即時看到所有答案 word cloud
+- **是非題**：簡化版單選
+
+#### P2-2. PWA / 安裝到桌面
+- 加 `manifest.json` + service worker
+- 學生端可「安裝為 App」，下次直接從桌面開
+- 注意 PWA cache bust 坑（參考 `pwa-cache-bust` skill）
+
+#### P2-3. 學生身份識別（選填）
+- 老師建題時可勾「需具名」
+- 學生第一次投票要填「姓名 + 座號」（存在 localStorage）
+- 老師結果頁顯示「誰投了什麼」
+- 用於形成性評量／補救教學
+
+#### P2-4. 即時表情反饋
+- 學生端常駐 5 顆表情按鈕（👍 😮 🤔 ❓ 🎉）
+- 點擊後在老師大螢幕上飛過去（彈幕風格）
+- 不存資料庫只用 Realtime DB ephemeral channel，避免炸成本
+
+#### P2-5. 教師「課堂模式」全螢幕投影
+- 一個專門的 `/present/:id` 路徑
+- 隱藏所有控制按鈕，只剩題目 + 大字票數 + QR
+- F11 全螢幕看起來最專業
+- 加倒數計時器（30 秒投票時間）
+
+#### P2-6. Cloudflare Turnstile 防 bot 灌票
+- 適用情境：題目連結被學生分享出去到外面群組，被刷票
+- 學生端投票前過一次 Turnstile（無感）
+- 參考 `cloudflare-turnstile-integration` skill
+
+#### P2-7. 課程 / 班級分組
+- 老師可建「班級」（如 503、504），題目歸屬到班級
+- 同一個老師可以分別查 503 vs 504 的數據
+- Schema：新增 `classes` collection + question 加 `classId` 欄位
+
+---
+
+### 📐 技術債清理（順手做）
+
+#### TD-1. 砍掉沒在用的後端
+- `server/` 整個目錄、`server/storage.ts` 的 `MemStorage`、`drizzle.config.ts`、`shared/schema.ts` 都是早期 Express + PostgreSQL 架構的遺跡
+- 現在前端直接用 Firestore，後端零參與
+- 砍掉可以縮小 repo、減少新人困惑、`npm install` 也快很多
+
+#### TD-2. 砍掉 `localVoting.ts`
+- `client/src/lib/localVoting.ts` 應該是 GitHub Pages 純前端模式的 fallback，但實際上現在無論哪個環境都直連 Firestore
+- 確認沒人 import 後刪掉
+
+#### TD-3. 更新 `replit.md`
+- 內容停留在「Express + 記憶體儲存 + 1 秒 polling」的初代架構
+- 現在實際上是「Firestore 直連 + onSnapshot 即時推送」，差異很大
+- 建議直接刪除（這檔是 Replit 專用的，repo 早就沒在 Replit 上開發了）或大改
+
+#### TD-4. CI/CD 自動化部署
+- 目前每次改前端要手動 `build:gh-pages` + 推 `gh-pages` 分支
+- 加 `.github/workflows/deploy.yml`，push to main 自動 build + deploy GitHub Pages
+- Firestore rules / indexes 改動也加自動部署：用 `FIREBASE_TOKEN` secret + `firebase deploy --only firestore`
+
+---
+
+## 📋 建議的執行順序
+
+如果照優先級一條條做，建議這個順序：
+
+1. **本週**：P0-1（清舊資料）+ build & push 前端 → Phase 1 才算真正上線
+2. **下週**：P0-3（Google 登入）→ 解決匿名身份不穩的根本問題
+3. **下下週**：P1-1（老師儀表板）→ 多老師體驗完整成形
+4. **有空再做**：TD-1 / TD-3（清技術債）+ P1-3（CSV 匯出，老師會很愛）
+5. **想擴功能時**：P2 任挑一個
+
+> 💡 提醒：每完成一個項目就回頭更新本文件的「開發進度紀錄」段落，方便未來自己對照。

@@ -23,6 +23,7 @@ export interface FirestoreQuestion {
     active: boolean;
     correctAnswer: number | null;
     showAnswer: boolean;
+    teacherId: string;
     createdAt: Timestamp;
 }
 
@@ -36,8 +37,15 @@ export interface FirestoreVote {
 
 // 建立問題
 export const createQuestion = async (imageUrl: string, options: string[]) => {
-    // 先將所有現有問題設為非活動
-    const q = query(collection(db, "questions"), where("active", "==", true));
+    const teacherId = auth.currentUser?.uid;
+    if (!teacherId) throw new Error("未登入");
+
+    // 只將「自己」現有的活動問題設為非活動，避免影響其他老師
+    const q = query(
+        collection(db, "questions"),
+        where("active", "==", true),
+        where("teacherId", "==", teacherId)
+    );
     const activeDocs = await getDocs(q);
     for (const d of activeDocs.docs) {
         await updateDoc(doc(db, "questions", d.id), { active: false });
@@ -49,17 +57,25 @@ export const createQuestion = async (imageUrl: string, options: string[]) => {
         active: true,
         correctAnswer: null,
         showAnswer: false,
+        teacherId,
         createdAt: serverTimestamp(),
     });
 
-    return { id: docRef.id, imageUrl, options, active: true, correctAnswer: null, showAnswer: false };
+    return { id: docRef.id, imageUrl, options, active: true, correctAnswer: null, showAnswer: false, teacherId };
 };
 
-// 取得活動問題
+// 取得自己的活動問題（每位老師只看到自己的，不會被其他老師干擾）
 export const getActiveQuestion = (callback: (question: FirestoreQuestion | null) => void) => {
+    const teacherId = auth.currentUser?.uid;
+    if (!teacherId) {
+        callback(null);
+        return () => {};
+    }
+
     const q = query(
         collection(db, "questions"),
         where("active", "==", true),
+        where("teacherId", "==", teacherId),
         orderBy("createdAt", "desc"),
         limit(1)
     );
