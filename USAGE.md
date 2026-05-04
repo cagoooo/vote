@@ -74,6 +74,27 @@
 
 ## 📅 開發進度紀錄
 
+### 2026-05-04（凌晨） — 課堂模式 v2 增強 + P2-4 表情反饋 ✅ 已完成
+
+**P2-5 v2 增強**（`/present/:id`）：
+- 🔊 **聲音**：新票進來播 vote-submitted、第一名易主播 vote-start，頂部加靜音切換
+- 🎉 **彩花特效**：第一名易主時觸發 `useConfetti` 五射煙火（4 秒冷卻 + 至少 2 票才算「超越」避免抖動）
+- ✨ **動畫升級**：票數 spring scale + 變綠閃一下、編號圓圈 pop、進度條 layout 動畫
+- 👑 **第一名標示**：金邊 ring + amber 漸層進度條 + 編號圓圈右上角 amber 皇冠徽章
+- 顯示答案時優先用綠色高亮（覆蓋 top 樣式）
+
+**P2-4 表情反饋（彈幕風格）**：
+- 5 顆表情：👍 ❤️ 😮 🤔 🎉
+- 學生端 `student.tsx` 底部固定膠囊狀按鈕列（白底毛玻璃）
+- 點擊：spring scale + 旋轉動畫 + 寫入 Firestore `reactions/{id}`
+- Client side debounce：每按鈕 1 秒冷卻，防洗版
+- 課堂模式訂閱 30 秒內 reactions（onSnapshot），新表情從畫面下方飛上去 4 秒（左右輕飄、scale 1.4 → 1.2 → 1，旋轉 ±15°）
+- 用 `useRef Set` 去重避免動畫重播
+
+Firestore：reactions collection 新規則 + 新 composite index（`questionId+createdAt`），已部署。
+
+---
+
 ### 2026-05-04（深夜） — P2-5 課堂模式 + TD-1 砍死後端 ✅ 已完成
 
 **P2-5 全螢幕投影模式**（`/present/:id`）：
@@ -290,10 +311,8 @@ P0-1 / P0-2 / P0-3 / P0-4 已全部完成，詳見上方 2026-05-04 進度紀錄
 - 老師結果頁顯示「誰投了什麼」
 - 用於形成性評量／補救教學
 
-#### P2-4. 即時表情反饋
-- 學生端常駐 5 顆表情按鈕（👍 😮 🤔 ❓ 🎉）
-- 點擊後在老師大螢幕上飛過去（彈幕風格）
-- 不存資料庫只用 Realtime DB ephemeral channel，避免炸成本
+#### ✅ P2-4. 即時表情反饋（已完成 2026-05-04）
+詳見上方進度紀錄。實作用 Firestore reactions collection（client debounce + 30 秒查詢窗口控成本）。
 
 #### ✅ P2-5. 教師「課堂模式」全螢幕投影（已完成 2026-05-04）
 詳見上方進度紀錄。倒數計時器留待後續加。
