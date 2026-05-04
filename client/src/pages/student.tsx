@@ -92,9 +92,12 @@ export default function Student() {
     }
   }, [totals, hasVoted]);
 
+  const isExpired = firestore.isQuestionExpired(question);
+
   const vote = useMutation({
     mutationFn: async (optionIndex: number) => {
       if (!question) return;
+      if (isExpired) throw new Error("此題投票已結束");
       await firestore.addVote(question.id, optionIndex);
     },
     onSuccess: (_, optionIndex) => {
@@ -128,6 +131,23 @@ export default function Student() {
           <h1 className="text-2xl font-bold gradient-text">目前沒有活動的問題</h1>
           <p className="text-muted-foreground mt-2">
             請等待老師建立新的問題
+          </p>
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (isExpired && !hasVoted) {
+    return (
+      <div className="page-container text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <h1 className="text-2xl font-bold gradient-text">此題投票已結束</h1>
+          <p className="text-muted-foreground mt-2">
+            建立後 4 小時自動結束，請聯絡老師確認最新題目
           </p>
         </motion.div>
       </div>

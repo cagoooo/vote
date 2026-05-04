@@ -25,7 +25,17 @@ export interface FirestoreQuestion {
     showAnswer: boolean;
     teacherId: string;
     createdAt: Timestamp;
+    expiresAt: Timestamp;
 }
+
+// 題目預設存活時間：4 小時（涵蓋一節課 + 緩衝時間）
+export const QUESTION_TTL_MS = 4 * 60 * 60 * 1000;
+
+// 判斷題目是否已過期
+export const isQuestionExpired = (q: Pick<FirestoreQuestion, "expiresAt"> | null | undefined): boolean => {
+    if (!q?.expiresAt) return false;
+    return q.expiresAt.toMillis() < Date.now();
+};
 
 export interface FirestoreVote {
     id: string;
@@ -51,6 +61,8 @@ export const createQuestion = async (imageUrl: string, options: string[]) => {
         await updateDoc(doc(db, "questions", d.id), { active: false });
     }
 
+    const expiresAt = Timestamp.fromMillis(Date.now() + QUESTION_TTL_MS);
+
     const docRef = await addDoc(collection(db, "questions"), {
         imageUrl,
         options,
@@ -59,9 +71,10 @@ export const createQuestion = async (imageUrl: string, options: string[]) => {
         showAnswer: false,
         teacherId,
         createdAt: serverTimestamp(),
+        expiresAt,
     });
 
-    return { id: docRef.id, imageUrl, options, active: true, correctAnswer: null, showAnswer: false, teacherId };
+    return { id: docRef.id, imageUrl, options, active: true, correctAnswer: null, showAnswer: false, teacherId, expiresAt };
 };
 
 // 取得自己的活動問題（每位老師只看到自己的，不會被其他老師干擾）

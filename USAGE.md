@@ -74,7 +74,29 @@
 
 ## 📅 開發進度紀錄
 
-### 2026-05-04 — 多老師教室隔離（Phase 1）✅ 已完成
+### 2026-05-04（下午） — P0 四項補洞 ✅ 已完成
+
+| 項目 | 狀態 | 說明 |
+|---|---|---|
+| **P0-1 清舊資料** | ✅ 完成 | `firebase firestore:delete questions --recursive` 與 `votes --recursive` 清空，新規則 schema 才不會被舊資料卡住 |
+| **P0-2 題目自動失效** | ✅ 完成 | question 加 `expiresAt`（建題時 + 4 小時），學生端過期顯示「投票已結束」UI 並擋下 vote mutation |
+| **P0-3 Google 登入** | ✅ 完成 | `firebase.ts` 加 `signInWithGoogle`（用 `linkWithPopup` 升級匿名 → Google，**保留 uid**，舊題擁有權不會斷）；teacher.tsx 加登入狀態列 + 登入/登出按鈕；學生端維持匿名不變 |
+| **P0-4 Storage 規則** | ⏭️ N/A | 圖片是 base64 直接存 Firestore document 的 `imageUrl` 欄位，**沒用 Firebase Storage**，不需設規則。詳見下方註腳 |
+
+**🔐 順手處理的緊急安全警報**：
+- GitHub Secret Scanning #1（Google API Key public leak）已 dismiss 為 `wont_fix`
+- 確認 GCP API Key 已有 HTTP referrer 限制（`cagoooo.github.io/*`、`vote-9db54.web.app/*`、localhost）+ API restrictions（只勾 Firebase 服務，無付費 API）
+- 新增 [`SECURITY.md`](SECURITY.md) 記錄政策，未來同類 alert 直接照 SOP 處理
+
+**⚠️ 使用者需要手動完成的最後一步**：
+> 到 [Firebase Console → Authentication → Sign-in method](https://console.firebase.google.com/project/vote-9db54/authentication/providers) 啟用 **Google** provider（按 Enable → 選支援 email → 儲存）。**不啟用的話 Google 登入按鈕會跳 `auth/operation-not-allowed` 錯誤**。匿名登入和投票本身不受影響。
+
+**📌 P0-4 為什麼是 N/A**：
+專案的圖片處理流程（`screenshot-upload.tsx`、`whiteboard.tsx`）都是把 canvas `toDataURL('image/jpeg')` 變成 base64 字串後直接寫入 question 文件的 `imageUrl` 欄位。**潛在隱憂**：Firestore 單一文件硬上限 1 MB，題目圖片若沒壓縮可能會超過。`screenshot-upload.tsx` 已有 `compressImage` 邏輯，但白板/標註輸出未壓縮。**建議**（非 P0）：未來若遇「文件太大」錯誤，再評估遷移到 Firebase Storage 或加強壓縮。
+
+---
+
+### 2026-05-04（上午） — 多老師教室隔離（Phase 1）✅ 已完成
 
 **動機**：原本全專案只有一個「目前活躍題目」，A 老師建題時會把 B 老師的題目踢成 inactive，且任何登入者都能改別人的題目／正確答案。多老師同時上課會嚴重互相干擾。
 
@@ -104,9 +126,13 @@
 
 依優先級分組，從「補洞」到「擴功能」。
 
-### 🔴 P0 短期必做（補架構漏洞）
+### ✅ 🔴 P0 全數完成（2026-05-04）
 
-#### P0-1. 舊資料 backfill / 清除
+P0-1 / P0-2 / P0-3 / P0-4 已全部完成，詳見上方 2026-05-04 進度紀錄。以下保留原始建議內容供日後對照。
+
+---
+
+#### ✅ P0-1. 舊資料 backfill / 清除
 **問題**：Phase 1 部署後，沒有 `teacherId` 的舊 question 文件變成「孤兒」，無法被任何人改/刪。
 **做法**（任選）：
 - **A 案（簡單）**：到 [Firestore Console](https://console.firebase.google.com/project/vote-9db54/firestore) 直接刪掉 `questions` 內所有舊資料。
@@ -114,14 +140,14 @@
 
 **建議**：教學投票題本來就是用過即丟，A 案最省事。
 
-#### P0-2. 題目自動失效機制
+#### ✅ P0-2. 題目自動失效機制
 **問題**：老師關閉瀏覽器後 question 仍 `active=true`，遲到的學生掃 QR 還是能投，且老師端再次開啟會看到「沒下課」的舊題。
 **做法**：
 - 在 question 文件加 `expiresAt` timestamp（例如建題時 + 4 小時）
 - 學生端 `listenToQuestion` 收到後先比對 `expiresAt`，過期就顯示「投票已結束」
 - 或加 Cloud Function 用 scheduler 每小時把過期的 `active` 改 false
 
-#### P0-3. 升級匿名登入 → Google 登入
+#### ✅ P0-3. 升級匿名登入 → Google 登入
 **問題**：匿名 uid 跟瀏覽器綁，換裝置／清 cookie 就變成新老師，舊題永遠找不回來。
 **做法**：
 - `firebase.ts` 改用 `signInWithPopup(GoogleAuthProvider)`
@@ -131,8 +157,8 @@
 
 **好處**：老師換電腦也能繼續看自己的歷史題目；為 P1-1（老師儀表板）鋪路。
 
-#### P0-4. Storage 規則同步加 owner 限制
-**現狀未驗證**：圖片如果存在 Firebase Storage（不是 base64 塞 Firestore），需要 `storage.rules` 同樣只允許 owner 寫、所有人讀。先確認圖片儲存方式再決定要不要做。
+#### ⏭️ P0-4. Storage 規則同步加 owner 限制（N/A）
+**已確認**：本專案完全沒用 Firebase Storage，圖片是 base64 直接塞 Firestore document。本項不需執行。
 
 ---
 

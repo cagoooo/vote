@@ -10,7 +10,9 @@ import { ShareButton } from "@/components/share-button";
 import { useToast } from "@/hooks/use-toast";
 import { useVotingSound } from "@/hooks/use-voting-sounds";
 import * as firestore from "@/lib/firestore-voting";
-import { Plus, Minus, Sparkles, RefreshCw, CheckCircle2, Eye, EyeOff } from "lucide-react";
+import { auth, signInWithGoogle, signOut } from "@/lib/firebase";
+import { onAuthStateChanged, type User } from "firebase/auth";
+import { Plus, Minus, Sparkles, RefreshCw, CheckCircle2, Eye, EyeOff, LogIn, LogOut, UserCircle } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function Teacher() {
@@ -19,8 +21,37 @@ export default function Teacher() {
   const [createdQuestion, setCreatedQuestion] = useState<any | null>(null);
   const [globalActiveQuestion, setGlobalActiveQuestion] = useState<any | null>(null);
   const [votesStats, setVotesStats] = useState<Record<number, number>>({});
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const { toast } = useToast();
   const { playVoteSessionStart, playVoteSubmitted } = useVotingSound();
+
+  useEffect(() => onAuthStateChanged(auth, setCurrentUser), []);
+
+  const handleGoogleSignIn = async () => {
+    try {
+      const user = await signInWithGoogle();
+      toast({
+        title: "登入成功",
+        description: `歡迎，${user.displayName ?? user.email}！從此換裝置也找得到你的題目。`,
+        variant: "success",
+      });
+    } catch (err: any) {
+      if (err?.code === "auth/popup-closed-by-user") return;
+      toast({
+        title: "登入失敗",
+        description: err?.message ?? "請稍後再試",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast({
+      title: "已登出",
+      description: "下次回來請再次用 Google 登入以找回你的題目",
+    });
+  };
 
   // 監聽背景活動問題 (用於顯示提示)
   useEffect(() => {
@@ -221,6 +252,25 @@ export default function Teacher() {
         <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold gradient-text transition-all duration-300">
           即時投票系統
         </h1>
+      </div>
+
+      <div className="flex items-center justify-end gap-2 mb-4 text-sm">
+        {currentUser && !currentUser.isAnonymous ? (
+          <>
+            <UserCircle className="w-4 h-4 text-green-600" />
+            <span className="text-gray-700">{currentUser.displayName ?? currentUser.email}</span>
+            <Button type="button" variant="ghost" size="sm" onClick={handleSignOut} className="h-7 px-2">
+              <LogOut className="w-3.5 h-3.5 mr-1" />登出
+            </Button>
+          </>
+        ) : (
+          <>
+            <span className="text-gray-500">目前以匿名身份操作（換瀏覽器將找不到舊題）</span>
+            <Button type="button" variant="outline" size="sm" onClick={handleGoogleSignIn} className="h-7 px-2">
+              <LogIn className="w-3.5 h-3.5 mr-1" />Google 登入
+            </Button>
+          </>
+        )}
       </div>
 
       {!createdQuestion ? (
