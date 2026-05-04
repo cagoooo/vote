@@ -16,7 +16,10 @@ import {
 } from "firebase/firestore";
 import { db, auth } from "./firebase";
 
-export type QuestionType = "single" | "multiple";
+export type QuestionType = "single" | "multiple" | "truefalse";
+
+// 是非題鎖定的選項（避免老師打錯字）
+export const TRUEFALSE_OPTIONS = ["⭕ 是", "❌ 否"];
 
 export interface FirestoreQuestion {
     id: string;

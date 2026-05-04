@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useVotingSound } from "@/hooks/use-voting-sounds";
 import { useConfetti } from "@/hooks/use-confetti";
-import { Maximize, Minimize, ArrowLeft, CheckCircle2, Crown, Volume2, VolumeX } from "lucide-react";
+import { Maximize, Minimize, ArrowLeft, CheckCircle2, Crown, Volume2, VolumeX, ZoomIn, ZoomOut } from "lucide-react";
 import { Link } from "wouter";
 
 const COLORS = [
@@ -31,6 +31,24 @@ export default function Present() {
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [showControls, setShowControls] = useState(true);
     const [soundOn, setSoundOn] = useState(true);
+    // QR 大小：S 200 / M 280 / L 360 / XL 460，記住老師偏好
+    const QR_SIZES: Array<{ label: string; px: number }> = [
+        { label: "S", px: 200 },
+        { label: "M", px: 280 },
+        { label: "L", px: 360 },
+        { label: "XL", px: 460 },
+    ];
+    const [qrSizeIdx, setQrSizeIdx] = useState<number>(() => {
+        const saved = localStorage.getItem("present_qr_size");
+        const n = saved ? parseInt(saved, 10) : 0;
+        return Number.isFinite(n) && n >= 0 && n < 4 ? n : 0;
+    });
+    const qrSize = QR_SIZES[qrSizeIdx].px;
+    const setQrSize = (idx: number) => {
+        const clamped = Math.max(0, Math.min(QR_SIZES.length - 1, idx));
+        setQrSizeIdx(clamped);
+        localStorage.setItem("present_qr_size", String(clamped));
+    };
     const [popIdx, setPopIdx] = useState<number | null>(null); // 上次有票數變化的選項
     const idleTimer = useRef<number | null>(null);
     const lastTotalRef = useRef(0);
@@ -371,7 +389,7 @@ export default function Present() {
                 </div>
 
                 {/* 右：倒數 + QR + 房間代碼 + 總票數 */}
-                <div className="lg:w-80 flex-shrink-0 space-y-4">
+                <div className="flex-shrink-0 space-y-4" style={{ minWidth: 320, width: `min(${qrSize + 80}px, 100%)` }}>
                     {secondsLeft !== null && (
                         <motion.div
                             initial={{ scale: 0.8, opacity: 0 }}
@@ -398,9 +416,34 @@ export default function Present() {
                         </motion.div>
                     )}
                     <div className="bg-white rounded-2xl shadow-xl p-6 text-center space-y-4">
-                        <div className="text-sm text-slate-500 font-medium">掃 QR 進入投票</div>
-                        <div className="bg-white p-3 rounded-lg shadow-inner mx-auto inline-block">
-                            <QRCode value={voteUrl} size={200} />
+                        <div className="flex items-center justify-between gap-2">
+                            <span className="text-sm text-slate-500 font-medium">掃 QR 進入投票</span>
+                            <div className="flex items-center gap-1 bg-slate-100 rounded-md p-0.5">
+                                <button
+                                    type="button"
+                                    onClick={() => setQrSize(qrSizeIdx - 1)}
+                                    disabled={qrSizeIdx === 0}
+                                    className="p-1.5 rounded hover:bg-white disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                                    title="縮小 QR"
+                                >
+                                    <ZoomOut className="w-3.5 h-3.5 text-slate-600" />
+                                </button>
+                                <span className="text-xs font-mono font-bold text-slate-700 min-w-[1.5rem] text-center">
+                                    {QR_SIZES[qrSizeIdx].label}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => setQrSize(qrSizeIdx + 1)}
+                                    disabled={qrSizeIdx === QR_SIZES.length - 1}
+                                    className="p-1.5 rounded hover:bg-white disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                                    title="放大 QR"
+                                >
+                                    <ZoomIn className="w-3.5 h-3.5 text-slate-600" />
+                                </button>
+                            </div>
+                        </div>
+                        <div className="bg-white p-3 rounded-lg shadow-inner mx-auto inline-block transition-all duration-300">
+                            <QRCode value={voteUrl} size={qrSize} />
                         </div>
                         {question.roomCode && (
                             <div className="bg-gradient-to-br from-blue-50 to-indigo-100 border border-blue-200 rounded-xl p-4">

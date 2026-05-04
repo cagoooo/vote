@@ -125,6 +125,7 @@ export default function Student() {
   const hasIdentity = !!committedName.trim();
 
   const isMultiple = question?.questionType === "multiple";
+  const isTrueFalse = question?.questionType === "truefalse";
   const [multiSelection, setMultiSelection] = useState<Set<number>>(new Set());
   const toggleMulti = (idx: number) => {
     setMultiSelection((prev) => {
@@ -461,7 +462,7 @@ export default function Student() {
                 >
                   <div className="text-center mb-6">
                     <h2 className="text-xl sm:text-2xl font-bold gradient-text mb-2">
-                      {isMultiple ? "可複選後送出" : "請選擇您的答案"}
+                      {isTrueFalse ? "你的判斷？" : isMultiple ? "可複選後送出" : "請選擇您的答案"}
                     </h2>
                     <p className="text-sm text-muted-foreground">
                       {isMultiple
@@ -469,7 +470,7 @@ export default function Student() {
                         : "點擊選項進行投票"}
                     </p>
                   </div>
-                  <div className="grid gap-3 sm:gap-4">
+                  <div className={isTrueFalse ? "grid grid-cols-2 gap-3 sm:gap-4" : "grid gap-3 sm:gap-4"}>
                     {question.options.map((option: string, index: number) => {
                       const isMultiSelected = isMultiple && multiSelection.has(index);
                       const isCorrectMulti = question.showAnswer && Array.isArray(question.correctAnswers) && question.correctAnswers.includes(index);
@@ -487,7 +488,7 @@ export default function Student() {
                               toggleMulti(index);
                               return;
                             }
-                            // 單選：立即送出
+                            // 單選 / 是非題：立即送出
                             setSelectedOption(index);
                             setHasVoted(true);
                             if (questionId) {
@@ -497,11 +498,23 @@ export default function Student() {
                           }}
                           disabled={vote.isPending || hasVoted}
                           variant={(isMultiple ? isMultiSelected : selectedOption === index) ? "default" : "outline"}
-                          className={`w-full h-14 sm:h-12 text-base sm:text-lg font-medium transition-all duration-300 relative overflow-hidden touch-manipulation ${
-                            (isMultiple ? isMultiSelected : selectedOption === index)
-                              ? "bg-primary text-primary-foreground transform hover:scale-[1.02] hover:shadow-lg shadow-md"
-                              : "hover:bg-primary/10 hover:border-primary/50 active:bg-primary/5"
-                          }`}
+                          className={
+                            isTrueFalse
+                              ? `w-full aspect-square h-auto text-3xl sm:text-5xl font-black transition-all duration-300 relative overflow-hidden touch-manipulation flex items-center justify-center break-keep ${
+                                  selectedOption === index
+                                    ? index === 0
+                                      ? "bg-green-500 hover:bg-green-600 text-white scale-105 shadow-2xl"
+                                      : "bg-red-500 hover:bg-red-600 text-white scale-105 shadow-2xl"
+                                    : index === 0
+                                      ? "border-4 border-green-300 text-green-700 hover:bg-green-50 hover:border-green-500 hover:scale-105"
+                                      : "border-4 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-500 hover:scale-105"
+                                }`
+                              : `w-full h-14 sm:h-12 text-base sm:text-lg font-medium transition-all duration-300 relative overflow-hidden touch-manipulation ${
+                                  (isMultiple ? isMultiSelected : selectedOption === index)
+                                    ? "bg-primary text-primary-foreground transform hover:scale-[1.02] hover:shadow-lg shadow-md"
+                                    : "hover:bg-primary/10 hover:border-primary/50 active:bg-primary/5"
+                                }`
+                          }
                           asChild
                         >
                           <motion.div
