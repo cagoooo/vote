@@ -126,6 +126,8 @@ export default function Student() {
 
   const isMultiple = question?.questionType === "multiple";
   const isTrueFalse = question?.questionType === "truefalse";
+  const isShortAnswer = question?.questionType === "shortanswer";
+  const [textAnswer, setTextAnswer] = useState("");
   const [multiSelection, setMultiSelection] = useState<Set<number>>(new Set());
   const toggleMulti = (idx: number) => {
     setMultiSelection((prev) => {
@@ -462,14 +464,47 @@ export default function Student() {
                 >
                   <div className="text-center mb-6">
                     <h2 className="text-xl sm:text-2xl font-bold gradient-text mb-2">
-                      {isTrueFalse ? "你的判斷？" : isMultiple ? "可複選後送出" : "請選擇您的答案"}
+                      {isShortAnswer ? "請輸入你的答案" : isTrueFalse ? "你的判斷？" : isMultiple ? "可複選後送出" : "請選擇您的答案"}
                     </h2>
                     <p className="text-sm text-muted-foreground">
-                      {isMultiple
-                        ? `已選 ${multiSelection.size} 項${multiSelection.size > 0 ? "，按下方送出" : ""}`
-                        : "點擊選項進行投票"}
+                      {isShortAnswer
+                        ? `最多 ${firestore.SHORTANSWER_MAX_LENGTH} 字（${textAnswer.length}/${firestore.SHORTANSWER_MAX_LENGTH}）`
+                        : isMultiple
+                          ? `已選 ${multiSelection.size} 項${multiSelection.size > 0 ? "，按下方送出" : ""}`
+                          : "點擊選項進行投票"}
                     </p>
                   </div>
+
+                  {isShortAnswer ? (
+                    <div className="space-y-4">
+                      <textarea
+                        value={textAnswer}
+                        onChange={(e) => setTextAnswer(e.target.value.substring(0, firestore.SHORTANSWER_MAX_LENGTH))}
+                        placeholder="輸入你的答案…"
+                        maxLength={firestore.SHORTANSWER_MAX_LENGTH}
+                        autoFocus
+                        rows={3}
+                        className="w-full p-4 text-lg rounded-xl border-2 border-purple-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-colors resize-none bg-purple-50/30"
+                      />
+                      <Button
+                        size="lg"
+                        className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-purple-600 to-pink-600 hover:scale-[1.02] transition-transform shadow-lg"
+                        disabled={vote.isPending || !textAnswer.trim()}
+                        onClick={() => {
+                          const trimmed = textAnswer.trim();
+                          if (!trimmed || vote.isPending) return;
+                          setHasVoted(true);
+                          if (questionId) {
+                            localStorage.setItem(`voted_${questionId}`, `text:${trimmed}`);
+                          }
+                          vote.mutate({ text: trimmed });
+                        }}
+                      >
+                        {vote.isPending ? "送出中…" : "💬 送出答案"}
+                      </Button>
+                    </div>
+                  ) : (
+                  <>
                   <div className={isTrueFalse ? "grid grid-cols-2 gap-3 sm:gap-4" : "grid gap-3 sm:gap-4"}>
                     {question.options.map((option: string, index: number) => {
                       const isMultiSelected = isMultiple && multiSelection.has(index);
@@ -580,6 +615,8 @@ export default function Student() {
                         {vote.isPending ? "送出中…" : `✅ 送出我的 ${multiSelection.size} 個選擇`}
                       </Button>
                     </motion.div>
+                  )}
+                  </>
                   )}
                 </motion.div>
               )}

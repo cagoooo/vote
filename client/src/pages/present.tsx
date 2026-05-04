@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useVotingSound } from "@/hooks/use-voting-sounds";
 import { useConfetti } from "@/hooks/use-confetti";
 import { Maximize, Minimize, ArrowLeft, CheckCircle2, Crown, Volume2, VolumeX, ZoomIn, ZoomOut } from "lucide-react";
+import { WordCloud } from "@/components/word-cloud";
 import { Link } from "wouter";
 
 const COLORS = [
@@ -27,6 +28,7 @@ export default function Present() {
     const { id } = useParams<{ id: string }>();
     const [question, setQuestion] = useState<any | null>(null);
     const [stats, setStats] = useState<Record<number, number>>({});
+    const [textAnswers, setTextAnswers] = useState<Array<{ id: string; text: string }>>([]);
     const [reactions, setReactions] = useState<any[]>([]);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [showControls, setShowControls] = useState(true);
@@ -90,11 +92,12 @@ export default function Present() {
         if (!id) return;
         const unsubQ = firestore.listenToQuestion(id, (q) => setQuestion(q));
         const unsubV = firestore.getVotesStats(id, (s) => setStats(s));
-        // 註：present 內部仍用 stats reduce 計總票，多選時會偏高（顯示為「總勾選次數」）
+        const unsubT = firestore.listenToTextAnswers(id, (list) => setTextAnswers(list));
         const unsubR = firestore.listenToReactions(id, (r) => setReactions(r));
         return () => {
             unsubQ();
             unsubV();
+            unsubT();
             unsubR();
         };
     }, [id]);
@@ -306,6 +309,14 @@ export default function Present() {
                         </motion.div>
                     )}
 
+                    {question.questionType === "shortanswer" ? (
+                        <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 min-h-[40vh]">
+                            <div className="text-center text-sm text-slate-500 mb-2">
+                                💬 即時答案文字雲（{textAnswers.length} 則）
+                            </div>
+                            <WordCloud answers={textAnswers} minSize={24} maxSize={84} />
+                        </div>
+                    ) : (
                     <div className="space-y-3">
                         {question.options.map((opt: string, i: number) => {
                             const count = stats[i] || 0;
@@ -386,6 +397,7 @@ export default function Present() {
                             );
                         })}
                     </div>
+                    )}
                 </div>
 
                 {/* 右：倒數 + QR + 房間代碼 + 總票數 */}

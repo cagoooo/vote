@@ -16,10 +16,16 @@ import {
 } from "firebase/firestore";
 import { db, auth } from "./firebase";
 
-export type QuestionType = "single" | "multiple" | "truefalse";
+export type QuestionType = "single" | "multiple" | "truefalse" | "shortanswer";
 
 // 是非題鎖定的選項（避免老師打錯字）
 export const TRUEFALSE_OPTIONS = ["⭕ 是", "❌ 否"];
+
+// 簡答題不使用 options，但 schema 要求至少 1 個 placeholder
+export const SHORTANSWER_PLACEHOLDER_OPTIONS = ["（簡答題，由學生填寫文字）"];
+
+// 簡答題答案最大字數
+export const SHORTANSWER_MAX_LENGTH = 50;
 
 export interface FirestoreQuestion {
     id: string;
@@ -252,10 +258,13 @@ export interface VoteIdentity {
  * 投票
  *  - 單選：傳 number
  *  - 多選：傳 number[]（至少 1 個）
+ *  - 簡答：傳 { text: string }
  */
+export type VoteSelection = number | number[] | { text: string };
+
 export const addVote = async (
     questionId: string,
-    selection: number | number[],
+    selection: VoteSelection,
     identity?: VoteIdentity
 ) => {
     const userId = auth.currentUser?.uid;
@@ -276,7 +285,11 @@ export const addVote = async (
         userId,
         timestamp: serverTimestamp(),
     };
-    if (Array.isArray(selection)) {
+    if (typeof selection === "object" && !Array.isArray(selection) && "text" in selection) {
+        const trimmed = selection.text.trim();
+        if (!trimmed) throw new Error("請輸入答案");
+        payload.textAnswer = trimmed.substring(0, SHORTANSWER_MAX_LENGTH);
+    } else if (Array.isArray(selection)) {
         if (selection.length === 0) throw new Error("請至少選一個選項");
         // 去重 + 排序，避免相同票被重複計入
         payload.optionIndices = Array.from(new Set(selection)).sort((a, b) => a - b);
@@ -287,6 +300,33 @@ export const addVote = async (
     if (identity?.seat) payload.voterSeat = identity.seat.trim().substring(0, 10);
 
     await addDoc(collection(db, "votes"), payload);
+};
+
+// 訂閱某題的簡答題答案（即時，給老師端 word cloud 用）
+export const listenToTextAnswers = (
+    questionId: string,
+    callback: (answers: Array<{ id: string; text: string; userName?: string; timestamp?: any }>) => void
+) => {
+    const q = query(
+        collection(db, "votes"),
+        where("questionId", "==", questionId),
+        orderBy("timestamp", "asc")
+    );
+    return onSnapshot(q, (snap) => {
+        const list = snap.docs
+            .map((d) => {
+                const data = d.data() as any;
+                if (typeof data.textAnswer !== "string") return null;
+                return {
+                    id: d.id,
+                    text: data.textAnswer as string,
+                    userName: data.voterName as string | undefined,
+                    timestamp: data.timestamp,
+                };
+            })
+            .filter((x): x is { id: string; text: string; userName?: string; timestamp?: any } => x !== null);
+        callback(list);
+    });
 };
 
 // 取得某題完整投票明細（給老師結果頁用，含具名資訊）

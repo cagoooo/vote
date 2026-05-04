@@ -14,6 +14,7 @@ import { auth, signInWithGoogle, signOut } from "@/lib/firebase";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { Plus, Minus, Sparkles, RefreshCw, CheckCircle2, Eye, EyeOff, LogIn, LogOut, UserCircle, LayoutGrid, Download, Monitor, Timer, UserCheck, X as XIcon, CheckSquare, Circle, Pencil } from "lucide-react";
 import { EditQuestionDialog } from "@/components/edit-question-dialog";
+import { WordCloud } from "@/components/word-cloud";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { exportQuestionVotes } from "@/lib/csv-export";
@@ -23,7 +24,7 @@ import { uploadImageIfLarge } from "@/lib/image-storage";
 export default function Teacher() {
   const [imageUrl, setImageUrl] = useState("");
   const [options, setOptions] = useState<string[]>(["", "", ""]);
-  const [questionType, setQuestionType] = useState<"single" | "multiple" | "truefalse">("single");
+  const [questionType, setQuestionType] = useState<"single" | "multiple" | "truefalse" | "shortanswer">("single");
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [requireIdentity, setRequireIdentity] = useState(false);
   const [createdQuestion, setCreatedQuestion] = useState<any | null>(null);
@@ -115,11 +116,13 @@ export default function Teacher() {
 
   const createQuestion = useMutation({
     mutationFn: async () => {
-      // 是非題自動鎖定預設選項，老師不用填
+      // 是非題、簡答題自動鎖定 options，老師不用填
       const finalOptions =
         questionType === "truefalse"
           ? firestore.TRUEFALSE_OPTIONS
-          : options.filter(Boolean);
+          : questionType === "shortanswer"
+            ? firestore.SHORTANSWER_PLACEHOLDER_OPTIONS
+            : options.filter(Boolean);
       return await firestore.createQuestion(imageUrl, finalOptions, { requireIdentity, questionType });
     },
     onSuccess: (question) => {
@@ -296,9 +299,8 @@ export default function Teacher() {
   };
 
   const validOptionCount = options.filter(Boolean).length;
-  const canSubmit =
-    !!imageUrl &&
-    (questionType === "truefalse" || validOptionCount >= 2);
+  const optionsRequired = questionType === "single" || questionType === "multiple";
+  const canSubmit = !!imageUrl && (!optionsRequired || validOptionCount >= 2);
 
   return (
     <div className="page-container max-w-4xl">
@@ -423,15 +425,13 @@ export default function Teacher() {
               選項設置
             </h2>
 
-            {/* 題型切換 */}
-            <div className="mb-4 flex gap-2 p-1 bg-slate-100 rounded-lg">
+            {/* 題型切換（4 種） */}
+            <div className="mb-4 grid grid-cols-2 sm:grid-cols-4 gap-2 p-1 bg-slate-100 rounded-lg">
               <button
                 type="button"
                 onClick={() => setQuestionType("single")}
-                className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-md text-sm font-medium transition-all ${
-                  questionType === "single"
-                    ? "bg-white text-blue-700 shadow-sm"
-                    : "text-slate-500 hover:text-slate-700"
+                className={`flex items-center justify-center gap-1.5 px-2 py-2 rounded-md text-sm font-medium transition-all ${
+                  questionType === "single" ? "bg-white text-blue-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
                 }`}
               >
                 <Circle className="w-4 h-4" />單選
@@ -439,10 +439,8 @@ export default function Teacher() {
               <button
                 type="button"
                 onClick={() => setQuestionType("multiple")}
-                className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-md text-sm font-medium transition-all ${
-                  questionType === "multiple"
-                    ? "bg-white text-blue-700 shadow-sm"
-                    : "text-slate-500 hover:text-slate-700"
+                className={`flex items-center justify-center gap-1.5 px-2 py-2 rounded-md text-sm font-medium transition-all ${
+                  questionType === "multiple" ? "bg-white text-blue-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
                 }`}
               >
                 <CheckSquare className="w-4 h-4" />多選
@@ -450,13 +448,20 @@ export default function Teacher() {
               <button
                 type="button"
                 onClick={() => setQuestionType("truefalse")}
-                className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-md text-sm font-medium transition-all ${
-                  questionType === "truefalse"
-                    ? "bg-white text-blue-700 shadow-sm"
-                    : "text-slate-500 hover:text-slate-700"
+                className={`flex items-center justify-center gap-1.5 px-2 py-2 rounded-md text-sm font-medium transition-all ${
+                  questionType === "truefalse" ? "bg-white text-blue-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
                 }`}
               >
-                ⚡是非題
+                ⚡是非
+              </button>
+              <button
+                type="button"
+                onClick={() => setQuestionType("shortanswer")}
+                className={`flex items-center justify-center gap-1.5 px-2 py-2 rounded-md text-sm font-medium transition-all ${
+                  questionType === "shortanswer" ? "bg-white text-blue-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                💬簡答
               </button>
             </div>
 
@@ -474,7 +479,18 @@ export default function Teacher() {
               </div>
             )}
 
-            <div className={`space-y-4 animate-fade-in ${questionType === "truefalse" ? "opacity-40 pointer-events-none" : ""}`}>
+            {questionType === "shortanswer" && (
+              <div className="mb-4 p-4 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg">
+                <p className="text-sm text-purple-900 font-medium mb-2">💬 簡答題：學生會看到文字輸入框</p>
+                <ul className="text-xs text-purple-800/90 space-y-1 list-disc list-inside">
+                  <li>每位學生最多輸入 {firestore.SHORTANSWER_MAX_LENGTH} 字</li>
+                  <li>老師端與課堂模式即時顯示 <strong>文字雲</strong>，相同答案合併、出現越多字級越大</li>
+                  <li>適合：腦力激盪、收集回饋、單字接龍</li>
+                </ul>
+              </div>
+            )}
+
+            <div className={`space-y-4 animate-fade-in ${questionType === "truefalse" || questionType === "shortanswer" ? "opacity-40 pointer-events-none" : ""}`}>
               {options.map((option, index) => (
                 <div key={index} className="flex gap-2 animate-slide-up" style={{ animationDelay: `${index * 100}ms` }}>
                   <Input
@@ -548,7 +564,7 @@ export default function Teacher() {
               請先上傳或截取圖片
             </p>
           )}
-          {questionType !== "truefalse" && validOptionCount < 2 && (
+          {optionsRequired && validOptionCount < 2 && (
             <p className="text-sm text-muted-foreground text-center animate-fade-in">
               請至少填寫兩個選項（目前已填寫 {validOptionCount} 個）
             </p>
@@ -609,7 +625,11 @@ export default function Teacher() {
 
           <div className="grid md:grid-cols-2 gap-6">
             <QRDisplay questionId={createdQuestion.id} roomCode={createdQuestion.roomCode} />
-            <VotingStats question={createdQuestion} />
+            {createdQuestion.questionType === "shortanswer" ? (
+              <ShortAnswerLiveCloud questionId={createdQuestion.id} />
+            ) : (
+              <VotingStats question={createdQuestion} />
+            )}
           </div>
 
           {/* 倒數計時控制 */}
@@ -824,5 +844,26 @@ export default function Teacher() {
         onSaved={(updated) => setCreatedQuestion(updated)}
       />
     </div>
+  );
+}
+
+/** 簡答題即時答案文字雲 — 訂閱 votes textAnswer 並顯示 */
+function ShortAnswerLiveCloud({ questionId }: { questionId: string }) {
+  const [answers, setAnswers] = useState<Array<{ id: string; text: string }>>([]);
+  useEffect(() => {
+    return firestore.listenToTextAnswers(questionId, (list) => setAnswers(list));
+  }, [questionId]);
+  return (
+    <Card className="p-4 sm:p-6 card-hover bg-gradient-to-br from-purple-50 via-white to-pink-50 min-h-[280px]">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-sm font-bold text-purple-900 flex items-center gap-1.5">
+          💬 即時答案文字雲
+        </h3>
+        <span className="text-xs text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full font-medium">
+          {answers.length} 則
+        </span>
+      </div>
+      <WordCloud answers={answers} minSize={16} maxSize={48} />
+    </Card>
   );
 }

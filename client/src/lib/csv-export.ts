@@ -70,7 +70,22 @@ export const exportQuestionVotes = async (question: FirestoreQuestion) => {
 
     // Section 2: 個別投票紀錄
     const hasIdentity = votes.some((v: any) => v.voterName || v.voterSeat);
-    if (hasIdentity) {
+    const hasText = votes.some((v: any) => typeof v.textAnswer === "string");
+
+    if (hasText) {
+        // 簡答題：列出每筆文字答案
+        const headers = hasIdentity
+            ? ["時間", "座號", "姓名", "答案", "匿名 ID"]
+            : ["時間", "答案", "投票者匿名 ID"];
+        rows.push([], ["投票明細"], headers);
+        votes.forEach((v: any) => {
+            const row = [formatTimestamp(v.timestamp)];
+            if (hasIdentity) row.push(v.voterSeat ?? "", v.voterName ?? "");
+            row.push(v.textAnswer ?? "");
+            row.push(v.userId ?? "");
+            rows.push(row);
+        });
+    } else if (hasIdentity) {
         rows.push([], ["投票明細"], ["時間", "座號", "姓名", "選項編號", "選項內容", "匿名 ID"]);
         votes.forEach((v: any) => {
             rows.push([
