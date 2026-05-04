@@ -74,6 +74,29 @@
 
 ## 📅 開發進度紀錄
 
+### 2026-05-04（早上 09 點） — C 系列效能三連擊 ✅
+
+**C1 圖片改 Firebase Storage**（解 base64 in Firestore 痛點根本）：
+- 啟用 Storage API + 用 Firebase Management API 建 default bucket `vote-9db54.firebasestorage.app`（asia-east1，雷 #7：新版不自動建）
+- `firebase.ts` 顯式 `getStorage(app, "gs://vote-9db54.firebasestorage.app")` 推導 bucket name，避開 GitHub Secret 可能還是舊 `.appspot.com`（雷 #8）
+- 新檔 `storage.rules`：`questions/{teacherId}/*` 限本人寫、size <800KB image/* 類型、公開讀
+- 新檔 `client/src/lib/image-storage.ts`：< 50KB 保留 base64 inline 省 RTT、≥ 50KB 上傳 Storage 拿 download URL，路徑 `questions/{uid}/{ts}-{rand}.{ext}`
+- `teacher.tsx handleImageSelect` 串：壓縮 → 上傳 if large → setImageUrl
+- `deleteQuestion` 自動清 Storage 檔案（反推 path 用 `/o/{encoded}` regex）
+- `imageUrl` 既相容舊 base64 也支援新 https URL，舊資料不破壞
+
+**C2 Code-split bundle**（主入口從 985 KB → 357 KB **↓ 64%**）：
+- React.lazy 拆 Dashboard / Student / Join / Present，主路徑只 eager load Teacher
+- Vite manualChunks 拆 firebase / motion / qr / confetti 各自獨立 chunk
+- Suspense fallback 用 Loader2 spinner
+
+**C6 Reactions 清理**（不做 RTDB 大遷移的輕量解）：
+- `expireOldQuestions` scheduled function 順手加 reactions cleanup
+- 每 15 分鐘掃 `createdAt < now-5min` 的 reactions，batch delete 最多 500 筆避免 timeout
+- 前端只查 30 秒窗口，5 分前的留著沒用
+
+---
+
 ### 2026-05-04（凌晨 04 點） — Bug 修正三連發 ✅
 
 **圖片超 Firestore 1MB 上限**（白板/標註 PNG 無壓縮輸出常會撞）：
@@ -494,12 +517,12 @@ P0-1 / P0-2 / P0-3 / P0-4 已全部完成，詳見上方 2026-05-04 進度紀錄
 
 | # | 項目 | 難度 | 說明 |
 |---|---|---|---|
-| **C1** | **圖片改 Firebase Storage** | 🔴 | base64 in Firestore 的根本解。需動上傳流程、規則、URL handling、CSV、儀表板縮圖、LINE 推播 imageUrl 引用 |
-| **C2** | **Code-split bundle** | 🟡 | 目前 985KB 單檔，按 route 拆 dashboard / present / join 各自 lazy import，初次載入快 30%+ |
+| ✅ **C1** | **圖片改 Firebase Storage** | 🔴 | 已完成 2026-05-04。詳見上方進度紀錄 |
+| ✅ **C2** | **Code-split bundle** | 🟡 | 已完成 2026-05-04，主入口 985→357 KB（−64%） |
 | **C3** | **Firestore 用量 dashboard** | 🟡 | Cloud Function 每天 aggregate 寫入 `stats/daily/{date}` collection，老師端可看「本月已用 N reads」|
 | **C4** | **Lazy load lucide-react icons** | 🟢 | 改用 `import { X } from "lucide-react"` 的 tree-shake 確認生效；或用 dynamic import |
-| **C5** | **SW precache 瘦身** | 🟢 | 目前 18 entries 2MB；考慮把 howler 音效改 runtime cache 不 precache |
-| **C6** | **Reactions 用 Realtime DB** | 🔴 | Firestore reactions 每筆寫入有成本，改用 Realtime DB ephemeral channel 更便宜（但寫程式比較麻煩）|
+| **C5** | **SW precache 瘦身** | 🟢 | 目前 27 entries 2MB；考慮把 howler 音效改 runtime cache 不 precache |
+| ✅ **C6** | **Reactions 清理（輕量版）** | 🟡 | 已完成 2026-05-04。RTDB 大遷移暫不做，每 15 分鐘 scheduled cleanup |
 | **C7** | **Cloud Function batch resetVotes** | 🟡 | 目前 client 一筆一筆 deleteDoc，改 callable function bulkWriter，30 票 1 次 RPC |
 
 ### D. UX / UI 細節
