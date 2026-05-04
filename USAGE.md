@@ -74,6 +74,30 @@
 
 ## 📅 開發進度紀錄
 
+### 2026-05-04（下午 14 點） — D2 題目編輯 ✅ 已完成
+
+新增 `firestore.updateQuestion(id, patch)`：
+- 限定可改欄位（`imageUrl / options / questionType / requireIdentity / correctAnswer / correctAnswers`），避免老師意外動到 `teacherId / roomCode` 等系統欄位
+- `undefined` 自動過濾不寫入 Firestore
+
+新元件 `client/src/components/edit-question-dialog.tsx`：
+- shadcn Dialog modal，從 question prop 帶入初始值
+- **圖片**：預覽縮圖 + 「換圖」按鈕重新走 `ScreenshotUpload + 壓縮 + Storage 上傳`；舊 Storage 檔自動清除（base64 inline 自動 no-op）
+- **題型**：toggle 單選/多選
+- **選項**：可改文字、加減項目（最少 2）
+- **具名**：toggle
+- **智慧側效應**：選項數量變動 OR 題型改了 → 清掉舊正解（避免指向不存在的選項）+ amber 警告告知
+
+入口：
+- `teacher.tsx` 結果頁加「✏️ 編輯題目」藍邊按鈕（在「課堂模式」旁）
+- `dashboard.tsx` 卡片底部「查看」旁加 icon-only ✏️ 按鈕（編輯歷史題）
+
+UX：
+- 修改後立即生效，已投的票不會重算（明確告知）
+- 儲存按鈕 loading state，防重複點擊
+
+---
+
 ### 2026-05-04（中午 11 點） — A1 多選題 ✅ 已完成
 
 **Schema 升級**：
@@ -560,7 +584,7 @@ P0-1 / P0-2 / P0-3 / P0-4 已全部完成，詳見上方 2026-05-04 進度紀錄
 | # | 項目 | 難度 | 說明 |
 |---|---|---|---|
 | **D1** | **暗色模式** | 🟡 | tailwind dark: 全套加，預設跟系統 |
-| **D2** | **題目編輯** | 🟡 | 老師建完才發現選項打錯，加「編輯」按鈕。現在只能刪掉重建 |
+| ✅ **D2** | **題目編輯** | 🟡 | 已完成 2026-05-04，詳見上方進度紀錄 |
 | **D3** | **Skeleton loader** | 🟢 | dashboard 卡片載入時顯示 placeholder 而非 spinner |
 | **D4** | **學生投票後動畫** | 🟢 | 投出去那一刻彩色 confetti（給學生小驚喜，學齡層越小越愛）|
 | **D5** | **QR code 大小可調** | 🟢 | 課堂模式右側 QR 可放大（有些教室投影機畫面距離遠看不清）|
