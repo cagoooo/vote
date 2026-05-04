@@ -26,9 +26,19 @@ service cloud.firestore {
     match /votes/{voteId} {
       allow read: if request.auth != null;
 
+      // create 必填 questionId / userId / timestamp，且需含 optionIndex（單選）
+      // 或 optionIndices（多選）其中之一
       allow create: if request.auth != null
                     && request.resource.data.userId == request.auth.uid
-                    && request.resource.data.keys().hasAll(['questionId', 'optionIndex', 'userId', 'timestamp'])
+                    && request.resource.data.keys().hasAll(['questionId', 'userId', 'timestamp'])
+                    && (
+                         ('optionIndex' in request.resource.data && request.resource.data.optionIndex is int)
+                         ||
+                         ('optionIndices' in request.resource.data
+                          && request.resource.data.optionIndices is list
+                          && request.resource.data.optionIndices.size() >= 1
+                          && request.resource.data.optionIndices.size() <= 20)
+                       )
                     && (!('voterName' in request.resource.data) || request.resource.data.voterName.size() <= 30)
                     && (!('voterSeat' in request.resource.data) || request.resource.data.voterSeat.size() <= 10);
 

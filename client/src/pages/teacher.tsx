@@ -12,7 +12,7 @@ import { useVotingSound } from "@/hooks/use-voting-sounds";
 import * as firestore from "@/lib/firestore-voting";
 import { auth, signInWithGoogle, signOut } from "@/lib/firebase";
 import { onAuthStateChanged, type User } from "firebase/auth";
-import { Plus, Minus, Sparkles, RefreshCw, CheckCircle2, Eye, EyeOff, LogIn, LogOut, UserCircle, LayoutGrid, Download, Monitor, Timer, UserCheck, X as XIcon } from "lucide-react";
+import { Plus, Minus, Sparkles, RefreshCw, CheckCircle2, Eye, EyeOff, LogIn, LogOut, UserCircle, LayoutGrid, Download, Monitor, Timer, UserCheck, X as XIcon, CheckSquare, Circle } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { exportQuestionVotes } from "@/lib/csv-export";
@@ -22,6 +22,7 @@ import { uploadImageIfLarge } from "@/lib/image-storage";
 export default function Teacher() {
   const [imageUrl, setImageUrl] = useState("");
   const [options, setOptions] = useState<string[]>(["", "", ""]);
+  const [questionType, setQuestionType] = useState<"single" | "multiple">("single");
   const [requireIdentity, setRequireIdentity] = useState(false);
   const [createdQuestion, setCreatedQuestion] = useState<any | null>(null);
   const [globalActiveQuestion, setGlobalActiveQuestion] = useState<any | null>(null);
@@ -97,13 +98,13 @@ export default function Teacher() {
   // 監聽投票統計
   useEffect(() => {
     if (createdQuestion?.id) {
-      const unsubscribe = firestore.getVotesStats(createdQuestion.id, (stats) => {
-        // 檢查是否有新投票（總數增加）
-        const oldTotal = Object.values(votesStats).reduce((a, b) => a + b, 0);
-        const newTotal = Object.values(stats).reduce((a, b) => a + b, 0);
-        if (newTotal > oldTotal) {
+      const unsubscribe = firestore.getVotesStats(createdQuestion.id, (stats, totalVoters) => {
+        // 用「投票人數」變化偵測新票（多選一張票會貢獻多個 stat 值，不能用 sum）
+        const prev = (firestore as any)._lastTotalVoters_ ?? 0;
+        if (totalVoters > prev) {
           playVoteSubmitted();
         }
+        (firestore as any)._lastTotalVoters_ = totalVoters;
         setVotesStats(stats);
       });
       return () => unsubscribe();
@@ -113,7 +114,7 @@ export default function Teacher() {
   const createQuestion = useMutation({
     mutationFn: async () => {
       const filteredOptions = options.filter(Boolean);
-      return await firestore.createQuestion(imageUrl, filteredOptions, { requireIdentity });
+      return await firestore.createQuestion(imageUrl, filteredOptions, { requireIdentity, questionType });
     },
     onSuccess: (question) => {
       setCreatedQuestion(question);
@@ -151,6 +152,21 @@ export default function Teacher() {
         variant: "destructive",
       });
     },
+  });
+
+  // 多選題：toggle 某選項加入/移出正解集合
+  const toggleMultiCorrect = useMutation({
+    mutationFn: async (index: number) => {
+      if (!createdQuestion) throw new Error("No question created");
+      const current: number[] = Array.isArray(createdQuestion.correctAnswers)
+        ? createdQuestion.correctAnswers
+        : [];
+      const next = current.includes(index)
+        ? current.filter((i) => i !== index)
+        : [...current, index];
+      await firestore.setCorrectAnswers(createdQuestion.id, next);
+    },
+    onError: (err: Error) => toast({ title: "設定失敗", description: err.message, variant: "destructive" }),
   });
 
   const toggleShowAnswer = useMutation({
@@ -398,6 +414,33 @@ export default function Teacher() {
               <Sparkles className="w-5 h-5 text-primary" />
               選項設置
             </h2>
+
+            {/* 題型切換 */}
+            <div className="mb-4 flex gap-2 p-1 bg-slate-100 rounded-lg">
+              <button
+                type="button"
+                onClick={() => setQuestionType("single")}
+                className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                  questionType === "single"
+                    ? "bg-white text-blue-700 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                <Circle className="w-4 h-4" />單選題
+              </button>
+              <button
+                type="button"
+                onClick={() => setQuestionType("multiple")}
+                className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                  questionType === "multiple"
+                    ? "bg-white text-blue-700 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                <CheckSquare className="w-4 h-4" />多選題
+              </button>
+            </div>
+
             <div className="space-y-4 animate-fade-in">
               {options.map((option, index) => (
                 <div key={index} className="flex gap-2 animate-slide-up" style={{ animationDelay: `${index * 100}ms` }}>
@@ -582,37 +625,57 @@ export default function Teacher() {
 
             <div className="space-y-6">
               <div>
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                   <p className="text-sm font-medium text-gray-700">
-                    設定正確答案選項：
+                    {createdQuestion.questionType === "multiple"
+                      ? "設定正確答案（可複選，全選對才算對）："
+                      : "設定正確答案選項："}
                   </p>
-                  {createdQuestion.correctAnswer !== null && (
+                  {(createdQuestion.questionType === "multiple"
+                    ? Array.isArray(createdQuestion.correctAnswers) && createdQuestion.correctAnswers.length > 0
+                    : createdQuestion.correctAnswer !== null) && (
                     <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full">
-                      已設定
+                      已設定 {createdQuestion.questionType === "multiple" && Array.isArray(createdQuestion.correctAnswers)
+                        ? `${createdQuestion.correctAnswers.length} 項`
+                        : ""}
                     </span>
                   )}
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                  {createdQuestion.options.map((option: string, index: number) => (
-                    <Button
-                      key={index}
-                      variant={createdQuestion.correctAnswer === index ? "default" : "outline"}
-                      size="default"
-                      onClick={() => setCorrectAnswer.mutate(index)}
-                      disabled={setCorrectAnswer.isPending}
-                      className={`h-auto min-h-[3rem] p-3 text-left text-sm font-medium transition-all duration-200 ${createdQuestion.correctAnswer === index
-                        ? "bg-green-500 hover:bg-green-600 text-white shadow-lg transform hover:scale-105"
-                        : "hover:bg-green-50 hover:border-green-300 hover:shadow-md active:scale-95"
+                  {createdQuestion.options.map((option: string, index: number) => {
+                    const isMulti = createdQuestion.questionType === "multiple";
+                    const isCorrect = isMulti
+                      ? Array.isArray(createdQuestion.correctAnswers) && createdQuestion.correctAnswers.includes(index)
+                      : createdQuestion.correctAnswer === index;
+                    return (
+                      <Button
+                        key={index}
+                        variant={isCorrect ? "default" : "outline"}
+                        size="default"
+                        onClick={() => isMulti ? toggleMultiCorrect.mutate(index) : setCorrectAnswer.mutate(index)}
+                        disabled={setCorrectAnswer.isPending || toggleMultiCorrect.isPending}
+                        className={`h-auto min-h-[3rem] p-3 text-left text-sm font-medium transition-all duration-200 ${
+                          isCorrect
+                            ? "bg-green-500 hover:bg-green-600 text-white shadow-lg transform hover:scale-105"
+                            : "hover:bg-green-50 hover:border-green-300 hover:shadow-md active:scale-95"
                         }`}
-                    >
-                      <div className="w-full">
-                        <div className="font-bold text-xs mb-1">選項 {index + 1}</div>
-                        <div className="text-xs leading-tight break-words">
-                          {option.length > 30 ? `${option.substring(0, 30)}...` : option}
+                      >
+                        <div className="w-full">
+                          <div className="font-bold text-xs mb-1 flex items-center gap-1">
+                            {isMulti && (
+                              <span className={`inline-flex items-center justify-center w-3.5 h-3.5 rounded border ${isCorrect ? "bg-white border-white" : "border-current opacity-60"}`}>
+                                {isCorrect && <CheckCircle2 className="w-3 h-3 text-green-600" />}
+                              </span>
+                            )}
+                            選項 {index + 1}
+                          </div>
+                          <div className="text-xs leading-tight break-words">
+                            {option.length > 30 ? `${option.substring(0, 30)}...` : option}
+                          </div>
                         </div>
-                      </div>
-                    </Button>
-                  ))}
+                      </Button>
+                    );
+                  })}
                 </div>
               </div>
 

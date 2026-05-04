@@ -29,10 +29,10 @@ export default function Student() {
         if (q) setQuestion(q);
       });
 
-      // 監聽投票統計
-      const unsubscribeVotes = firestore.getVotesStats(questionId, (stats) => {
+      // 監聽投票統計（多選時 totalVoters 才是「投票人數」，stats 是「各選項被選次數」）
+      const unsubscribeVotes = firestore.getVotesStats(questionId, (stats, totalVoters) => {
         setTotals(stats);
-        setTotalVotes(Object.values(stats).reduce((a, b) => a + b, 0));
+        setTotalVotes(totalVoters);
       });
 
       return () => {
@@ -119,25 +119,39 @@ export default function Student() {
   const [nameInput, setNameInput] = useState<string>(() => localStorage.getItem("voter_name") || "");
   const hasIdentity = !!committedName.trim();
 
+  const isMultiple = question?.questionType === "multiple";
+  const [multiSelection, setMultiSelection] = useState<Set<number>>(new Set());
+  const toggleMulti = (idx: number) => {
+    setMultiSelection((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  };
+
   const vote = useMutation({
-    mutationFn: async (optionIndex: number) => {
+    mutationFn: async (selection: number | number[]) => {
       if (!question) return;
       if (isExpired) throw new Error("此題投票已結束");
       if (isTimeUp) throw new Error("倒數結束，無法投票");
       if (requireIdentity && !hasIdentity) {
         throw new Error("請先填寫姓名");
       }
-      await firestore.addVote(question.id, optionIndex, requireIdentity ? { name: committedName } : undefined);
+      await firestore.addVote(question.id, selection, requireIdentity ? { name: committedName } : undefined);
     },
-    onSuccess: (_, optionIndex) => {
+    onSuccess: (_, selection) => {
       toast({
         title: "投票成功",
         description: "感謝您的參與！",
       });
       setHasVoted(true);
-      setSelectedOption(optionIndex);
+      // 多選用 -1 代表「已投但不單一選項」
+      const repIdx = Array.isArray(selection) ? selection[0] : selection;
+      setSelectedOption(repIdx);
       if (question?.id) {
-        localStorage.setItem(`voted_${question.id}`, optionIndex.toString());
+        const stored = Array.isArray(selection) ? selection.join(",") : String(selection);
+        localStorage.setItem(`voted_${question.id}`, stored);
       }
     },
     onError: (error: any) => {
@@ -404,14 +418,19 @@ export default function Student() {
                 >
                   <div className="text-center mb-6">
                     <h2 className="text-xl sm:text-2xl font-bold gradient-text mb-2">
-                      請選擇您的答案
+                      {isMultiple ? "可複選後送出" : "請選擇您的答案"}
                     </h2>
                     <p className="text-sm text-muted-foreground">
-                      點擊選項進行投票
+                      {isMultiple
+                        ? `已選 ${multiSelection.size} 項${multiSelection.size > 0 ? "，按下方送出" : ""}`
+                        : "點擊選項進行投票"}
                     </p>
                   </div>
                   <div className="grid gap-3 sm:gap-4">
-                    {question.options.map((option: string, index: number) => (
+                    {question.options.map((option: string, index: number) => {
+                      const isMultiSelected = isMultiple && multiSelection.has(index);
+                      const isCorrectMulti = question.showAnswer && Array.isArray(question.correctAnswers) && question.correctAnswers.includes(index);
+                      return (
                       <motion.div
                         key={index}
                         initial={{ x: -20, opacity: 0 }}
@@ -421,35 +440,41 @@ export default function Student() {
                         <Button
                           onClick={() => {
                             if (hasVoted || vote.isPending) return;
-
-                            // 立即設置投票狀態，防止重複投票
+                            if (isMultiple) {
+                              toggleMulti(index);
+                              return;
+                            }
+                            // 單選：立即送出
                             setSelectedOption(index);
                             setHasVoted(true);
                             if (questionId) {
                               localStorage.setItem(`voted_${questionId}`, index.toString());
                             }
-
-                            // 執行投票API調用
                             vote.mutate(index);
                           }}
                           disabled={vote.isPending || hasVoted}
-                          variant={selectedOption === index ? "default" : "outline"}
-                          className={`w-full h-14 sm:h-12 text-base sm:text-lg font-medium transition-all duration-300 relative overflow-hidden touch-manipulation ${selectedOption === index
-                            ? "bg-primary text-primary-foreground transform hover:scale-[1.02] hover:shadow-lg shadow-md"
-                            : "hover:bg-primary/10 hover:border-primary/50 active:bg-primary/5"
-                            }`}
+                          variant={(isMultiple ? isMultiSelected : selectedOption === index) ? "default" : "outline"}
+                          className={`w-full h-14 sm:h-12 text-base sm:text-lg font-medium transition-all duration-300 relative overflow-hidden touch-manipulation ${
+                            (isMultiple ? isMultiSelected : selectedOption === index)
+                              ? "bg-primary text-primary-foreground transform hover:scale-[1.02] hover:shadow-lg shadow-md"
+                              : "hover:bg-primary/10 hover:border-primary/50 active:bg-primary/5"
+                          }`}
                           asChild
                         >
                           <motion.div
-                            whileHover={{
-                              scale: 1.02,
-                              transition: { duration: 0.2 }
-                            }}
+                            whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
                             whileTap={{ scale: 0.98 }}
                           >
                             <div className="relative z-10 flex items-center justify-center gap-2">
+                              {isMultiple && (
+                                <span className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center ${
+                                  isMultiSelected ? "bg-white border-white" : "border-current opacity-60"
+                                }`}>
+                                  {isMultiSelected && <CheckCircle2 className="w-4 h-4 text-primary" />}
+                                </span>
+                              )}
                               <span>{option}</span>
-                              {question.showAnswer && question.correctAnswer === index && (
+                              {question.showAnswer && (question.correctAnswer === index || isCorrectMulti) && (
                                 <motion.div
                                   initial={{ scale: 0, opacity: 0 }}
                                   animate={{ scale: 1, opacity: 1 }}
@@ -463,22 +488,43 @@ export default function Student() {
                               )}
                               <motion.div
                                 className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/10 to-primary/0"
-                                animate={{
-                                  x: ["0%", "100%"],
-                                }}
-                                transition={{
-                                  duration: 2,
-                                  repeat: Infinity,
-                                  ease: "linear",
-                                }}
-                                style={{ opacity: selectedOption === index ? 0 : 1 }}
+                                animate={{ x: ["0%", "100%"] }}
+                                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                                style={{ opacity: (isMultiple ? isMultiSelected : selectedOption === index) ? 0 : 1 }}
                               />
                             </div>
                           </motion.div>
                         </Button>
                       </motion.div>
-                    ))}
+                      );
+                    })}
                   </div>
+
+                  {/* 多選送出按鈕 */}
+                  {isMultiple && !hasVoted && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mt-6"
+                    >
+                      <Button
+                        size="lg"
+                        className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-primary to-purple-600 hover:scale-[1.02] transition-transform shadow-lg"
+                        disabled={vote.isPending || multiSelection.size === 0}
+                        onClick={() => {
+                          if (vote.isPending || multiSelection.size === 0) return;
+                          const arr = Array.from(multiSelection).sort((a, b) => a - b);
+                          setHasVoted(true);
+                          if (questionId) {
+                            localStorage.setItem(`voted_${questionId}`, arr.join(","));
+                          }
+                          vote.mutate(arr);
+                        }}
+                      >
+                        {vote.isPending ? "送出中…" : `✅ 送出我的 ${multiSelection.size} 個選擇`}
+                      </Button>
+                    </motion.div>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>

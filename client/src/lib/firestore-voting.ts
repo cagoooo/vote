@@ -16,25 +16,33 @@ import {
 } from "firebase/firestore";
 import { db, auth } from "./firebase";
 
+export type QuestionType = "single" | "multiple";
+
 export interface FirestoreQuestion {
     id: string;
     imageUrl: string;
     options: string[];
     active: boolean;
+    /** 單選正解（單選題用） */
     correctAnswer: number | null;
+    /** 多選正解集合（多選題用，所有正確選項的 index 集合） */
+    correctAnswers?: number[] | null;
     showAnswer: boolean;
     teacherId: string;
     createdAt: Timestamp;
     expiresAt: Timestamp;
     roomCode: string;
-    /** 是否要求學生填具名（姓名+座號）才能投票 */
+    /** 題型：single 單選（預設）、multiple 多選 */
+    questionType?: QuestionType;
+    /** 是否要求學生填具名才能投票 */
     requireIdentity?: boolean;
-    /** 倒數計時投票結束時間（無此欄位代表不限時） */
+    /** 倒數計時投票結束時間 */
     votingEndsAt?: Timestamp | null;
 }
 
 export interface CreateQuestionOptions {
     requireIdentity?: boolean;
+    questionType?: QuestionType;
 }
 
 // 題目預設存活時間：4 小時（涵蓋一節課 + 緩衝時間）
@@ -104,17 +112,20 @@ export const createQuestion = async (
     const expiresAt = Timestamp.fromMillis(Date.now() + QUESTION_TTL_MS);
     const roomCode = await generateUniqueRoomCode();
     const requireIdentity = !!opts.requireIdentity;
+    const questionType: QuestionType = opts.questionType ?? "single";
 
     const docRef = await addDoc(collection(db, "questions"), {
         imageUrl,
         options,
         active: true,
         correctAnswer: null,
+        correctAnswers: null,
         showAnswer: false,
         teacherId,
         createdAt: serverTimestamp(),
         expiresAt,
         roomCode,
+        questionType,
         requireIdentity,
         votingEndsAt: null,
     });
@@ -125,10 +136,12 @@ export const createQuestion = async (
         options,
         active: true,
         correctAnswer: null,
+        correctAnswers: null,
         showAnswer: false,
         teacherId,
         expiresAt,
         roomCode,
+        questionType,
         requireIdentity,
         votingEndsAt: null,
     };
@@ -232,7 +245,16 @@ export interface VoteIdentity {
     seat?: string;
 }
 
-export const addVote = async (questionId: string, optionIndex: number, identity?: VoteIdentity) => {
+/**
+ * 投票
+ *  - 單選：傳 number
+ *  - 多選：傳 number[]（至少 1 個）
+ */
+export const addVote = async (
+    questionId: string,
+    selection: number | number[],
+    identity?: VoteIdentity
+) => {
     const userId = auth.currentUser?.uid;
     if (!userId) throw new Error("未登入");
 
@@ -248,10 +270,16 @@ export const addVote = async (questionId: string, optionIndex: number, identity?
 
     const payload: Record<string, any> = {
         questionId,
-        optionIndex,
         userId,
         timestamp: serverTimestamp(),
     };
+    if (Array.isArray(selection)) {
+        if (selection.length === 0) throw new Error("請至少選一個選項");
+        // 去重 + 排序，避免相同票被重複計入
+        payload.optionIndices = Array.from(new Set(selection)).sort((a, b) => a - b);
+    } else {
+        payload.optionIndex = selection;
+    }
     if (identity?.name) payload.voterName = identity.name.trim().substring(0, 30);
     if (identity?.seat) payload.voterSeat = identity.seat.trim().substring(0, 10);
 
@@ -278,17 +306,28 @@ export const getDetailedVotes = async (questionId: string) => {
     });
 };
 
-// 取得投票統計 (即時)
-export const getVotesStats = (questionId: string, callback: (stats: Record<number, number>) => void) => {
+// 取得投票統計（即時）
+// stats: 每個選項被選次數（多選時一張票可貢獻多個選項）
+// totalVoters: 投票人數（vote 文件數，多選時 ≠ Σ stats）
+export const getVotesStats = (
+    questionId: string,
+    callback: (stats: Record<number, number>, totalVoters: number) => void
+) => {
     const q = query(collection(db, "votes"), where("questionId", "==", questionId));
 
     return onSnapshot(q, (snapshot) => {
         const stats: Record<number, number> = {};
         snapshot.docs.forEach((d) => {
             const data = d.data();
-            stats[data.optionIndex] = (stats[data.optionIndex] || 0) + 1;
+            if (Array.isArray(data.optionIndices)) {
+                data.optionIndices.forEach((idx: number) => {
+                    if (typeof idx === "number") stats[idx] = (stats[idx] || 0) + 1;
+                });
+            } else if (typeof data.optionIndex === "number") {
+                stats[data.optionIndex] = (stats[data.optionIndex] || 0) + 1;
+            }
         });
-        callback(stats);
+        callback(stats, snapshot.size);
     });
 };
 
@@ -301,9 +340,15 @@ export const resetVotes = async (questionId: string) => {
     }
 };
 
-// 設定正確答案
+// 設定正確答案（單選）
 export const setCorrectAnswer = async (questionId: string, index: number) => {
     await updateDoc(doc(db, "questions", questionId), { correctAnswer: index });
+};
+
+// 設定正確答案（多選）— 全選對才算對
+export const setCorrectAnswers = async (questionId: string, indices: number[]) => {
+    const cleaned = Array.from(new Set(indices)).sort((a, b) => a - b);
+    await updateDoc(doc(db, "questions", questionId), { correctAnswers: cleaned });
 };
 
 // 顯示/隱藏答案

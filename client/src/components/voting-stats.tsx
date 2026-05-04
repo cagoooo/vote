@@ -30,14 +30,12 @@ export function VotingStats({ question, onVoteReceived }: VotingStatsProps) {
   // 監聽投票統計
   useEffect(() => {
     if (question?.id) {
-      const unsubscribe = firestore.getVotesStats(question.id, (stats) => {
+      const unsubscribe = firestore.getVotesStats(question.id, (stats, totalVoters) => {
         setTotals(stats);
-        const total = Object.values(stats).reduce((a, b) => a + b, 0);
-        setTotalVotes(total);
+        setTotalVotes(totalVoters);
 
         if (onVoteReceived) {
-          // 為了相容性，傳遞一個模擬的 votes 陣列
-          onVoteReceived(new Array(total).fill({}));
+          onVoteReceived(new Array(totalVoters).fill({}));
         }
       });
       return () => unsubscribe();

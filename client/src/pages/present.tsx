@@ -72,6 +72,7 @@ export default function Present() {
         if (!id) return;
         const unsubQ = firestore.listenToQuestion(id, (q) => setQuestion(q));
         const unsubV = firestore.getVotesStats(id, (s) => setStats(s));
+        // 註：present 內部仍用 stats reduce 計總票，多選時會偏高（顯示為「總勾選次數」）
         const unsubR = firestore.listenToReactions(id, (r) => setReactions(r));
         return () => {
             unsubQ();
