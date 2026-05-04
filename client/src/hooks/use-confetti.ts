@@ -11,7 +11,7 @@ export function useConfetti() {
       gravity: 0.8,
       decay: 0.94,
       startVelocity: 30,
-      shapes: ['star'],
+      shapes: ['star'] as confetti.Shape[],
       colors: ['FFE400', 'FFBD00', 'E89400', 'FFCA6C', 'FDFFB8']
     };
 

@@ -313,18 +313,18 @@ export const listenToTextAnswers = (
         orderBy("timestamp", "asc")
     );
     return onSnapshot(q, (snap) => {
-        const list = snap.docs
-            .map((d) => {
-                const data = d.data() as any;
-                if (typeof data.textAnswer !== "string") return null;
-                return {
-                    id: d.id,
-                    text: data.textAnswer as string,
-                    userName: data.voterName as string | undefined,
-                    timestamp: data.timestamp,
-                };
-            })
-            .filter((x): x is { id: string; text: string; userName?: string; timestamp?: any } => x !== null);
+        type Item = { id: string; text: string; userName?: string; timestamp?: any };
+        const list: Item[] = [];
+        snap.docs.forEach((d) => {
+            const data = d.data() as any;
+            if (typeof data.textAnswer !== "string") return;
+            list.push({
+                id: d.id,
+                text: data.textAnswer,
+                userName: data.voterName,
+                timestamp: data.timestamp,
+            });
+        });
         callback(list);
     });
 };

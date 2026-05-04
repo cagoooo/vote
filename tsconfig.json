@@ -1,14 +1,12 @@
 {
   "include": [
-    "client/src/**/*",
-    "shared/**/*",
-    "server/**/*",
-    "api/**/*"
+    "client/src/**/*"
   ],
   "exclude": [
     "node_modules",
     "build",
     "dist",
+    "functions",
     "**/*.test.ts"
   ],
   "compilerOptions": {
@@ -35,9 +33,6 @@
     "paths": {
       "@/*": [
         "./client/src/*"
-      ],
-      "@shared/*": [
-        "./shared/*"
       ]
     }
   }

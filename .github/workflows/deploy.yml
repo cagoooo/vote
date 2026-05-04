@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Deploy to GitHub Pages + Firestore
 
 on:
   push:
@@ -11,6 +11,9 @@ permissions:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    env:
+      # Job-level env：讓 step 的 if: env.X 能在套用 step env 之前正確求值（避雷 Fix #15）
+      FIREBASE_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -18,11 +21,15 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
 
       - name: Install dependencies
         run: npm install
+
+      # E3: tsc 型別檢查擋 type bug（vite build 不跑 tsc，光靠 build 抓不到死變數）
+      - name: Type check
+        run: npm run check
 
       - name: Build
         run: npm run build:gh-pages
@@ -35,8 +42,30 @@ jobs:
           VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
 
-      - name: Deploy
+      - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: dist/public
           branch: gh-pages
+
+      # 主動警告：secret 缺失時 step 會 skip，這裡用 ::warning:: 把靜默 skip 變成可見訊息（避雷 Fix #15）
+      - name: Verify FIREBASE_SA secret presence
+        run: |
+          if [ -z "$FIREBASE_SA" ]; then
+            echo "::warning::FIREBASE_SERVICE_ACCOUNT secret is empty — Firestore/Storage rules deploy steps will skip silently"
+          else
+            echo "✅ FIREBASE_SA secret detected, will deploy firestore + storage rules"
+          fi
+
+      # E1: 寫 SA JSON 到 tmp 檔，後續 firebase CLI 透過 GOOGLE_APPLICATION_CREDENTIALS 認證
+      - name: Setup Firebase auth
+        if: ${{ env.FIREBASE_SA != '' }}
+        run: |
+          printf '%s' "$FIREBASE_SA" > "$RUNNER_TEMP/firebase-sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/firebase-sa.json" >> "$GITHUB_ENV"
+
+      - name: Deploy Firestore Rules + Indexes + Storage Rules
+        if: ${{ env.FIREBASE_SA != '' }}
+        run: |
+          npm install -g firebase-tools
+          firebase deploy --only firestore:rules,firestore:indexes,storage --project=vote-9db54 --non-interactive

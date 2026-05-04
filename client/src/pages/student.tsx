@@ -139,7 +139,7 @@ export default function Student() {
   };
 
   const vote = useMutation({
-    mutationFn: async (selection: number | number[]) => {
+    mutationFn: async (selection: firestore.VoteSelection) => {
       if (!question) return;
       if (isExpired) throw new Error("此題投票已結束");
       if (isTimeUp) throw new Error("倒數結束，無法投票");
@@ -161,11 +161,20 @@ export default function Student() {
         variant: "success",
       });
       setHasVoted(true);
-      // 多選用第一個 idx 代表「已投」
-      const repIdx = Array.isArray(selection) ? selection[0] : selection;
+      // 各題型 selectedOption 與 localStorage 紀錄格式
+      let repIdx: number | null = null;
+      let stored = "voted";
+      if (typeof selection === "number") {
+        repIdx = selection;
+        stored = String(selection);
+      } else if (Array.isArray(selection)) {
+        repIdx = selection[0] ?? null;
+        stored = selection.join(",");
+      } else if (selection && typeof selection === "object" && "text" in selection) {
+        stored = `text:${selection.text}`;
+      }
       setSelectedOption(repIdx);
       if (question?.id) {
-        const stored = Array.isArray(selection) ? selection.join(",") : String(selection);
         localStorage.setItem(`voted_${question.id}`, stored);
       }
     },
