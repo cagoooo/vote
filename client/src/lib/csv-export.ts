@@ -68,16 +68,31 @@ export const exportQuestionVotes = async (question: FirestoreQuestion) => {
         rows.push([i + 1, opt, count, pct, i === question.correctAnswer ? "是" : ""]);
     });
 
-    // Section 2: 個別投票紀錄（匿名 userId）
-    rows.push([], ["投票明細"], ["時間", "選項編號", "選項內容", "投票者匿名 ID"]);
-    votes.forEach((v: any) => {
-        rows.push([
-            formatTimestamp(v.timestamp),
-            (v.optionIndex ?? -1) + 1,
-            question.options[v.optionIndex] ?? "",
-            v.userId ?? "",
-        ]);
-    });
+    // Section 2: 個別投票紀錄
+    const hasIdentity = votes.some((v: any) => v.voterName || v.voterSeat);
+    if (hasIdentity) {
+        rows.push([], ["投票明細"], ["時間", "座號", "姓名", "選項編號", "選項內容", "匿名 ID"]);
+        votes.forEach((v: any) => {
+            rows.push([
+                formatTimestamp(v.timestamp),
+                v.voterSeat ?? "",
+                v.voterName ?? "",
+                (v.optionIndex ?? -1) + 1,
+                question.options[v.optionIndex] ?? "",
+                v.userId ?? "",
+            ]);
+        });
+    } else {
+        rows.push([], ["投票明細"], ["時間", "選項編號", "選項內容", "投票者匿名 ID"]);
+        votes.forEach((v: any) => {
+            rows.push([
+                formatTimestamp(v.timestamp),
+                (v.optionIndex ?? -1) + 1,
+                question.options[v.optionIndex] ?? "",
+                v.userId ?? "",
+            ]);
+        });
+    }
 
     const safeCode = (question.roomCode || question.id).replace(/[^A-Za-z0-9]/g, "_");
     const dateStr = new Date().toISOString().slice(0, 10);

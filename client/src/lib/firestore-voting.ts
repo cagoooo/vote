@@ -27,6 +27,14 @@ export interface FirestoreQuestion {
     createdAt: Timestamp;
     expiresAt: Timestamp;
     roomCode: string;
+    /** 是否要求學生填具名（姓名+座號）才能投票 */
+    requireIdentity?: boolean;
+    /** 倒數計時投票結束時間（無此欄位代表不限時） */
+    votingEndsAt?: Timestamp | null;
+}
+
+export interface CreateQuestionOptions {
+    requireIdentity?: boolean;
 }
 
 // 題目預設存活時間：4 小時（涵蓋一節課 + 緩衝時間）
@@ -54,10 +62,16 @@ const generateUniqueRoomCode = async (): Promise<string> => {
     return generateRoomCode(5);
 };
 
-// 判斷題目是否已過期
+// 判斷題目是否已過期（4 小時硬上限）
 export const isQuestionExpired = (q: Pick<FirestoreQuestion, "expiresAt"> | null | undefined): boolean => {
     if (!q?.expiresAt) return false;
     return q.expiresAt.toMillis() < Date.now();
+};
+
+// 判斷倒數投票是否已結束（老師主動設的計時器）
+export const isVotingTimeUp = (q: Pick<FirestoreQuestion, "votingEndsAt"> | null | undefined): boolean => {
+    if (!q?.votingEndsAt) return false;
+    return q.votingEndsAt.toMillis() < Date.now();
 };
 
 export interface FirestoreVote {
@@ -69,11 +83,14 @@ export interface FirestoreVote {
 }
 
 // 建立問題
-export const createQuestion = async (imageUrl: string, options: string[]) => {
+export const createQuestion = async (
+    imageUrl: string,
+    options: string[],
+    opts: CreateQuestionOptions = {}
+) => {
     const teacherId = auth.currentUser?.uid;
     if (!teacherId) throw new Error("未登入");
 
-    // 只將「自己」現有的活動問題設為非活動，避免影響其他老師
     const q = query(
         collection(db, "questions"),
         where("active", "==", true),
@@ -86,6 +103,7 @@ export const createQuestion = async (imageUrl: string, options: string[]) => {
 
     const expiresAt = Timestamp.fromMillis(Date.now() + QUESTION_TTL_MS);
     const roomCode = await generateUniqueRoomCode();
+    const requireIdentity = !!opts.requireIdentity;
 
     const docRef = await addDoc(collection(db, "questions"), {
         imageUrl,
@@ -97,9 +115,35 @@ export const createQuestion = async (imageUrl: string, options: string[]) => {
         createdAt: serverTimestamp(),
         expiresAt,
         roomCode,
+        requireIdentity,
+        votingEndsAt: null,
     });
 
-    return { id: docRef.id, imageUrl, options, active: true, correctAnswer: null, showAnswer: false, teacherId, expiresAt, roomCode };
+    return {
+        id: docRef.id,
+        imageUrl,
+        options,
+        active: true,
+        correctAnswer: null,
+        showAnswer: false,
+        teacherId,
+        expiresAt,
+        roomCode,
+        requireIdentity,
+        votingEndsAt: null,
+    };
+};
+
+// 啟動倒數投票（老師按 30/60/90 秒按鈕後呼叫）
+export const startCountdown = async (questionId: string, seconds: number) => {
+    const endsAt = Timestamp.fromMillis(Date.now() + seconds * 1000);
+    await updateDoc(doc(db, "questions", questionId), { votingEndsAt: endsAt });
+    return endsAt;
+};
+
+// 取消倒數
+export const cancelCountdown = async (questionId: string) => {
+    await updateDoc(doc(db, "questions", questionId), { votingEndsAt: null });
 };
 
 // 用 room code 找對應的 question（給 /join 頁面用）
@@ -182,12 +226,16 @@ export const listenToQuestion = (id: string, callback: (question: FirestoreQuest
     });
 };
 
-// 投票
-export const addVote = async (questionId: string, optionIndex: number) => {
+// 投票（identity 為選填，需具名題目才會帶）
+export interface VoteIdentity {
+    name?: string;
+    seat?: string;
+}
+
+export const addVote = async (questionId: string, optionIndex: number, identity?: VoteIdentity) => {
     const userId = auth.currentUser?.uid;
     if (!userId) throw new Error("未登入");
 
-    // 檢查是否已投票
     const q = query(
         collection(db, "votes"),
         where("questionId", "==", questionId),
@@ -198,11 +246,35 @@ export const addVote = async (questionId: string, optionIndex: number) => {
         throw new Error("您已經投過票了");
     }
 
-    await addDoc(collection(db, "votes"), {
+    const payload: Record<string, any> = {
         questionId,
         optionIndex,
         userId,
         timestamp: serverTimestamp(),
+    };
+    if (identity?.name) payload.voterName = identity.name.trim().substring(0, 30);
+    if (identity?.seat) payload.voterSeat = identity.seat.trim().substring(0, 10);
+
+    await addDoc(collection(db, "votes"), payload);
+};
+
+// 取得某題完整投票明細（給老師結果頁用，含具名資訊）
+export const getDetailedVotes = async (questionId: string) => {
+    const q = query(
+        collection(db, "votes"),
+        where("questionId", "==", questionId),
+        orderBy("timestamp", "asc")
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map((d) => {
+        const data = d.data() as any;
+        return {
+            id: d.id,
+            optionIndex: data.optionIndex as number,
+            voterName: data.voterName as string | undefined,
+            voterSeat: data.voterSeat as string | undefined,
+            timestamp: data.timestamp,
+        };
     });
 };
 

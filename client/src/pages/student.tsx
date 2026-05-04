@@ -94,12 +94,41 @@ export default function Student() {
   }, [totals, hasVoted]);
 
   const isExpired = firestore.isQuestionExpired(question);
+  const requireIdentity: boolean = !!question?.requireIdentity;
+
+  // 倒數時間（秒，null 表不限時）
+  const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
+  useEffect(() => {
+    if (!question?.votingEndsAt) {
+      setSecondsLeft(null);
+      return;
+    }
+    const tick = () => {
+      const ms = question.votingEndsAt.toMillis() - Date.now();
+      setSecondsLeft(Math.max(0, Math.ceil(ms / 1000)));
+    };
+    tick();
+    const t = window.setInterval(tick, 250);
+    return () => window.clearInterval(t);
+  }, [question?.votingEndsAt]);
+  const isTimeUp = secondsLeft !== null && secondsLeft <= 0;
+
+  // 學生身份（持久化在 localStorage 跨題共用）
+  const [identityName, setIdentityName] = useState<string>(() => localStorage.getItem("voter_name") || "");
+  const [identitySeat, setIdentitySeat] = useState<string>(() => localStorage.getItem("voter_seat") || "");
+  const hasIdentity = !!identityName.trim() && !!identitySeat.trim();
+  const [identityFormVisible, setIdentityFormVisible] = useState(false);
 
   const vote = useMutation({
     mutationFn: async (optionIndex: number) => {
       if (!question) return;
       if (isExpired) throw new Error("此題投票已結束");
-      await firestore.addVote(question.id, optionIndex);
+      if (isTimeUp) throw new Error("倒數結束，無法投票");
+      if (requireIdentity && !hasIdentity) {
+        setIdentityFormVisible(true);
+        throw new Error("請先填寫姓名與座號");
+      }
+      await firestore.addVote(question.id, optionIndex, requireIdentity ? { name: identityName, seat: identitySeat } : undefined);
     },
     onSuccess: (_, optionIndex) => {
       toast({
@@ -155,10 +184,97 @@ export default function Student() {
     );
   }
 
+  if (isTimeUp && !hasVoted) {
+    return (
+      <div className="page-container text-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="space-y-3"
+        >
+          <div className="text-7xl">⏰</div>
+          <h1 className="text-2xl font-bold text-amber-600">倒數結束</h1>
+          <p className="text-muted-foreground">本題投票時間已到</p>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // 需具名但還沒填 → 顯示身份表單
+  if (requireIdentity && !hasIdentity && (identityFormVisible || true)) {
+    const submitIdentity = (e: React.FormEvent) => {
+      e.preventDefault();
+      const n = identityName.trim();
+      const s = identitySeat.trim();
+      if (!n || !s) return;
+      localStorage.setItem("voter_name", n);
+      localStorage.setItem("voter_seat", s);
+      setIdentityFormVisible(false);
+    };
+
+    if (!identityName || !identitySeat) {
+      return (
+        <div className="page-container max-w-md">
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+            <Card className="p-8 space-y-5">
+              <div className="text-center space-y-2">
+                <div className="text-5xl">📝</div>
+                <h1 className="text-xl font-bold gradient-text">老師需要記錄誰投票</h1>
+                <p className="text-sm text-muted-foreground">填寫一次後會自動記住，下次不用再填</p>
+              </div>
+              <form onSubmit={submitIdentity} className="space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">座號</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="例：12"
+                    value={identitySeat}
+                    onChange={(e) => setIdentitySeat(e.target.value)}
+                    maxLength={10}
+                    autoFocus
+                    className="w-full h-11 px-3 rounded-md border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 text-base"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">姓名</label>
+                  <input
+                    type="text"
+                    placeholder="例：小華"
+                    value={identityName}
+                    onChange={(e) => setIdentityName(e.target.value)}
+                    maxLength={30}
+                    className="w-full h-11 px-3 rounded-md border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 text-base"
+                  />
+                </div>
+                <Button type="submit" size="lg" className="w-full" disabled={!identityName.trim() || !identitySeat.trim()}>
+                  確認進入投票
+                </Button>
+              </form>
+            </Card>
+          </motion.div>
+        </div>
+      );
+    }
+  }
+
   const maxVotes = Math.max(...Object.values(totals), 0);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-2 sm:p-4">
+      {secondsLeft !== null && secondsLeft > 0 && !hasVoted && (
+        <motion.div
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className={`fixed top-3 left-1/2 -translate-x-1/2 z-40 px-4 py-2 rounded-full shadow-lg border ${
+            secondsLeft <= 10
+              ? "bg-red-50 border-red-300 text-red-700 animate-pulse"
+              : "bg-amber-50 border-amber-300 text-amber-800"
+          } font-bold flex items-center gap-2`}
+        >
+          ⏱ <span className="tabular-nums text-lg">{secondsLeft}</span> 秒
+        </motion.div>
+      )}
       <div className="max-w-2xl mx-auto">
         <Card className="overflow-hidden shadow-xl border-0 bg-white/95 backdrop-blur-sm">
           <div className="relative">

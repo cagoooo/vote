@@ -10,7 +10,8 @@ service cloud.firestore {
                     && request.resource.data.teacherId == request.auth.uid
                     && request.resource.data.keys().hasAll(['imageUrl', 'options', 'active', 'teacherId', 'createdAt', 'expiresAt', 'roomCode']);
 
-      // owner 才能改；teacherId 與 roomCode 不可被改寫
+      // owner 才能改；teacherId 與 roomCode 不可被改寫；
+      // 允許更新 votingEndsAt（倒數計時器）、requireIdentity、active、correctAnswer、showAnswer
       allow update: if request.auth != null
                     && resource.data.teacherId == request.auth.uid
                     && request.resource.data.teacherId == resource.data.teacherId
@@ -27,7 +28,9 @@ service cloud.firestore {
 
       allow create: if request.auth != null
                     && request.resource.data.userId == request.auth.uid
-                    && request.resource.data.keys().hasAll(['questionId', 'optionIndex', 'userId', 'timestamp']);
+                    && request.resource.data.keys().hasAll(['questionId', 'optionIndex', 'userId', 'timestamp'])
+                    && (!('voterName' in request.resource.data) || request.resource.data.voterName.size() <= 30)
+                    && (!('voterSeat' in request.resource.data) || request.resource.data.voterSeat.size() <= 10);
 
       allow update: if false;
 

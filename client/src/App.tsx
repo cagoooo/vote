@@ -5,6 +5,7 @@ import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { FloatingAdButton } from "@/components/floating-ad-button";
 import { SwUpdatePrompt, VersionBadge } from "@/components/sw-update-prompt";
+import { SiteFooter } from "@/components/site-footer";
 import { auth, loginAnonymously } from "./lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import Teacher from "@/pages/teacher";
@@ -42,6 +43,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <Router base={base}>
         <AppRouter />
+        <SiteFooter />
       </Router>
       <FloatingAdButton />
       <SwUpdatePrompt />

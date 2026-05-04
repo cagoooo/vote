@@ -37,9 +37,35 @@ export default function Present() {
     const lastTopIdxRef = useRef<number | null>(null);
     const lastConfettiAtRef = useRef(0);
     const animatedReactionIds = useRef<Set<string>>(new Set());
+    const lastSecondsLeftRef = useRef<number | null>(null);
     const { toast } = useToast();
     const { playVoteSubmitted, playVoteSessionStart } = useVotingSound();
     const { triggerConfetti } = useConfetti();
+
+    // 倒數計時
+    const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
+    useEffect(() => {
+        if (!question?.votingEndsAt) {
+            setSecondsLeft(null);
+            return;
+        }
+        const tick = () => {
+            const ms = question.votingEndsAt.toMillis() - Date.now();
+            setSecondsLeft(Math.max(0, Math.ceil(ms / 1000)));
+        };
+        tick();
+        const t = window.setInterval(tick, 250);
+        return () => window.clearInterval(t);
+    }, [question?.votingEndsAt]);
+
+    // 倒數結束音效（從 1 → 0 那一刻）
+    useEffect(() => {
+        const prev = lastSecondsLeftRef.current;
+        if (prev !== null && prev > 0 && secondsLeft === 0 && soundOn) {
+            playVoteSessionStart();
+        }
+        lastSecondsLeftRef.current = secondsLeft;
+    }, [secondsLeft, soundOn, playVoteSessionStart]);
 
     // 訂閱題目、票數、表情
     useEffect(() => {
@@ -343,8 +369,33 @@ export default function Present() {
                     </div>
                 </div>
 
-                {/* 右：QR + 房間代碼 + 總票數 */}
+                {/* 右：倒數 + QR + 房間代碼 + 總票數 */}
                 <div className="lg:w-80 flex-shrink-0 space-y-4">
+                    {secondsLeft !== null && (
+                        <motion.div
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            className={`rounded-2xl shadow-xl p-6 text-center text-white ${
+                                secondsLeft === 0
+                                    ? "bg-gradient-to-br from-slate-700 to-slate-900"
+                                    : secondsLeft <= 10
+                                        ? "bg-gradient-to-br from-red-500 to-rose-600 animate-pulse"
+                                        : "bg-gradient-to-br from-amber-500 to-orange-600"
+                            }`}
+                        >
+                            <div className="text-sm font-medium opacity-90">⏱ 剩餘時間</div>
+                            <motion.div
+                                key={secondsLeft}
+                                initial={{ scale: 1.5, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                transition={{ type: "spring", stiffness: 300, damping: 18 }}
+                                className="text-7xl font-black tabular-nums mt-1 drop-shadow-lg"
+                            >
+                                {secondsLeft === 0 ? "結束" : secondsLeft}
+                            </motion.div>
+                            {secondsLeft > 0 && <div className="text-xs opacity-75 mt-1">秒</div>}
+                        </motion.div>
+                    )}
                     <div className="bg-white rounded-2xl shadow-xl p-6 text-center space-y-4">
                         <div className="text-sm text-slate-500 font-medium">掃 QR 進入投票</div>
                         <div className="bg-white p-3 rounded-lg shadow-inner mx-auto inline-block">

@@ -12,7 +12,7 @@ import { useVotingSound } from "@/hooks/use-voting-sounds";
 import * as firestore from "@/lib/firestore-voting";
 import { auth, signInWithGoogle, signOut } from "@/lib/firebase";
 import { onAuthStateChanged, type User } from "firebase/auth";
-import { Plus, Minus, Sparkles, RefreshCw, CheckCircle2, Eye, EyeOff, LogIn, LogOut, UserCircle, LayoutGrid, Download, Monitor } from "lucide-react";
+import { Plus, Minus, Sparkles, RefreshCw, CheckCircle2, Eye, EyeOff, LogIn, LogOut, UserCircle, LayoutGrid, Download, Monitor, Timer, UserCheck, X as XIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { exportQuestionVotes } from "@/lib/csv-export";
@@ -20,6 +20,7 @@ import { exportQuestionVotes } from "@/lib/csv-export";
 export default function Teacher() {
   const [imageUrl, setImageUrl] = useState("");
   const [options, setOptions] = useState<string[]>(["", "", ""]);
+  const [requireIdentity, setRequireIdentity] = useState(false);
   const [createdQuestion, setCreatedQuestion] = useState<any | null>(null);
   const [globalActiveQuestion, setGlobalActiveQuestion] = useState<any | null>(null);
   const [votesStats, setVotesStats] = useState<Record<number, number>>({});
@@ -110,7 +111,7 @@ export default function Teacher() {
   const createQuestion = useMutation({
     mutationFn: async () => {
       const filteredOptions = options.filter(Boolean);
-      return await firestore.createQuestion(imageUrl, filteredOptions);
+      return await firestore.createQuestion(imageUrl, filteredOptions, { requireIdentity });
     },
     onSuccess: (question) => {
       setCreatedQuestion(question);
@@ -409,6 +410,23 @@ export default function Teacher() {
                 添加選項
               </Button>
             </div>
+
+            <label className="mt-5 flex items-start gap-3 p-3 rounded-lg border border-dashed border-blue-200 bg-blue-50/40 hover:bg-blue-50 cursor-pointer transition-colors">
+              <input
+                type="checkbox"
+                checked={requireIdentity}
+                onChange={(e) => setRequireIdentity(e.target.checked)}
+                className="mt-0.5 w-4 h-4 accent-blue-600"
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-1.5 text-sm font-semibold text-blue-900">
+                  <UserCheck className="w-4 h-4" />需要學生具名才能投票
+                </div>
+                <div className="text-xs text-blue-700/80 mt-0.5">
+                  學生第一次投票要填姓名+座號（會記住下次自動帶入）。適合形成性評量、補救教學追蹤
+                </div>
+              </div>
+            </label>
           </Card>
 
           <Button
@@ -484,6 +502,49 @@ export default function Teacher() {
             <QRDisplay questionId={createdQuestion.id} roomCode={createdQuestion.roomCode} />
             <VotingStats question={createdQuestion} />
           </div>
+
+          {/* 倒數計時控制 */}
+          <Card className="p-4 sm:p-6 bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-1.5 bg-amber-100 rounded-full">
+                <Timer className="w-4 h-4 text-amber-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm sm:text-base font-bold text-gray-800">倒數計時投票</h3>
+                <p className="text-xs text-gray-600">
+                  {createdQuestion.votingEndsAt
+                    ? "倒數中…結束後學生自動無法投票"
+                    : "限時投票更刺激！按下後學生端會看到倒數"}
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {[30, 60, 90].map((sec) => (
+                <Button
+                  key={sec}
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => firestore.startCountdown(createdQuestion.id, sec).catch((err) => toast({ title: "啟動失敗", description: err.message, variant: "destructive" }))}
+                  disabled={!!createdQuestion.votingEndsAt}
+                  className="border-amber-300 text-amber-800 hover:bg-amber-100 disabled:opacity-50"
+                >
+                  ⏱ {sec} 秒
+                </Button>
+              ))}
+              {createdQuestion.votingEndsAt && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => firestore.cancelCountdown(createdQuestion.id).catch((err) => toast({ title: "取消失敗", description: err.message, variant: "destructive" }))}
+                  className="text-red-600 hover:bg-red-50 ml-auto"
+                >
+                  <XIcon className="w-3.5 h-3.5 mr-1" />取消倒數
+                </Button>
+              )}
+            </div>
+          </Card>
 
           {/* Correct Answer Management */}
           <Card className="p-4 sm:p-6 card-hover shadow-lg border-0 bg-gradient-to-r from-green-50 to-blue-50">

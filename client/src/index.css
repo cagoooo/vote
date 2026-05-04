@@ -33,3 +33,7 @@
     @apply container mx-auto p-6 animate-fade-in;
   }
 }
+/* 列印時隱藏：浮動按鈕、版本徽章、頁尾署名（避免看起來像自我宣傳） */
+@media print {
+  .no-print { display: none !important; }
+}
