@@ -74,6 +74,33 @@
 
 ## 📅 開發進度紀錄
 
+### 2026-05-04（下午 19 點） — E1+E3 CI 自動 firestore deploy + tsc check ✅
+
+**E1 Firestore 自動部署**：
+- 建 service account `vote-cicd-deploy@vote-9db54.iam.gserviceaccount.com` with `roles/firebase.admin`
+- 產 SA key → GitHub secret `FIREBASE_SERVICE_ACCOUNT`（用 `gh secret set` 自動推）
+- workflow 新增「Setup Firebase auth」step：寫 SA JSON 到 `$RUNNER_TEMP/firebase-sa.json`，export `GOOGLE_APPLICATION_CREDENTIALS`
+- 「Deploy Firestore Rules + Indexes + Storage Rules」step：rules 改完 push 自動上線
+
+**E3 tsc 型別檢查**：
+- 在 build 前加 `npm run check`（tsc --noEmit）
+- 順手清過時 tsconfig include（shared/api/server 已砍） + `@shared/*` path
+- 修 4 個 type error（vite build 過但 tsc 沒檢查到，正是 E3 要擋的）：
+  - `use-confetti shapes ['star']` 改 `as confetti.Shape[]`
+  - `listenToTextAnswers` 用 forEach push + Item type 取代 type predicate
+  - `student.tsx vote.mutate` selection 型別升級為 `firestore.VoteSelection`
+  - onSuccess selection 三分支拆開處理（number / array / { text }）
+
+**避雷措施**（per `firebase-ci-troubleshooter` skill Fix #15）：
+- `FIREBASE_SA` env 設在 **job 層** 而非 step 層，避免 `if env.X` 在 step env 套用前求值錯誤
+- 加「Verify FIREBASE_SA secret presence」step，secret 缺失時用 `::warning::` 把靜默 skip 變成可見訊息
+
+**順手升級**：Node 20 → 22（解 deprecation warning），workflow 名稱加「+ Firestore」。
+
+**驗證**：第一次 push 後 CI 跑了 1m12s 全綠 10 步，包含 Type check / Setup Firebase auth / Deploy Firestore + Storage Rules，從此 push 不用手動 deploy。
+
+---
+
 ### 2026-05-04（下午 18 點） — A2 簡答題 + Word Cloud ✅
 
 **Schema**：
@@ -544,10 +571,7 @@ P0-1 / P0-2 / P0-3 / P0-4 已全部完成，詳見上方 2026-05-04 進度紀錄
 
 #### ✅ TD-3. 更新 `replit.md`（已完成 2026-05-04，於 TD-1 一併刪除）
 
-#### TD-4. CI/CD 自動化部署
-- 目前每次改前端要手動 `build:gh-pages` + 推 `gh-pages` 分支
-- 加 `.github/workflows/deploy.yml`，push to main 自動 build + deploy GitHub Pages
-- Firestore rules / indexes 改動也加自動部署：用 `FIREBASE_TOKEN` secret + `firebase deploy --only firestore`
+#### ✅ TD-4. CI/CD 自動化部署（已完成 2026-05-04，於 E1+E3 一併完成）
 
 ---
 
@@ -680,9 +704,9 @@ P0-1 / P0-2 / P0-3 / P0-4 已全部完成，詳見上方 2026-05-04 進度紀錄
 
 | # | 項目 | 難度 | 說明 |
 |---|---|---|---|
-| **E1** | **TD-4 CI 自動部署 firestore** | 🟢 | 目前 rules / indexes 改完要手動 `firebase deploy`。加 GitHub Actions workflow + secret，push 自動 deploy |
-| **E2** | **CI 加 secret 缺失警告 step** | 🟢 | 預防 Fix #15「靜默 skip」雷，主動 echo `::warning::` |
-| **E3** | **CI 加 `tsc --noEmit` step** | 🟢 | 今天剛剛踩到的 — `vite build` 不跑 tsc，state rename 殘留死變數 runtime 才炸。加 type check 擋住 |
+| ✅ **E1** | **TD-4 CI 自動部署 firestore** | 🟢 | 已完成 2026-05-04，含 rules + indexes + storage rules |
+| ✅ **E2** | **CI 加 secret 缺失警告 step** | 🟢 | 已完成 2026-05-04，與 E1 一起做 |
+| ✅ **E3** | **CI 加 `tsc --noEmit` step** | 🟢 | 已完成 2026-05-04，建立同時抓出 4 個 type bug |
 | **E4** | **Sentry 錯誤監控** | 🟡 | 學生端報錯老師看不到，加 Sentry 集中收集（免費版每月 5K events 夠用）|
 | **E5** | **Firestore 每日備份** | 🟡 | gcloud `firestore export` 每天排程到 GCS bucket，事故時可救回前一天資料 |
 | **E6** | **LINE 加「週報」推播** | 🟢 | 每週日晚上推一張卡片：本週 N 題、M 票、最常用日 X、最熱門題目 Y |
