@@ -391,14 +391,205 @@ P0-1 / P0-2 / P0-3 / P0-4 已全部完成，詳見上方 2026-05-04 進度紀錄
 
 ---
 
-## 📋 建議的執行順序
+## 📋 建議的執行順序（已大部分完成）
 
-如果照優先級一條條做，建議這個順序：
+> 上面 P0/P1 + P2 多項已完成。剩下事項與新建議請看下方「下一階段優化藍圖」。
 
-1. **本週**：P0-1（清舊資料）+ build & push 前端 → Phase 1 才算真正上線
-2. **下週**：P0-3（Google 登入）→ 解決匿名身份不穩的根本問題
-3. **下下週**：P1-1（老師儀表板）→ 多老師體驗完整成形
-4. **有空再做**：TD-1 / TD-3（清技術債）+ P1-3（CSV 匯出，老師會很愛）
-5. **想擴功能時**：P2 任挑一個
+---
 
-> 💡 提醒：每完成一個項目就回頭更新本文件的「開發進度紀錄」段落，方便未來自己對照。
+## 🎯 全功能總覽（截至 2026-05-04）
+
+按使用者價值分類，所有現已上線功能：
+
+### 🧑‍🏫 老師建題 / 管理
+- ✅ 截圖上傳 / 白板繪製 / 圖片標註
+- ✅ 自動圖片壓縮（避開 Firestore 1MB 上限）
+- ✅ 多選項（最少 2，無上限）
+- ✅ Google 登入（跨裝置同步舊題）
+- ✅ 匿名模式（不登入也能用）
+- ✅ 老師儀表板 `/dashboard`：歷史題庫 + 重新啟用 / 刪除 / 查看
+- ✅ 「需要學生具名」選項（形成性評量用）
+- ✅ 倒數計時投票（30 / 60 / 90 秒）
+- ✅ 設定正確答案、控制顯示/隱藏
+- ✅ 重置投票、重新建立投票
+- ✅ CSV 匯出（含投票明細、姓名、時間）
+
+### 🎓 學生投票
+- ✅ QR Code 掃描入場
+- ✅ Room Code 4 碼短碼輸入入場（`/join`）
+- ✅ 防重複投票（Firestore + localStorage 雙重保險）
+- ✅ 即時投票結果動畫顯示
+- ✅ 倒數提示徽章（≤10 秒變紅 pulse）
+- ✅ 表情反饋彈幕（👍 ❤️ 😮 🤔 🎉）
+- ✅ 具名表單（姓名輸入，跨題自動記住）
+
+### 📺 課堂模式投影 `/present/:id`
+- ✅ 全螢幕大字題目 + 即時長條票數動畫
+- ✅ 大字房間代碼 + QR 同框
+- ✅ 第一名自動金邊 + 皇冠標示
+- ✅ 第一名易主 confetti 五射煙火 + fanfare 音效
+- ✅ 新票進來 ding 音效 + 票數 spring scale 動畫
+- ✅ 倒數圓圈大字（金 → 紅 → 黑）
+- ✅ 表情飛行動畫（4 秒由下飛上）
+- ✅ 滑鼠 3 秒閒置自動隱藏控制列
+- ✅ 靜音切換按鈕
+
+### 🔔 通知 / 監控
+- ✅ LINE Bot 推播：建題、自動失效（Flex 卡片 v2 大字房間代碼 + uri button）
+- ✅ Firestore 預算告警（NT$30/月）
+
+### 🛡️ 安全 / 隔離
+- ✅ 多老師教室隔離（teacherId 過濾）
+- ✅ Firestore Rules owner-only（任何人不能改別人題目）
+- ✅ Vote create 只能寫自己的票
+- ✅ Reactions create 只能寫自己的、不能改/刪
+- ✅ Firebase Web API Key HTTP referrer 限制 + API restrictions
+- ✅ SECURITY.md 政策文件
+
+### 🚀 部署 / DevOps
+- ✅ GitHub Actions 自動部署（push to main → CI 30 秒部署）
+- ✅ PWA 可安裝到桌面
+- ✅ Service Worker 版本自動更新通知（prompt 模式 + skipWaiting）
+- ✅ 版本徽章（左下角，date + git hash）
+- ✅ Workbox precache + Firestore NetworkOnly runtime cache
+
+### 🎨 細節品味
+- ✅ 阿凱老師 footer 署名（投影模式不顯示、列印不顯示）
+- ✅ Made with ❤️ 連到中壢國小教師頁
+- ✅ Logo / favicon 壓縮（1.6MB → 89KB）
+- ✅ 響應式（手機 / 平板 / 桌面 / 投影機）
+
+---
+
+## 🚀 下一階段優化藍圖（2026-05 之後）
+
+按主題分類，每項標難度（🟢 簡單 1-2hr / 🟡 中等 半天 / 🔴 大工程 1-3 天）。
+
+### A. 教學功能延伸（最有教學現場價值）
+
+| # | 項目 | 難度 | 說明 |
+|---|---|---|---|
+| **A1** | **多選題** | 🟡 | option index 改 array，rules 限 size，UI 用 checkbox。最常被老師問到的需求 |
+| **A2** | **簡答題 / 文字回應** | 🟡 | 學生輸入文字，老師端 word cloud 即時顯示 |
+| **A3** | **排序題** | 🔴 | 拖曳排序，計分用 Spearman correlation |
+| **A4** | **是非題** | 🟢 | 單選題快捷模式，UI 簡化成兩顆大按鈕 |
+| **A5** | **「再來一題」快速複製** | 🟢 | dashboard 卡片加「複製」按鈕，新題只改文字、選項保留 |
+| **A6** | **跨題分數累計** | 🟡 | 每位學生（具名）累計答對幾題，課堂結束 leaderboard |
+| **A7** | **答錯自動產出補救單** | 🔴 | 連結 NotebookLM API 把該題 + 錯誤選項變成 5 題類似題 |
+| **A8** | **歷史題目跨班比對** | 🟡 | 同一題在 503 / 504 不同班的答題分布並列 |
+| **A9** | **預設題庫** | 🟡 | 新增「題目模板」（生字、九九乘法、是非常識）一鍵建題 |
+| **A10** | **學生姓名 autocomplete** | 🟢 | 從同個老師過往題目的姓名建議下拉，減少錯字 |
+
+### B. 防濫用 / 安全強化
+
+| # | 項目 | 難度 | 說明 |
+|---|---|---|---|
+| **B1** | **Cloudflare Turnstile** | 🟡 | 學生投票前過一次無感 Turnstile，防灌票（題目連結被學生分享出去外面群組時最重要）|
+| **B2** | **同 IP 限速** | 🟡 | 每 IP 每分鐘最多 N 票（用 Cloud Function + Firestore counter）|
+| **B3** | **Firebase App Check enforce** | 🔴 | reCAPTCHA Enterprise → 確認只有自家 app 在呼叫，其他全擋。先 unenforced 觀察 1 週再 enforce |
+| **B4** | **建題頻率上限** | 🟢 | 老師每分鐘最多 5 題，避免被自動化破壞 |
+| **B5** | **Reactions 限速升級** | 🟢 | 目前 client 端 1 秒/按鈕 debounce，改為「全部 reactions 每 3 秒最多 1 筆」server side rate limit |
+
+### C. 效能 / 成本
+
+| # | 項目 | 難度 | 說明 |
+|---|---|---|---|
+| **C1** | **圖片改 Firebase Storage** | 🔴 | base64 in Firestore 的根本解。需動上傳流程、規則、URL handling、CSV、儀表板縮圖、LINE 推播 imageUrl 引用 |
+| **C2** | **Code-split bundle** | 🟡 | 目前 985KB 單檔，按 route 拆 dashboard / present / join 各自 lazy import，初次載入快 30%+ |
+| **C3** | **Firestore 用量 dashboard** | 🟡 | Cloud Function 每天 aggregate 寫入 `stats/daily/{date}` collection，老師端可看「本月已用 N reads」|
+| **C4** | **Lazy load lucide-react icons** | 🟢 | 改用 `import { X } from "lucide-react"` 的 tree-shake 確認生效；或用 dynamic import |
+| **C5** | **SW precache 瘦身** | 🟢 | 目前 18 entries 2MB；考慮把 howler 音效改 runtime cache 不 precache |
+| **C6** | **Reactions 用 Realtime DB** | 🔴 | Firestore reactions 每筆寫入有成本，改用 Realtime DB ephemeral channel 更便宜（但寫程式比較麻煩）|
+| **C7** | **Cloud Function batch resetVotes** | 🟡 | 目前 client 一筆一筆 deleteDoc，改 callable function bulkWriter，30 票 1 次 RPC |
+
+### D. UX / UI 細節
+
+| # | 項目 | 難度 | 說明 |
+|---|---|---|---|
+| **D1** | **暗色模式** | 🟡 | tailwind dark: 全套加，預設跟系統 |
+| **D2** | **題目編輯** | 🟡 | 老師建完才發現選項打錯，加「編輯」按鈕。現在只能刪掉重建 |
+| **D3** | **Skeleton loader** | 🟢 | dashboard 卡片載入時顯示 placeholder 而非 spinner |
+| **D4** | **學生投票後動畫** | 🟢 | 投出去那一刻彩色 confetti（給學生小驚喜，學齡層越小越愛）|
+| **D5** | **QR code 大小可調** | 🟢 | 課堂模式右側 QR 可放大（有些教室投影機畫面距離遠看不清）|
+| **D6** | **建題流程改 wizard** | 🟡 | 新手第一次用很容易迷路，改成「① 上傳圖 → ② 設選項 → ③ 確認」分頁式 |
+| **D7** | **題目縮圖卡片預覽** | 🟢 | dashboard / 結果頁加題目「視覺名片」摘要卡 |
+| **D8** | **拖曳排序選項** | 🟢 | 老師建題時可拖曳改順序，目前只能上下增刪 |
+| **D9** | **題目歷史時間軸** | 🟡 | 「今天 / 本週 / 本月 / 全部」filter，不要一次滾整個 dashboard |
+
+### E. 維運 / DevOps
+
+| # | 項目 | 難度 | 說明 |
+|---|---|---|---|
+| **E1** | **TD-4 CI 自動部署 firestore** | 🟢 | 目前 rules / indexes 改完要手動 `firebase deploy`。加 GitHub Actions workflow + secret，push 自動 deploy |
+| **E2** | **CI 加 secret 缺失警告 step** | 🟢 | 預防 Fix #15「靜默 skip」雷，主動 echo `::warning::` |
+| **E3** | **CI 加 `tsc --noEmit` step** | 🟢 | 今天剛剛踩到的 — `vite build` 不跑 tsc，state rename 殘留死變數 runtime 才炸。加 type check 擋住 |
+| **E4** | **Sentry 錯誤監控** | 🟡 | 學生端報錯老師看不到，加 Sentry 集中收集（免費版每月 5K events 夠用）|
+| **E5** | **Firestore 每日備份** | 🟡 | gcloud `firestore export` 每天排程到 GCS bucket，事故時可救回前一天資料 |
+| **E6** | **LINE 加「週報」推播** | 🟢 | 每週日晚上推一張卡片：本週 N 題、M 票、最常用日 X、最熱門題目 Y |
+| **E7** | **SW 在 dev 開測試模式** | 🟢 | `devOptions.enabled: true` 偶爾用來實機驗證 SW 行為（平常關閉避免快取干擾）|
+
+### F. 老師多人協作 / 班級分組
+
+| # | 項目 | 難度 | 說明 |
+|---|---|---|---|
+| **F1** | **P2-7 班級概念** | 🔴 | 新增 `classes` collection，老師可建多個班，題目歸屬班級，dashboard 加班級篩選 |
+| **F2** | **共同題庫（學年共備）** | 🔴 | 老師可把題目「公開」到學科 / 學年題庫，其他老師可複製用 |
+| **F3** | **觀課模式** | 🟡 | 老師授權其他老師唯讀查看自己題目（觀課用） |
+| **F4** | **學生跨班入場** | 🟢 | 學生輸入班級代碼進入「目前活躍題目」群（教專輔導場景） |
+| **F5** | **老師 → 老師訊息** | 🔴 | 同學年老師看到別人在用某題 → 一鍵借走複製 |
+
+### G. 開發體驗 / 程式品質
+
+| # | 項目 | 難度 | 說明 |
+|---|---|---|---|
+| **G1** | **ESLint + Prettier** | 🟢 | 加 pre-commit hook，避免風格漂移 |
+| **G2** | **Vitest 單元測試** | 🟡 | 至少把 image-compress、firestore-voting query helper 加上測試 |
+| **G3** | **Storybook** | 🟡 | 元件 isolation 開發 + visual regression 測試 |
+| **G4** | **`functions/` 也加 tsc check 進 CI** | 🟢 | 目前 functions deploy 才 build，CI 完全不檢查 |
+
+### H. 無障礙 (a11y) — 學校環境很重要
+
+| # | 項目 | 難度 | 說明 |
+|---|---|---|---|
+| **H1** | **ARIA labels 補齊** | 🟢 | 用 axe-core 跑一次 audit，補圖示按鈕的 aria-label |
+| **H2** | **鍵盤 navigation** | 🟡 | 全頁面 Tab 走得通、focus visible 樣式統一 |
+| **H3** | **高對比模式** | 🟡 | prefers-contrast media query，視障老師/學生友好 |
+| **H4** | **房間代碼螢幕閱讀器友善** | 🟢 | `<span aria-label="K3X7，K, 3, X, 7">`，避免被唸成「克三克七」|
+| **H5** | **題目圖片 alt** | 🟢 | 老師建題時可選填「圖片描述」，提供 screen reader 用 |
+
+### I. 國際化 / 推廣
+
+| # | 項目 | 難度 | 說明 |
+|---|---|---|---|
+| **I1** | **多語系（i18n）** | 🔴 | 簡中、英文、日文。用 react-i18next |
+| **I2** | **自架版部署指南** | 🟡 | 給學校 IT 自己 deploy 一份的完整 README（fork、改 .firebaserc、deploy）|
+| **I3** | **White-label** | 🟡 | 學校可換 logo、theme color、名稱（用環境變數注入） |
+| **I4** | **Open source 推廣** | 🟢 | repo 加 GitHub topics、demo gif、給其他老師展示用的 landing page |
+
+### J. 商業化思考（萬一想做大）
+
+| # | 項目 | 難度 | 說明 |
+|---|---|---|---|
+| **J1** | **Free tier 用量限制** | 🟡 | 每老師每月 50 題，超過要付費（Stripe Subscription）|
+| **J2** | **學校方案** | 🔴 | 學校付費後，該學校老師全部解鎖無限額度 + 統計 dashboard |
+| **J3** | **課堂錄影回放** | 🔴 | 投影模式錄影 + 投票時間軸對應 → 老師反思教學節奏 |
+| **J4** | **API for 第三方整合** | 🔴 | 提供 webhook 讓 GoogleClassroom / Microsoft Teams 接收結果 |
+
+---
+
+## 📊 推薦的下一步優先級
+
+如果繼續做，建議這個順序（每項都帶實際教學價值）：
+
+1. **A1 多選題**（🟡 1 天）— 最高頻被問
+2. **D2 題目編輯**（🟡 半天）— 老師最常後悔的點
+3. **A5 再來一題複製**（🟢 1-2 hr）— 高 CP 值
+4. **E1+E3 CI 加 firestore deploy + tsc check**（🟢 1 hr）— 一勞永逸防 bug
+5. **C1 圖片改 Firebase Storage**（🔴 1-2 天）— 解 base64 痛點根本
+6. **A6 跨題分數累計**（🟡 1 天）— 形成性評量大幫助
+7. **B1 Turnstile + B3 App Check**（🟡 1 天）— 流量變大時優先
+
+---
+
+> 💡 **每完成一個項目就回頭更新本文件的「開發進度紀錄」段落**，方便未來自己對照。
+> 💡 **本文件是給未來的你（或交接的人）看的，不要簡略**。每一項記實作位置（檔案路徑）+ 設計決策原因 + 踩過的雷。
