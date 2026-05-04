@@ -16,6 +16,7 @@ import { Plus, Minus, Sparkles, RefreshCw, CheckCircle2, Eye, EyeOff, LogIn, Log
 import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { exportQuestionVotes } from "@/lib/csv-export";
+import { compressImageToFit } from "@/lib/image-compress";
 
 export default function Teacher() {
   const [imageUrl, setImageUrl] = useState("");
@@ -246,8 +247,26 @@ export default function Teacher() {
     await createQuestion.mutateAsync();
   };
 
-  const handleImageSelect = (image: string) => {
-    setImageUrl(image);
+  const handleImageSelect = async (image: string) => {
+    try {
+      const result = await compressImageToFit(image);
+      if (result.didCompress) {
+        const beforeKB = (result.originalBytes / 1024).toFixed(0);
+        const afterKB = (result.finalBytes / 1024).toFixed(0);
+        toast({
+          title: "圖片已自動壓縮",
+          description: `${beforeKB} KB → ${afterKB} KB（避開 Firestore 1MB 上限）`,
+          variant: "success",
+        });
+      }
+      setImageUrl(result.dataUrl);
+    } catch (err: any) {
+      toast({
+        title: "圖片過大",
+        description: err?.message ?? "請改用較小的圖片",
+        variant: "destructive",
+      });
+    }
   };
 
   const validOptionCount = options.filter(Boolean).length;
