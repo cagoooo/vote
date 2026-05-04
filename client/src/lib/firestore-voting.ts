@@ -352,14 +352,28 @@ export const reactivateQuestion = async (questionId: string) => {
     });
 };
 
-// 刪除題目（連同所有票一起刪）
+// 刪除題目（連同所有票 + Storage 圖片一起刪）
 export const deleteQuestion = async (questionId: string) => {
+    // 先撈題目拿 imageUrl 才能清 Storage
+    const qDoc = await getDoc(doc(db, "questions", questionId));
+    const imageUrl = (qDoc.data()?.imageUrl as string | undefined) ?? undefined;
+
     const votesQ = query(collection(db, "votes"), where("questionId", "==", questionId));
     const voteSnapshot = await getDocs(votesQ);
     for (const d of voteSnapshot.docs) {
         await deleteDoc(doc(db, "votes", d.id));
     }
     await deleteDoc(doc(db, "questions", questionId));
+
+    // 圖片若是 Storage URL 就清掉；base64 inline 或 undefined 自動 no-op
+    if (imageUrl) {
+        try {
+            const { deleteImageFromUrl } = await import("./image-storage");
+            await deleteImageFromUrl(imageUrl);
+        } catch {
+            // 清不掉不影響主流程
+        }
+    }
 };
 
 // ===== 表情反饋（彈幕風格） =====

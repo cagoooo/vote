@@ -61,6 +61,7 @@ export const onQuestionCreated = onDocumentCreated(
 );
 
 // 每 15 分鐘掃過期的活動題目，把 active 設 false 並推播
+// 順手清掉超過 5 分鐘的舊 reactions（前端只查 30 秒窗口，5 分前的留著沒用）
 export const expireOldQuestions = onSchedule(
     {
         schedule: "every 15 minutes",
@@ -70,6 +71,25 @@ export const expireOldQuestions = onSchedule(
     async () => {
         const db = getFirestore();
         const now = Timestamp.now();
+
+        // === Reactions 清理（避免長期累積佔用 Firestore 容量）===
+        try {
+            const fiveMinAgo = Timestamp.fromMillis(Date.now() - 5 * 60 * 1000);
+            const oldReactions = await db
+                .collection("reactions")
+                .where("createdAt", "<", fiveMinAgo)
+                .limit(500) // 一次最多清 500 筆，避免 timeout
+                .get();
+            if (!oldReactions.empty) {
+                const batch = db.batch();
+                oldReactions.docs.forEach((d) => batch.delete(d.ref));
+                await batch.commit();
+                logger.info(`[cleanup] 清掉 ${oldReactions.size} 筆過期 reactions`);
+            }
+        } catch (err: any) {
+            logger.warn("[cleanup] reactions 清理失敗", { msg: err?.message });
+        }
+
         const snap = await db
             .collection("questions")
             .where("active", "==", true)

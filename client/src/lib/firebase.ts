@@ -10,6 +10,7 @@ import {
     type User,
 } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -24,6 +25,11 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+
+// 顯式指定 storageBucket：新版 Firebase 預設是 .firebasestorage.app（雷 #8）
+// 用 projectId 推導，避開 GitHub Secret 可能還是舊的 .appspot.com 格式
+const projectIdForStorage = import.meta.env.VITE_FIREBASE_PROJECT_ID || "vote-9db54";
+export const storage = getStorage(app, `gs://${projectIdForStorage}.firebasestorage.app`);
 
 // 匿名登入（給學生用，與舊版相容）
 export const loginAnonymously = async () => {

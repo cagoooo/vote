@@ -84,6 +84,17 @@ export default defineConfig({
     build: {
         outDir: path.resolve(__dirname, "dist/public"),
         emptyOutDir: true,
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    // 把 firebase / framer / qr 各自拆 chunk，避免單一 bundle 過大
+                    "firebase": ["firebase/app", "firebase/auth", "firebase/firestore", "firebase/storage"],
+                    "motion": ["framer-motion"],
+                    "qr": ["react-qr-code"],
+                    "confetti": ["canvas-confetti"],
+                },
+            },
+        },
     },
     define: {
         "import.meta.env.VITE_GH_PAGES": JSON.stringify(process.env.VITE_GH_PAGES === "true"),

@@ -17,6 +17,7 @@ import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { exportQuestionVotes } from "@/lib/csv-export";
 import { compressImageToFit } from "@/lib/image-compress";
+import { uploadImageIfLarge } from "@/lib/image-storage";
 
 export default function Teacher() {
   const [imageUrl, setImageUrl] = useState("");
@@ -249,21 +250,24 @@ export default function Teacher() {
 
   const handleImageSelect = async (image: string) => {
     try {
-      const result = await compressImageToFit(image);
-      if (result.didCompress) {
-        const beforeKB = (result.originalBytes / 1024).toFixed(0);
-        const afterKB = (result.finalBytes / 1024).toFixed(0);
+      // 1) 先壓縮到 700KB 內（保險，避免 Storage 上傳超大檔）
+      const compressed = await compressImageToFit(image);
+      if (compressed.didCompress) {
+        const beforeKB = (compressed.originalBytes / 1024).toFixed(0);
+        const afterKB = (compressed.finalBytes / 1024).toFixed(0);
         toast({
           title: "圖片已自動壓縮",
-          description: `${beforeKB} KB → ${afterKB} KB（避開 Firestore 1MB 上限）`,
+          description: `${beforeKB} KB → ${afterKB} KB`,
           variant: "success",
         });
       }
-      setImageUrl(result.dataUrl);
+      // 2) 大圖丟 Storage（< 50KB 保留 inline 省 RTT）
+      const finalUrl = await uploadImageIfLarge(compressed.dataUrl);
+      setImageUrl(finalUrl);
     } catch (err: any) {
       toast({
-        title: "圖片過大",
-        description: err?.message ?? "請改用較小的圖片",
+        title: "圖片處理失敗",
+        description: err?.message ?? "請再試一次",
         variant: "destructive",
       });
     }
