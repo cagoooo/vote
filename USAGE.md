@@ -74,6 +74,23 @@
 
 ## 📅 開發進度紀錄
 
+### 2026-05-04（凌晨 04 點） — Bug 修正三連發 ✅
+
+**圖片超 Firestore 1MB 上限**（白板/標註 PNG 無壓縮輸出常會撞）：
+- 新檔 `client/src/lib/image-compress.ts`，套在 teacher.tsx `handleImageSelect` 唯一入口
+- 安全水位 700KB（留 30% 給 metadata）；超過 → 縮最長邊到 1600px → JPEG quality 0.85 → 0.45 階梯式壓 → 還超過整體 scale × 0.8 重來最多 6 輪
+- PNG 透明先填白底避免轉 JPEG 變黑
+- 壓縮成功 toast 顯示「N KB → M KB」讓使用者知道發生了什麼
+
+**簡化具名表單**：拿掉座號欄位，只留姓名（教學現場座號常記不太住或非必要）。
+
+**「打字到一半就跳投票」bug**：
+- 根因：原本 `hasIdentity = !!identityName.trim()` 用 input state 即時計算，使用者打第一個字就讓條件 flip → 表單立刻 unmount 跳投票
+- 修法：拆成 `nameInput`（input 暫存）+ `committedName`（按下確認才寫入 localStorage），`hasIdentity` 只看後者
+- 順手清掉之前 rename state 沒掃乾淨的死變數 reference（`vite build` 不跑 tsc 沒擋住，runtime 才會炸 — 教訓記下：大改 state 名後最好跑一次 `tsc --noEmit`）
+
+---
+
 ### 2026-05-04（凌晨 03 點） — UI 細節 / SW 更新按鈕修正 ✅
 
 - **footer 緊湊化**：留白從 ~80px 縮到 ~44px（`mt-8 py-6` → `mt-2 pt-3 pb-4`），加 `border-t` 細線視覺錨點，文字縮 `text-xs`
