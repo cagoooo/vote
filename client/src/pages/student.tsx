@@ -9,6 +9,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ReactionBar } from "@/components/reaction-bar";
+import { useConfetti } from "@/hooks/use-confetti";
+import { useVotingSound } from "@/hooks/use-voting-sounds";
 
 export default function Student() {
   const { toast } = useToast();
@@ -16,6 +18,9 @@ export default function Student() {
   const questionId = params.id;
   const [question, setQuestion] = useState<any | null>(null);
   const [hasVoted, setHasVoted] = useState(false);
+  const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
+  const { triggerConfetti } = useConfetti();
+  const { playVoteSubmitted } = useVotingSound();
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [animatedCounts, setAnimatedCounts] = useState<Record<number, number>>({});
   const [totals, setTotals] = useState<Record<number, number>>({});
@@ -141,12 +146,19 @@ export default function Student() {
       await firestore.addVote(question.id, selection, requireIdentity ? { name: committedName } : undefined);
     },
     onSuccess: (_, selection) => {
+      // 🎉 慶祝動畫：confetti + 大字 overlay + 音效（多重感官回饋，學齡層越小越愛）
+      triggerConfetti();
+      try { playVoteSubmitted(); } catch { /* ignore audio block */ }
+      setShowSuccessOverlay(true);
+      window.setTimeout(() => setShowSuccessOverlay(false), 1800);
+
       toast({
-        title: "投票成功",
+        title: "🎉 投票成功",
         description: "感謝您的參與！",
+        variant: "success",
       });
       setHasVoted(true);
-      // 多選用 -1 代表「已投但不單一選項」
+      // 多選用第一個 idx 代表「已投」
       const repIdx = Array.isArray(selection) ? selection[0] : selection;
       setSelectedOption(repIdx);
       if (question?.id) {
@@ -259,6 +271,37 @@ export default function Student() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-2 sm:p-4">
+      {/* 投票成功 overlay：confetti 同時，畫面中央彈出綠色勾勾大圖 */}
+      <AnimatePresence>
+        {showSuccessOverlay && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[9998] flex items-center justify-center pointer-events-none"
+          >
+            <motion.div
+              initial={{ scale: 0.3, rotate: -15, opacity: 0 }}
+              animate={{ scale: 1, rotate: 0, opacity: 1 }}
+              exit={{ scale: 1.4, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 260, damping: 15 }}
+              className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl px-8 py-6 flex flex-col items-center gap-3 border-4 border-green-400"
+            >
+              <motion.div
+                animate={{ rotate: [0, -10, 10, -5, 5, 0] }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+                className="text-7xl"
+              >
+                🎉
+              </motion.div>
+              <div className="text-2xl font-black text-green-700">投票成功！</div>
+              <div className="text-sm text-slate-500">感謝你的參與</div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {secondsLeft !== null && secondsLeft > 0 && !hasVoted && (
         <motion.div
           initial={{ y: -20, opacity: 0 }}
