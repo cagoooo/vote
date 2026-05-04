@@ -9,6 +9,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import Teacher from "@/pages/teacher";
 import Student from "@/pages/student";
 import Dashboard from "@/pages/dashboard";
+import Join from "@/pages/join";
 import NotFound from "@/pages/not-found";
 
 function AppRouter() {
@@ -16,6 +17,7 @@ function AppRouter() {
     <Switch>
       <Route path="/" component={Teacher} />
       <Route path="/dashboard" component={Dashboard} />
+      <Route path="/join" component={Join} />
       <Route path="/:id" component={Student} />
       <Route component={NotFound} />
     </Switch>

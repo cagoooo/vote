@@ -12,9 +12,10 @@ import { useVotingSound } from "@/hooks/use-voting-sounds";
 import * as firestore from "@/lib/firestore-voting";
 import { auth, signInWithGoogle, signOut } from "@/lib/firebase";
 import { onAuthStateChanged, type User } from "firebase/auth";
-import { Plus, Minus, Sparkles, RefreshCw, CheckCircle2, Eye, EyeOff, LogIn, LogOut, UserCircle, LayoutGrid } from "lucide-react";
+import { Plus, Minus, Sparkles, RefreshCw, CheckCircle2, Eye, EyeOff, LogIn, LogOut, UserCircle, LayoutGrid, Download } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
+import { exportQuestionVotes } from "@/lib/csv-export";
 
 export default function Teacher() {
   const [imageUrl, setImageUrl] = useState("");
@@ -438,13 +439,24 @@ export default function Teacher() {
         </form>
       ) : (
         <div className="space-y-6 animate-fade-in">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
             <h2 className="text-xl font-semibold gradient-text">投票進行中</h2>
-            <ShareButton
-              url={window.location.href}
-              question={createdQuestion}
-              votes={[]} // 傳遞空陣列以保持相容性
-            />
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => exportQuestionVotes(createdQuestion).catch((err) => toast({ title: "匯出失敗", description: err.message, variant: "destructive" }))}
+                className="gap-1.5 border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+              >
+                <Download className="w-4 h-4" />匯出 CSV
+              </Button>
+              <ShareButton
+                url={window.location.href}
+                question={createdQuestion}
+                votes={[]}
+              />
+            </div>
           </div>
 
           <Card className="p-6 card-hover">
@@ -458,7 +470,7 @@ export default function Teacher() {
           </Card>
 
           <div className="grid md:grid-cols-2 gap-6">
-            <QRDisplay questionId={createdQuestion.id} />
+            <QRDisplay questionId={createdQuestion.id} roomCode={createdQuestion.roomCode} />
             <VotingStats question={createdQuestion} />
           </div>
 

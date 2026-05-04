@@ -8,12 +8,13 @@ service cloud.firestore {
 
       allow create: if request.auth != null
                     && request.resource.data.teacherId == request.auth.uid
-                    && request.resource.data.keys().hasAll(['imageUrl', 'options', 'active', 'teacherId', 'createdAt', 'expiresAt']);
+                    && request.resource.data.keys().hasAll(['imageUrl', 'options', 'active', 'teacherId', 'createdAt', 'expiresAt', 'roomCode']);
 
-      // owner 才能改；teacherId 不可被改寫
+      // owner 才能改；teacherId 與 roomCode 不可被改寫
       allow update: if request.auth != null
                     && resource.data.teacherId == request.auth.uid
-                    && request.resource.data.teacherId == resource.data.teacherId;
+                    && request.resource.data.teacherId == resource.data.teacherId
+                    && request.resource.data.roomCode == resource.data.roomCode;
 
       allow delete: if request.auth != null
                     && resource.data.teacherId == request.auth.uid;

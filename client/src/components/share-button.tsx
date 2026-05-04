@@ -29,15 +29,33 @@ export function ShareButton({ url = window.location.href, question, votes }: Sha
       return acc;
     }, {} as Record<number, number>) || {};
 
-    let shareText = `即時投票系統 - 投票結果\n\n`;
+    const roomCode = (question as any).roomCode as string | undefined;
+    const baseUrl = `${window.location.origin}${import.meta.env.BASE_URL}`;
+    const directUrl = `${baseUrl}${question.id}`;
+    const joinUrl = `${baseUrl}join`;
+
+    let shareText = `📣 即時投票邀請\n`;
+    if (roomCode) {
+      shareText += `\n🔑 房間代碼：${roomCode}\n`;
+    }
+    shareText += `\n`;
+
     question.options.forEach((option, index) => {
       const count = voteCounts[index] || 0;
       const percentage = totalVotes ? Math.round((count / totalVotes) * 100) : 0;
-      shareText += `📊 ${option}: ${count}票 (${percentage}%)\n`;
+      shareText += totalVotes > 0
+        ? `📊 ${option}: ${count} 票 (${percentage}%)\n`
+        : `▫️ ${option}\n`;
     });
-    shareText += `\n📈 總投票數：${totalVotes}票\n\n`;
-    // Use the QR code URL instead of the direct URL
-    shareText += `👉 參與投票：${window.location.origin}${import.meta.env.BASE_URL}${question.id}`;
+
+    if (totalVotes > 0) {
+      shareText += `\n📈 總投票數：${totalVotes} 票\n`;
+    }
+
+    shareText += `\n👉 直接投票：${directUrl}`;
+    if (roomCode) {
+      shareText += `\n⌨️ 或到 ${joinUrl} 輸入代碼 ${roomCode}`;
+    }
 
     return shareText;
   };

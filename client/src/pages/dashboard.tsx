@@ -192,6 +192,11 @@ export default function Dashboard() {
                           無圖片
                         </div>
                       )}
+                      {q.roomCode && (
+                        <div className="absolute top-2 right-2 bg-white/95 backdrop-blur-sm border border-blue-200 rounded-md px-2 py-1 shadow font-mono text-sm font-bold tracking-widest text-blue-900">
+                          {q.roomCode}
+                        </div>
+                      )}
                       <div className="absolute top-2 left-2 flex flex-col gap-1">
                         {isActive && (
                           <Badge className="bg-green-500 hover:bg-green-500 text-white shadow gap-1">
