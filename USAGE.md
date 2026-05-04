@@ -74,6 +74,14 @@
 
 ## 📅 開發進度紀錄
 
+### 2026-05-04（凌晨 03 點） — UI 細節 / SW 更新按鈕修正 ✅
+
+- **footer 緊湊化**：留白從 ~80px 縮到 ~44px（`mt-8 py-6` → `mt-2 pt-3 pb-4`），加 `border-t` 細線視覺錨點，文字縮 `text-xs`
+- **QR display join URL** 從純文字改為 `<a target="_blank" rel="noopener noreferrer">`，加底線 + hover 深色 + `break-all` 長 URL 自動換行
+- **SW「立即更新」按鈕** bug 修正：`useRegisterSW.updateServiceWorker(true)` 在某些瀏覽器 / SW 狀態下 `controllerchange` 不會觸發 reload。改為直接 `navigator.serviceWorker.getRegistration()` → `reg.waiting?.postMessage({ type: "SKIP_WAITING" })` + 監聽 `controllerchange` reload + 1.5 秒 fallback `window.location.reload()` 保險。按下後按鈕變「更新中…」+ icon 旋轉 + 防重複點擊
+
+---
+
 ### 2026-05-04（凌晨 02 點） — P2-3 學生具名 + 倒數計時器 + footer 署名 ✅
 
 **P2-3 學生具名（形成性評量）**：
