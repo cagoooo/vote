@@ -74,6 +74,28 @@
 
 ## 📅 開發進度紀錄
 
+### 2026-05-04（凌晨 02 點） — P2-3 學生具名 + 倒數計時器 + footer 署名 ✅
+
+**P2-3 學生具名（形成性評量）**：
+- `question` schema 加 `requireIdentity?: boolean`，`vote` 加 `voterName?` `voterSeat?`（rules 限 30/10 字內）
+- teacher 建題加「需要學生具名才能投票」checkbox（藍底虛線框 + 說明）
+- student 端：`requireIdentity` 為 true 時先顯示身份表單（座號 + 姓名），autofocus 座號、確認後存 `localStorage` 跨題重用（key: `voter_name` / `voter_seat`）
+- CSV 匯出自動偵測有具名就加「座號/姓名」欄位（無則維持匿名格式）
+
+**倒數計時器**：
+- `question` schema 加 `votingEndsAt?: Timestamp | null`
+- 新函式 `startCountdown(id, seconds)` / `cancelCountdown(id)`
+- teacher 結果頁加 amber 卡片：30/60/90 秒按鈕 + 取消倒數
+- student 端：top center 浮動徽章顯示秒數，剩 ≤10 秒變紅 + pulse；倒數 0 顯示「⏰ 倒數結束」
+- present 課堂模式：右側上方倒數圓圈大字（金 → 紅 → 黑漸變），剩 ≤10 秒整卡 pulse；秒數變化 spring 彈跳；歸零播 vote-start 音效
+
+**阿凱老師 footer 署名**（套用 `akai-author-footer` skill）：
+- 新元件 `site-footer.tsx`：「Made with ❤️ by 阿凱老師」連到中壢國小教師頁
+- 在 App Router scope 內 mount，用 `useLocation` 偵測 route，`/present/*` 不渲染避免擋投影
+- 加 `.no-print` + `@media print { display: none }` 避免 PDF 列印時看起來像自我宣傳
+
+---
+
 ### 2026-05-04（凌晨） — 課堂模式 v2 增強 + P2-4 表情反饋 ✅ 已完成
 
 **P2-5 v2 增強**（`/present/:id`）：
@@ -305,11 +327,8 @@ P0-1 / P0-2 / P0-3 / P0-4 已全部完成，詳見上方 2026-05-04 進度紀錄
 - 學生端可「安裝為 App」，下次直接從桌面開
 - 注意 PWA cache bust 坑（參考 `pwa-cache-bust` skill）
 
-#### P2-3. 學生身份識別（選填）
-- 老師建題時可勾「需具名」
-- 學生第一次投票要填「姓名 + 座號」（存在 localStorage）
-- 老師結果頁顯示「誰投了什麼」
-- 用於形成性評量／補救教學
+#### ✅ P2-3. 學生身份識別（已完成 2026-05-04）
+詳見上方進度紀錄。CSV 匯出含座號/姓名，老師端結果頁稍後可加「誰投了什麼」即時 list（目前需匯出 CSV 查看）。
 
 #### ✅ P2-4. 即時表情反饋（已完成 2026-05-04）
 詳見上方進度紀錄。實作用 Firestore reactions collection（client debounce + 30 秒查詢窗口控成本）。
