@@ -113,10 +113,11 @@ export default function Student() {
   }, [question?.votingEndsAt]);
   const isTimeUp = secondsLeft !== null && secondsLeft <= 0;
 
-  // 學生身份（持久化在 localStorage 跨題共用）
-  const [identityName, setIdentityName] = useState<string>(() => localStorage.getItem("voter_name") || "");
-  const hasIdentity = !!identityName.trim();
-  const [identityFormVisible, setIdentityFormVisible] = useState(false);
+  // 學生身份：commited = 已按下「確認進入投票」存進 localStorage 的姓名
+  // nameInput = 表單正在輸入的暫存值（按下確認前不算數）
+  const [committedName, setCommittedName] = useState<string>(() => localStorage.getItem("voter_name") || "");
+  const [nameInput, setNameInput] = useState<string>(() => localStorage.getItem("voter_name") || "");
+  const hasIdentity = !!committedName.trim();
 
   const vote = useMutation({
     mutationFn: async (optionIndex: number) => {
@@ -124,10 +125,9 @@ export default function Student() {
       if (isExpired) throw new Error("此題投票已結束");
       if (isTimeUp) throw new Error("倒數結束，無法投票");
       if (requireIdentity && !hasIdentity) {
-        setIdentityFormVisible(true);
-        throw new Error("請先填寫姓名與座號");
+        throw new Error("請先填寫姓名");
       }
-      await firestore.addVote(question.id, optionIndex, requireIdentity ? { name: identityName } : undefined);
+      await firestore.addVote(question.id, optionIndex, requireIdentity ? { name: committedName } : undefined);
     },
     onSuccess: (_, optionIndex) => {
       toast({
@@ -203,10 +203,10 @@ export default function Student() {
   if (requireIdentity && !hasIdentity) {
     const submitIdentity = (e: React.FormEvent) => {
       e.preventDefault();
-      const n = identityName.trim();
+      const n = nameInput.trim();
       if (!n) return;
       localStorage.setItem("voter_name", n);
-      setIdentityFormVisible(false);
+      setCommittedName(n);
     };
 
     return (
@@ -224,14 +224,14 @@ export default function Student() {
                 <input
                   type="text"
                   placeholder="例：小華"
-                  value={identityName}
-                  onChange={(e) => setIdentityName(e.target.value)}
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
                   maxLength={30}
                   autoFocus
                   className="w-full h-11 px-3 rounded-md border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 text-base"
                 />
               </div>
-              <Button type="submit" size="lg" className="w-full" disabled={!identityName.trim()}>
+              <Button type="submit" size="lg" className="w-full" disabled={!nameInput.trim()}>
                 確認進入投票
               </Button>
             </form>
