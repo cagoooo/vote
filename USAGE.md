@@ -74,6 +74,36 @@
 
 ## 📅 開發進度紀錄
 
+### 2026-05-04（晚間） — LINE 推播通知 + Flex 卡片 v2 ✅ 已完成
+
+**動機**：老師希望即時知道「有沒有人在用我這套系統」、「題目自動失效了沒」，不用一直開瀏覽器盯。
+
+**架構**：vote-9db54 升 Blaze（連 billing account `018D5A`「我的帳單帳戶」）→ Cloud Functions (asia-east1, nodejs22, 2nd gen)，asia-east1 → LINE Push API（共用阿凱老師既有的 Bot Channel `2008810864`）。
+
+**實作**：
+- `functions/src/index.ts`
+  - **`onQuestionCreated`**：Firestore `questions/{id}` onCreate trigger → 推 LINE 卡片含房間代碼、選項預覽、投票連結 button
+  - **`expireOldQuestions`**：每 15 分鐘 scheduled function → 掃 `active==true && expiresAt<=now` → 設 `active=false` + 推 LINE 卡片含總票數、最高票
+- `functions/src/notify-line.ts`：Flex 卡片 helper，支援 hero 大字區 + sections（wrap text 不被截）+ uri action button + 失敗自動 fallback 純文字
+- 兩個 secret 用 `node -e fs.writeFileSync + --data-file` 寫入 Secret Manager（避開 Windows pipe \n 雷 #1）
+
+**Flex 卡片 v2 UI 優化**（v1 在手機上 label 被截成「房...」「投...」）：
+- ✅ 房間代碼用 hero 區 size 3xl 粗體置中（藍底圓角）
+- ✅ 選項用 wrap text 兩欄式 `1. A   2. B`，最多顯示 6 個
+- ✅ footer 加 primary button「📲 開啟投票頁」取代裸 URL
+- ✅ 移除沒人看得懂的 `teacherId`
+- ✅ 失效卡片含「總票數」「最高票」+ button「📊 查看完整結果」
+
+**部署小插曲**：
+- 首次 deploy 撞到 Eventarc Service Agent IAM 傳播延遲（雷 #5）→ `--force` 重跑解決
+- artifact registry cleanup policy 設 1 天，避免 container image 累積佔空間
+
+**待你手動完成**（非必要、僅為財務安全）：
+- 設 NT$30/月預算告警：到 [GCP Console Budget](https://console.cloud.google.com/billing/018D5A-238911-41B10B/budgets) 點「Create Budget」→ 限定 `vote-9db54` → 30 TWD/月 → 50%/90%/100% 告警 email。或啟用 `billingbudgets.googleapis.com` API 後讓我用 gcloud 自動建。
+- 教學量級每月成本實際 < NT$1，預算告警是雙保險。
+
+---
+
 ### 2026-05-04（傍晚） — P1-1 老師儀表板 ✅ 已完成
 
 新頁面 `/dashboard`：
