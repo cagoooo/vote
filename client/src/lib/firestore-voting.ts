@@ -290,6 +290,45 @@ export const deleteQuestion = async (questionId: string) => {
     await deleteDoc(doc(db, "questions", questionId));
 };
 
+// ===== 表情反饋（彈幕風格） =====
+
+export const REACTION_EMOJIS = ["👍", "❤️", "😮", "🤔", "🎉"] as const;
+export type ReactionEmoji = (typeof REACTION_EMOJIS)[number];
+
+// 學生送出一個表情（client side debounce 由呼叫方做）
+export const addReaction = async (questionId: string, emoji: string) => {
+    const userId = auth.currentUser?.uid;
+    if (!userId) throw new Error("未登入");
+    await addDoc(collection(db, "reactions"), {
+        questionId,
+        emoji,
+        userId,
+        createdAt: serverTimestamp(),
+    });
+};
+
+// 訂閱某題目最近 30 秒內的表情（給課堂模式飛行動畫用）
+export const listenToReactions = (
+    questionId: string,
+    callback: (reactions: Array<{ id: string; emoji: string; userId: string }>) => void
+) => {
+    const sinceTs = Timestamp.fromMillis(Date.now() - 30 * 1000);
+    const q = query(
+        collection(db, "reactions"),
+        where("questionId", "==", questionId),
+        where("createdAt", ">=", sinceTs),
+        orderBy("createdAt", "asc")
+    );
+    return onSnapshot(q, (snap) => {
+        callback(
+            snap.docs.map((d) => {
+                const data = d.data() as any;
+                return { id: d.id, emoji: data.emoji, userId: data.userId };
+            })
+        );
+    });
+};
+
 // 一次性取得多題的票數（dashboard 用，避免每題各開一個訂閱）
 export const getVoteCountsForQuestions = async (
     questionIds: string[]

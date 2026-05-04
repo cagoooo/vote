@@ -1,11 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { useParams } from "wouter";
 import QRCode from "react-qr-code";
 import { motion, AnimatePresence } from "framer-motion";
 import * as firestore from "@/lib/firestore-voting";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Maximize, Minimize, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { useVotingSound } from "@/hooks/use-voting-sounds";
+import { useConfetti } from "@/hooks/use-confetti";
+import { Maximize, Minimize, ArrowLeft, CheckCircle2, Crown, Volume2, VolumeX } from "lucide-react";
 import { Link } from "wouter";
 
 const COLORS = [
@@ -19,25 +21,82 @@ const COLORS = [
     "from-pink-500 to-pink-600",
 ];
 
+const CONFETTI_COOLDOWN_MS = 4000;
+
 export default function Present() {
     const { id } = useParams<{ id: string }>();
     const [question, setQuestion] = useState<any | null>(null);
     const [stats, setStats] = useState<Record<number, number>>({});
+    const [reactions, setReactions] = useState<any[]>([]);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [showControls, setShowControls] = useState(true);
+    const [soundOn, setSoundOn] = useState(true);
+    const [popIdx, setPopIdx] = useState<number | null>(null); // 上次有票數變化的選項
     const idleTimer = useRef<number | null>(null);
+    const lastTotalRef = useRef(0);
+    const lastTopIdxRef = useRef<number | null>(null);
+    const lastConfettiAtRef = useRef(0);
+    const animatedReactionIds = useRef<Set<string>>(new Set());
     const { toast } = useToast();
+    const { playVoteSubmitted, playVoteSessionStart } = useVotingSound();
+    const { triggerConfetti } = useConfetti();
 
-    // 訂閱題目與票數
+    // 訂閱題目、票數、表情
     useEffect(() => {
         if (!id) return;
         const unsubQ = firestore.listenToQuestion(id, (q) => setQuestion(q));
         const unsubV = firestore.getVotesStats(id, (s) => setStats(s));
+        const unsubR = firestore.listenToReactions(id, (r) => setReactions(r));
         return () => {
             unsubQ();
             unsubV();
+            unsubR();
         };
     }, [id]);
+
+    // 偵測新票數 / 第一名易主，觸發音效 + 動畫 + confetti
+    useEffect(() => {
+        const total = Object.values(stats).reduce((a, b) => a + b, 0);
+        const prevTotal = lastTotalRef.current;
+
+        // 找出當前 top 與上一個 top 的選項
+        let topIdx: number | null = null;
+        let topCount = 0;
+        Object.entries(stats).forEach(([k, v]) => {
+            if (v > topCount) {
+                topCount = v;
+                topIdx = Number(k);
+            }
+        });
+
+        // 票數有增加（避免初始載入觸發）
+        if (total > prevTotal && prevTotal !== 0) {
+            // 找出哪個選項剛剛加票
+            // 簡化：用 topIdx 作為「有變化的選項」用於 pop 動畫
+            if (topIdx !== null) {
+                setPopIdx(topIdx);
+                window.setTimeout(() => setPopIdx(null), 600);
+            }
+            if (soundOn) playVoteSubmitted();
+
+            // 第一名易主（且有實質票數差距才彈彩花）
+            const prevTopIdx = lastTopIdxRef.current;
+            if (
+                topIdx !== null &&
+                prevTopIdx !== null &&
+                topIdx !== prevTopIdx &&
+                topCount >= 2 && // 至少 2 票才算「超越」（防 0 vs 1 抖動）
+                Date.now() - lastConfettiAtRef.current > CONFETTI_COOLDOWN_MS
+            ) {
+                triggerConfetti();
+                lastConfettiAtRef.current = Date.now();
+                if (soundOn) playVoteSessionStart();
+            }
+        }
+
+        lastTotalRef.current = total;
+        if (total > 0 && topIdx !== null) lastTopIdxRef.current = topIdx;
+    }, [stats, soundOn, playVoteSubmitted, playVoteSessionStart, triggerConfetti]);
 
     // 全螢幕狀態同步
     useEffect(() => {
@@ -75,6 +134,13 @@ export default function Present() {
         }
     };
 
+    // 找出所有「新出現」需要動畫的 reactions
+    const newReactionsToAnimate = useMemo(() => {
+        const fresh = reactions.filter((r) => !animatedReactionIds.current.has(r.id));
+        fresh.forEach((r) => animatedReactionIds.current.add(r.id));
+        return fresh;
+    }, [reactions]);
+
     if (!question) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-slate-900 text-slate-300">
@@ -91,46 +157,94 @@ export default function Present() {
     const correctIdx: number | null = question.correctAnswer ?? null;
     const voteUrl = `${window.location.origin}${import.meta.env.BASE_URL}${id}`;
 
+    // 計算當前最高票（給金冠標示用）
+    let topIdx: number | null = null;
+    let topCount = 0;
+    Object.entries(stats).forEach(([k, v]) => {
+        if (v > topCount) {
+            topCount = v;
+            topIdx = Number(k);
+        }
+    });
+
     return (
         <div
-            className={`min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 ${
+            className={`relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 ${
                 showControls ? "" : "cursor-none"
             }`}
         >
-            {/* 頂部控制列：閒置自動隱藏 */}
+            {/* 浮動表情層 */}
+            <div className="fixed inset-0 pointer-events-none z-30 overflow-hidden">
+                <AnimatePresence>
+                    {newReactionsToAnimate.map((r) => {
+                        const startX = 20 + Math.random() * 60; // 20%~80%
+                        const drift = (Math.random() - 0.5) * 30; // 飄移 ±15%
+                        return (
+                            <motion.div
+                                key={r.id}
+                                initial={{ y: "100vh", x: `${startX}vw`, opacity: 0, scale: 0.5, rotate: 0 }}
+                                animate={{
+                                    y: "-10vh",
+                                    x: `${startX + drift}vw`,
+                                    opacity: [0, 1, 1, 0],
+                                    scale: [0.5, 1.4, 1.2, 1],
+                                    rotate: [0, 15, -15, 0],
+                                }}
+                                transition={{ duration: 4, ease: "easeOut" }}
+                                className="absolute text-6xl select-none"
+                                style={{ filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.15))" }}
+                            >
+                                {r.emoji}
+                            </motion.div>
+                        );
+                    })}
+                </AnimatePresence>
+            </div>
+
+            {/* 頂部控制列 */}
             <AnimatePresence>
                 {showControls && (
                     <motion.div
                         initial={{ y: -50, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         exit={{ y: -50, opacity: 0 }}
-                        className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 py-2 flex items-center justify-between gap-2"
+                        className="fixed top-0 left-0 right-0 z-50 bg-white/85 backdrop-blur-md border-b border-slate-200 px-4 py-2 flex items-center justify-between gap-2"
                     >
                         <Link href={`/?q=${id}`}>
                             <Button variant="ghost" size="sm" className="gap-1">
                                 <ArrowLeft className="w-4 h-4" />回管理介面
                             </Button>
                         </Link>
-                        <div className="text-xs text-slate-500">
-                            {total > 0 && `${total} 人已投票 · `}
-                            {showControls && "滑鼠靜止 3 秒自動隱藏"}
+                        <div className="text-xs text-slate-500 hidden sm:block">
+                            {total > 0 ? `${total} 人已投票` : "等待投票…"}
                         </div>
-                        <Button variant="outline" size="sm" onClick={toggleFullscreen} className="gap-1">
-                            {isFullscreen ? (
-                                <>
-                                    <Minimize className="w-4 h-4" />離開全螢幕
-                                </>
-                            ) : (
-                                <>
-                                    <Maximize className="w-4 h-4" />全螢幕
-                                </>
-                            )}
-                        </Button>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setSoundOn(!soundOn)}
+                                title={soundOn ? "靜音" : "開啟音效"}
+                                className="gap-1"
+                            >
+                                {soundOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4 text-gray-400" />}
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={toggleFullscreen} className="gap-1">
+                                {isFullscreen ? (
+                                    <>
+                                        <Minimize className="w-4 h-4" />離開全螢幕
+                                    </>
+                                ) : (
+                                    <>
+                                        <Maximize className="w-4 h-4" />全螢幕
+                                    </>
+                                )}
+                            </Button>
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
 
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-6 p-6 lg:p-10 pt-20 min-h-screen">
+            <div className="relative z-10 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-6 p-6 lg:p-10 pt-20 min-h-screen">
                 {/* 左：題目 + 即時統計 */}
                 <div className="space-y-6 min-w-0">
                     {question.imageUrl && (
@@ -152,6 +266,8 @@ export default function Present() {
                             const count = stats[i] || 0;
                             const pct = total ? (count / total) * 100 : 0;
                             const isCorrect = showAnswer && correctIdx === i;
+                            const isTop = total > 0 && topIdx === i;
+                            const justChanged = popIdx === i;
                             return (
                                 <motion.div
                                     key={i}
@@ -159,26 +275,47 @@ export default function Present() {
                                     initial={{ opacity: 0, x: -20 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ delay: i * 0.04 }}
-                                    className={`relative bg-white rounded-xl shadow-md overflow-hidden ${
-                                        isCorrect ? "ring-4 ring-green-400" : ""
+                                    className={`relative bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 ${
+                                        isCorrect
+                                            ? "ring-4 ring-green-400 shadow-green-200/50 shadow-2xl"
+                                            : isTop
+                                                ? "ring-2 ring-amber-300 shadow-amber-200/40 shadow-xl"
+                                                : ""
                                     }`}
                                 >
                                     {/* 進度條背景 */}
                                     <motion.div
                                         layout
                                         className={`absolute inset-y-0 left-0 bg-gradient-to-r ${
-                                            isCorrect ? "from-green-400 to-emerald-500" : COLORS[i % COLORS.length]
+                                            isCorrect
+                                                ? "from-green-400 to-emerald-500"
+                                                : isTop
+                                                    ? "from-amber-400 to-orange-500"
+                                                    : COLORS[i % COLORS.length]
                                         } opacity-25`}
                                         initial={{ width: "0%" }}
                                         animate={{ width: `${pct}%` }}
                                         transition={{ duration: 0.6, ease: "easeOut" }}
                                     />
                                     <div className="relative flex items-center gap-4 p-4 sm:p-5">
-                                        <div
-                                            className={`flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br ${COLORS[i % COLORS.length]} text-white font-bold text-xl sm:text-2xl flex items-center justify-center shadow-md`}
+                                        <motion.div
+                                            animate={justChanged ? { scale: [1, 1.2, 1] } : {}}
+                                            transition={{ duration: 0.5 }}
+                                            className={`flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br ${
+                                                isTop && !isCorrect ? "from-amber-400 to-orange-500" : COLORS[i % COLORS.length]
+                                            } text-white font-bold text-xl sm:text-2xl flex items-center justify-center shadow-md relative`}
                                         >
                                             {i + 1}
-                                        </div>
+                                            {isTop && total >= 2 && !isCorrect && (
+                                                <motion.div
+                                                    initial={{ scale: 0, rotate: -30 }}
+                                                    animate={{ scale: 1, rotate: 0 }}
+                                                    className="absolute -top-2 -right-2 bg-amber-400 rounded-full p-0.5 shadow"
+                                                >
+                                                    <Crown className="w-3.5 h-3.5 text-amber-900" />
+                                                </motion.div>
+                                            )}
+                                        </motion.div>
                                         <div className="flex-1 min-w-0 text-xl sm:text-2xl lg:text-3xl font-semibold text-slate-800 break-words">
                                             {opt}
                                             {isCorrect && (
@@ -186,9 +323,15 @@ export default function Present() {
                                             )}
                                         </div>
                                         <div className="flex-shrink-0 text-right">
-                                            <div className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-700 tabular-nums">
+                                            <motion.div
+                                                key={count}
+                                                initial={justChanged ? { scale: 1.6, color: "#16a34a" } : false}
+                                                animate={{ scale: 1, color: "#334155" }}
+                                                transition={{ duration: 0.5, type: "spring" }}
+                                                className="text-3xl sm:text-4xl lg:text-5xl font-black tabular-nums"
+                                            >
                                                 {count}
-                                            </div>
+                                            </motion.div>
                                             <div className="text-sm text-slate-500 tabular-nums">
                                                 {pct.toFixed(0)}%
                                             </div>
@@ -223,7 +366,8 @@ export default function Present() {
                             key={total}
                             initial={{ scale: 0.5, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
-                            className="text-7xl font-black tabular-nums mt-2"
+                            transition={{ type: "spring", stiffness: 260, damping: 15 }}
+                            className="text-7xl font-black tabular-nums mt-2 drop-shadow-lg"
                         >
                             {total}
                         </motion.div>

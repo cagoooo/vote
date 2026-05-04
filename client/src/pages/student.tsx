@@ -8,6 +8,7 @@ import { useParams } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { ReactionBar } from "@/components/reaction-bar";
 
 export default function Student() {
   const { toast } = useToast();
@@ -385,6 +386,7 @@ export default function Student() {
           </div>
         </Card>
       </div>
+      {questionId && <ReactionBar questionId={questionId} />}
     </div>
   );
 }

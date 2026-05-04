@@ -35,6 +35,19 @@ service cloud.firestore {
                     && get(/databases/$(database)/documents/questions/$(resource.data.questionId)).data.teacherId == request.auth.uid;
     }
 
+    // 表情反饋（彈幕風格）：所有登入者可讀，本人才能寫；不可改、不可刪
+    match /reactions/{rid} {
+      allow read: if request.auth != null;
+
+      allow create: if request.auth != null
+                    && request.resource.data.userId == request.auth.uid
+                    && request.resource.data.keys().hasAll(['questionId', 'emoji', 'userId', 'createdAt'])
+                    && request.resource.data.emoji.size() <= 8;
+
+      allow update: if false;
+      allow delete: if false;
+    }
+
     // 其他 collection 一律拒絕
     match /{document=**} {
       allow read, write: if false;
