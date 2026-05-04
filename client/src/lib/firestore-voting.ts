@@ -186,3 +186,68 @@ export const toggleShowAnswer = async (questionId: string, show: boolean) => {
 export const deactivateQuestion = async (questionId: string) => {
     await updateDoc(doc(db, "questions", questionId), { active: false });
 };
+
+// 列出自己所有題目（dashboard 用）
+export const listMyQuestions = async (): Promise<FirestoreQuestion[]> => {
+    const teacherId = auth.currentUser?.uid;
+    if (!teacherId) return [];
+    const q = query(
+        collection(db, "questions"),
+        where("teacherId", "==", teacherId),
+        orderBy("createdAt", "desc")
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as FirestoreQuestion);
+};
+
+// 重新啟用舊題：先把自己其他 active 的關掉，再把這題開啟並把 expiresAt 重設為 now + TTL
+export const reactivateQuestion = async (questionId: string) => {
+    const teacherId = auth.currentUser?.uid;
+    if (!teacherId) throw new Error("未登入");
+
+    const activesQ = query(
+        collection(db, "questions"),
+        where("active", "==", true),
+        where("teacherId", "==", teacherId)
+    );
+    const activeDocs = await getDocs(activesQ);
+    for (const d of activeDocs.docs) {
+        if (d.id !== questionId) {
+            await updateDoc(doc(db, "questions", d.id), { active: false });
+        }
+    }
+
+    await updateDoc(doc(db, "questions", questionId), {
+        active: true,
+        expiresAt: Timestamp.fromMillis(Date.now() + QUESTION_TTL_MS),
+    });
+};
+
+// 刪除題目（連同所有票一起刪）
+export const deleteQuestion = async (questionId: string) => {
+    const votesQ = query(collection(db, "votes"), where("questionId", "==", questionId));
+    const voteSnapshot = await getDocs(votesQ);
+    for (const d of voteSnapshot.docs) {
+        await deleteDoc(doc(db, "votes", d.id));
+    }
+    await deleteDoc(doc(db, "questions", questionId));
+};
+
+// 一次性取得多題的票數（dashboard 用，避免每題各開一個訂閱）
+export const getVoteCountsForQuestions = async (
+    questionIds: string[]
+): Promise<Record<string, number>> => {
+    const counts: Record<string, number> = {};
+    if (questionIds.length === 0) return counts;
+    // Firestore where-in 上限 30，分批
+    for (let i = 0; i < questionIds.length; i += 30) {
+        const batch = questionIds.slice(i, i + 30);
+        const q = query(collection(db, "votes"), where("questionId", "in", batch));
+        const snapshot = await getDocs(q);
+        snapshot.docs.forEach((d) => {
+            const qid = d.data().questionId as string;
+            counts[qid] = (counts[qid] || 0) + 1;
+        });
+    }
+    return counts;
+};

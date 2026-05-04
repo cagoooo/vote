@@ -30,13 +30,15 @@ export default function Teacher() {
   const handleGoogleSignIn = async () => {
     try {
       const user = await signInWithGoogle();
+      const name = user.displayName?.split(" ")[0] ?? user.email?.split("@")[0] ?? "老師";
       toast({
-        title: "登入成功",
-        description: `歡迎，${user.displayName ?? user.email}！從此換裝置也找得到你的題目。`,
+        title: `👋 歡迎回來，${name}！`,
+        description: "你的題目從此跨裝置同步，換電腦也找得到。",
         variant: "success",
       });
     } catch (err: any) {
       if (err?.code === "auth/popup-closed-by-user") return;
+      if (err?.code === "auth/cancelled-popup-request") return;
       toast({
         title: "登入失敗",
         description: err?.message ?? "請稍後再試",
@@ -254,22 +256,60 @@ export default function Teacher() {
         </h1>
       </div>
 
-      <div className="flex items-center justify-end gap-2 mb-4 text-sm">
+      <div className="flex items-center justify-end gap-2 mb-4">
         {currentUser && !currentUser.isAnonymous ? (
-          <>
-            <UserCircle className="w-4 h-4 text-green-600" />
-            <span className="text-gray-700">{currentUser.displayName ?? currentUser.email}</span>
-            <Button type="button" variant="ghost" size="sm" onClick={handleSignOut} className="h-7 px-2">
-              <LogOut className="w-3.5 h-3.5 mr-1" />登出
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex items-center gap-2"
+          >
+            <div
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-emerald-50 to-green-50 border border-green-200 shadow-sm"
+              title={currentUser.email ?? ""}
+            >
+              {currentUser.photoURL ? (
+                <img
+                  src={currentUser.photoURL}
+                  alt=""
+                  referrerPolicy="no-referrer"
+                  className="w-7 h-7 rounded-full ring-2 ring-white"
+                />
+              ) : (
+                <UserCircle className="w-6 h-6 text-green-600" />
+              )}
+              <div className="flex flex-col leading-tight pr-1">
+                <span className="text-sm font-semibold text-gray-800 max-w-[180px] truncate">
+                  {currentUser.displayName ?? currentUser.email?.split("@")[0] ?? "已登入"}
+                </span>
+                <span className="text-[10px] text-green-700 font-medium">已登入 · 跨裝置同步</span>
+              </div>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleSignOut}
+              className="h-9 px-2 text-gray-500 hover:text-red-600 hover:bg-red-50"
+              title="登出"
+            >
+              <LogOut className="w-4 h-4" />
             </Button>
-          </>
+          </motion.div>
         ) : (
-          <>
-            <span className="text-gray-500">目前以匿名身份操作（換瀏覽器將找不到舊題）</span>
-            <Button type="button" variant="outline" size="sm" onClick={handleGoogleSignIn} className="h-7 px-2">
-              <LogIn className="w-3.5 h-3.5 mr-1" />Google 登入
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded-full">
+              匿名模式（換瀏覽器將找不到舊題）
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleGoogleSignIn}
+              className="h-8 px-3 border-blue-300 text-blue-700 hover:bg-blue-50"
+            >
+              <LogIn className="w-3.5 h-3.5 mr-1.5" />Google 登入
             </Button>
-          </>
+          </div>
         )}
       </div>
 
