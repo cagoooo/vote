@@ -74,6 +74,40 @@
 
 ## 📅 開發進度紀錄
 
+### 2026-05-04（下午 18 點） — A2 簡答題 + Word Cloud ✅
+
+**Schema**：
+- `QuestionType` 加 `'shortanswer'`，常數 `SHORTANSWER_MAX_LENGTH = 50`
+- `vote.textAnswer: string`（沒有 optionIndex/optionIndices）
+- `firestore.rules` votes create 接受三選一（`optionIndex` / `optionIndices` / `textAnswer 1-50 字`）
+
+**API**：
+- `addVote` 接受 `number | number[] | { text: string }`
+- 新函式 `listenToTextAnswers(qid, callback)` 訂閱所有文字答案
+
+**新元件 `client/src/components/word-cloud.tsx`**：
+- 純前端、零依賴 word cloud（不做中文分詞，整句當 entity）
+- 字級對數縮放 `min + log10(count+1)/log10(maxCount+1) * range`
+- 顏色用字串 hash 取色（相同答案永遠同色）
+- count ≥ 2 在右下角加 ×N 徽章
+- AnimatePresence layout 動畫，新答案 spring scale 進場
+
+**Teacher 建題**：
+- 題型 toggle 從 3 顆變 4 顆（單選 / 多選 / ⚡是非 / 💬簡答），響應式 2x2 grid
+- 簡答題顯示紫粉漸層說明卡片：50 字限制、文字雲特性、適合場景
+
+**Student 投票 UI**：
+- 簡答題模式：紫色 textarea + 即時字數計數 + 「💬 送出答案」漸層大按鈕
+- autoFocus + 50 字硬限
+
+**Teacher 結果頁** 自動切換到 `ShortAnswerLiveCloud`（紫粉底 + 計數徽章）。
+
+**Present 課堂模式** 用大字 WordCloud（24-84 px）取代票數長條，適合投影遠看。
+
+**CSV 匯出** 偵測 `hasText`，簡答題格式自動切換。
+
+---
+
 ### 2026-05-04（下午 17 點） — D5 QR 大小可調 + A4 是非題 ✅
 
 **D5 課堂模式 QR 可放大縮小**：
@@ -596,7 +630,7 @@ P0-1 / P0-2 / P0-3 / P0-4 已全部完成，詳見上方 2026-05-04 進度紀錄
 | # | 項目 | 難度 | 說明 |
 |---|---|---|---|
 | ✅ **A1** | **多選題** | 🟡 | 已完成 2026-05-04，詳見上方進度紀錄 |
-| **A2** | **簡答題 / 文字回應** | 🟡 | 學生輸入文字，老師端 word cloud 即時顯示 |
+| ✅ **A2** | **簡答題 / 文字回應** | 🟡 | 已完成 2026-05-04，純前端 word cloud + 50 字硬限 + CSV 匯出 |
 | **A3** | **排序題** | 🔴 | 拖曳排序，計分用 Spearman correlation |
 | ✅ **A4** | **是非題** | 🟢 | 已完成 2026-05-04，3 段題型 toggle + 紅/綠超大按鈕 |
 | **A5** | **「再來一題」快速複製** | 🟢 | dashboard 卡片加「複製」按鈕，新題只改文字、選項保留 |
