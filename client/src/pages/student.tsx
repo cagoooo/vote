@@ -115,8 +115,7 @@ export default function Student() {
 
   // 學生身份（持久化在 localStorage 跨題共用）
   const [identityName, setIdentityName] = useState<string>(() => localStorage.getItem("voter_name") || "");
-  const [identitySeat, setIdentitySeat] = useState<string>(() => localStorage.getItem("voter_seat") || "");
-  const hasIdentity = !!identityName.trim() && !!identitySeat.trim();
+  const hasIdentity = !!identityName.trim();
   const [identityFormVisible, setIdentityFormVisible] = useState(false);
 
   const vote = useMutation({
@@ -128,7 +127,7 @@ export default function Student() {
         setIdentityFormVisible(true);
         throw new Error("請先填寫姓名與座號");
       }
-      await firestore.addVote(question.id, optionIndex, requireIdentity ? { name: identityName, seat: identitySeat } : undefined);
+      await firestore.addVote(question.id, optionIndex, requireIdentity ? { name: identityName } : undefined);
     },
     onSuccess: (_, optionIndex) => {
       toast({
@@ -201,61 +200,45 @@ export default function Student() {
   }
 
   // 需具名但還沒填 → 顯示身份表單
-  if (requireIdentity && !hasIdentity && (identityFormVisible || true)) {
+  if (requireIdentity && !hasIdentity) {
     const submitIdentity = (e: React.FormEvent) => {
       e.preventDefault();
       const n = identityName.trim();
-      const s = identitySeat.trim();
-      if (!n || !s) return;
+      if (!n) return;
       localStorage.setItem("voter_name", n);
-      localStorage.setItem("voter_seat", s);
       setIdentityFormVisible(false);
     };
 
-    if (!identityName || !identitySeat) {
-      return (
-        <div className="page-container max-w-md">
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-            <Card className="p-8 space-y-5">
-              <div className="text-center space-y-2">
-                <div className="text-5xl">📝</div>
-                <h1 className="text-xl font-bold gradient-text">老師需要記錄誰投票</h1>
-                <p className="text-sm text-muted-foreground">填寫一次後會自動記住，下次不用再填</p>
+    return (
+      <div className="page-container max-w-md">
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+          <Card className="p-8 space-y-5">
+            <div className="text-center space-y-2">
+              <div className="text-5xl">📝</div>
+              <h1 className="text-xl font-bold gradient-text">老師需要記錄誰投票</h1>
+              <p className="text-sm text-muted-foreground">填寫一次後會自動記住，下次不用再填</p>
+            </div>
+            <form onSubmit={submitIdentity} className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">姓名</label>
+                <input
+                  type="text"
+                  placeholder="例：小華"
+                  value={identityName}
+                  onChange={(e) => setIdentityName(e.target.value)}
+                  maxLength={30}
+                  autoFocus
+                  className="w-full h-11 px-3 rounded-md border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 text-base"
+                />
               </div>
-              <form onSubmit={submitIdentity} className="space-y-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">座號</label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="例：12"
-                    value={identitySeat}
-                    onChange={(e) => setIdentitySeat(e.target.value)}
-                    maxLength={10}
-                    autoFocus
-                    className="w-full h-11 px-3 rounded-md border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 text-base"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">姓名</label>
-                  <input
-                    type="text"
-                    placeholder="例：小華"
-                    value={identityName}
-                    onChange={(e) => setIdentityName(e.target.value)}
-                    maxLength={30}
-                    className="w-full h-11 px-3 rounded-md border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 text-base"
-                  />
-                </div>
-                <Button type="submit" size="lg" className="w-full" disabled={!identityName.trim() || !identitySeat.trim()}>
-                  確認進入投票
-                </Button>
-              </form>
-            </Card>
-          </motion.div>
-        </div>
-      );
-    }
+              <Button type="submit" size="lg" className="w-full" disabled={!identityName.trim()}>
+                確認進入投票
+              </Button>
+            </form>
+          </Card>
+        </motion.div>
+      </div>
+    );
   }
 
   const maxVotes = Math.max(...Object.values(totals), 0);
