@@ -74,6 +74,43 @@
 
 ## 📅 開發進度紀錄
 
+### 2026-05-04（深夜） — P2-5 課堂模式 + TD-1 砍死後端 ✅ 已完成
+
+**P2-5 全螢幕投影模式**（`/present/:id`）：
+- 左 70% 大圖題目 + 即時票數動畫長條（每選項配獨立漸層色）
+- 右 30% 大字房間代碼（藍底圓角 5xl）+ QR + 即時人數計數（紫漸層）
+- 滑鼠靜止 3 秒自動隱藏控制列、cursor-none，乾淨投影體驗
+- F11 / 自訂按鈕雙路徑切全螢幕，正確監聽 `fullscreenchange`
+- 老師按「顯示答案」時對應選項 ring-4 green-400 + ✓ 圖示
+- teacher 結果頁加紫邊「📺 課堂模式」按鈕（在 CSV 旁）
+
+**TD-1 砍掉沒在用的 Express 後端**：
+- 刪除 `server/`、`api/`、`shared/`、`drizzle.config.ts`、`vercel.json`、`build.sh`、`post-build.js`、`replit.md`、`DEPLOYMENT.md`
+- `share-button.tsx` 改用本地 type 取代 `@shared/schema` import
+- `package.json` 移除 16 個死依賴（express、drizzle、neon、passport、ws、tsx、esbuild、相關 `@types/*`）
+- scripts 縮成 4 個：`dev` / `build` / `preview` / `check`
+- node_modules 縮減 ~30%（700MB → 486MB），rebuild 速度 ↑
+- repo 名稱從 `rest-express` 改為 `vote`，version 1.2.0
+- `firebase functions/` 子專案獨立保留，不受影響
+
+---
+
+### 2026-05-04（夜間） — PWA + Service Worker 版本自動更新通知 ✅ 已完成
+
+加入 `vite-plugin-pwa`（Vite + Workbox 官方推薦），prompt 模式：
+- 偵測新版部署時，畫面底部顯示藍色浮動 banner「🚀 有新版可用」
+- 「立即更新」按鈕呼叫 `updateServiceWorker(true)` 載入新版
+- 60 分鐘 polling check + 頁面 load 時 check 雙重保險
+- 用 prompt 而非 autoUpdate，避免：(1) 學生投票中無預警 reload (2) infinite reload 雷
+
+**版本徽章**：左下角灰色小字 `v{date}-{git_hash}`，hover 顯示完整版本，從 vite.config + git 注入。
+
+**PWA 設定**：三張 icon（192/512/180-apple）從 logo.png 縮出；`manifest.webmanifest` name=即時投票系統 / theme=#3B82F6；workbox precache static asset + Firestore/Auth runtime NetworkOnly。
+
+**避雷**：dev mode SW disabled、dev config 也裝 plugin 讓 `virtual:pwa-register/react` 解析得到、`navigateFallback` 設 `/vote/index.html` 處理 SPA routing。
+
+---
+
 ### 2026-05-04（晚間） — LINE 推播通知 + Flex 卡片 v2 ✅ 已完成
 
 **動機**：老師希望即時知道「有沒有人在用我這套系統」、「題目自動失效了沒」，不用一直開瀏覽器盯。
@@ -230,10 +267,7 @@ P0-1 / P0-2 / P0-3 / P0-4 已全部完成，詳見上方 2026-05-04 進度紀錄
 
 **優先級**：教學量級（一題 30 人）其實不痛，量大或對成本敏感再做。
 
-#### P1-5. Firestore 收費監控與告警
-- 在 GCP Console 設預算告警（$1 / $5 / $10）
-- 加 BigQuery export → 看每天 read/write 用量趨勢
-- 每月免費額度：50K read / 20K write / 1GB storage，正常教學量不會爆
+#### ✅ P1-5. Firestore 收費監控與告警（已完成 2026-05-04，使用者手動）
 
 ---
 
@@ -261,11 +295,8 @@ P0-1 / P0-2 / P0-3 / P0-4 已全部完成，詳見上方 2026-05-04 進度紀錄
 - 點擊後在老師大螢幕上飛過去（彈幕風格）
 - 不存資料庫只用 Realtime DB ephemeral channel，避免炸成本
 
-#### P2-5. 教師「課堂模式」全螢幕投影
-- 一個專門的 `/present/:id` 路徑
-- 隱藏所有控制按鈕，只剩題目 + 大字票數 + QR
-- F11 全螢幕看起來最專業
-- 加倒數計時器（30 秒投票時間）
+#### ✅ P2-5. 教師「課堂模式」全螢幕投影（已完成 2026-05-04）
+詳見上方進度紀錄。倒數計時器留待後續加。
 
 #### P2-6. Cloudflare Turnstile 防 bot 灌票
 - 適用情境：題目連結被學生分享出去到外面群組，被刷票
@@ -281,19 +312,14 @@ P0-1 / P0-2 / P0-3 / P0-4 已全部完成，詳見上方 2026-05-04 進度紀錄
 
 ### 📐 技術債清理（順手做）
 
-#### TD-1. 砍掉沒在用的後端
-- `server/` 整個目錄、`server/storage.ts` 的 `MemStorage`、`drizzle.config.ts`、`shared/schema.ts` 都是早期 Express + PostgreSQL 架構的遺跡
-- 現在前端直接用 Firestore，後端零參與
-- 砍掉可以縮小 repo、減少新人困惑、`npm install` 也快很多
+#### ✅ TD-1. 砍掉沒在用的後端（已完成 2026-05-04）
+詳見上方進度紀錄。
 
 #### TD-2. 砍掉 `localVoting.ts`
 - `client/src/lib/localVoting.ts` 應該是 GitHub Pages 純前端模式的 fallback，但實際上現在無論哪個環境都直連 Firestore
 - 確認沒人 import 後刪掉
 
-#### TD-3. 更新 `replit.md`
-- 內容停留在「Express + 記憶體儲存 + 1 秒 polling」的初代架構
-- 現在實際上是「Firestore 直連 + onSnapshot 即時推送」，差異很大
-- 建議直接刪除（這檔是 Replit 專用的，repo 早就沒在 Replit 上開發了）或大改
+#### ✅ TD-3. 更新 `replit.md`（已完成 2026-05-04，於 TD-1 一併刪除）
 
 #### TD-4. CI/CD 自動化部署
 - 目前每次改前端要手動 `build:gh-pages` + 推 `gh-pages` 分支
