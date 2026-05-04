@@ -12,7 +12,7 @@ import { useVotingSound } from "@/hooks/use-voting-sounds";
 import * as firestore from "@/lib/firestore-voting";
 import { auth, signInWithGoogle, signOut } from "@/lib/firebase";
 import { onAuthStateChanged, type User } from "firebase/auth";
-import { Plus, Minus, Sparkles, RefreshCw, CheckCircle2, Eye, EyeOff, LogIn, LogOut, UserCircle, LayoutGrid, Download } from "lucide-react";
+import { Plus, Minus, Sparkles, RefreshCw, CheckCircle2, Eye, EyeOff, LogIn, LogOut, UserCircle, LayoutGrid, Download, Monitor } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { exportQuestionVotes } from "@/lib/csv-export";
@@ -441,7 +441,18 @@ export default function Teacher() {
         <div className="space-y-6 animate-fade-in">
           <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
             <h2 className="text-xl font-semibold gradient-text">投票進行中</h2>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Link href={`/present/${createdQuestion.id}`}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 border-purple-200 text-purple-700 hover:bg-purple-50"
+                  title="開啟全螢幕投影模式"
+                >
+                  <Monitor className="w-4 h-4" />課堂模式
+                </Button>
+              </Link>
               <Button
                 type="button"
                 variant="outline"

@@ -4,7 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Share2 } from "lucide-react";
 import { SiFacebook, SiX, SiLine } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
-import type { Question, Vote } from "@shared/schema";
+// 本地最小型別（從原 @shared/schema 抽出，避免引入死的 server-side 後端）
+type Question = {
+  id: string | number;
+  options: string[];
+  roomCode?: string;
+};
+type Vote = { optionIndex: number };
 
 interface ShareButtonProps {
   url?: string;
