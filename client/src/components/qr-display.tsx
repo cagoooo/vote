@@ -40,9 +40,18 @@ export function QRDisplay({ questionId, roomCode }: QRDisplayProps) {
 
       {roomCode && (
         <div className="w-full bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3 space-y-1.5">
-          <div className="flex items-center justify-center gap-2 text-xs text-blue-700">
-            <KeyRound className="w-3.5 h-3.5" />
-            <span>或請學生到 <span className="font-mono">{joinUrl}</span> 輸入代碼</span>
+          <div className="flex items-center justify-center gap-2 text-xs text-blue-700 flex-wrap">
+            <KeyRound className="w-3.5 h-3.5 flex-shrink-0" />
+            <span>或請學生到</span>
+            <a
+              href={joinUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-mono text-blue-700 hover:text-blue-900 underline underline-offset-2 decoration-blue-400 hover:decoration-blue-700 break-all"
+            >
+              {joinUrl}
+            </a>
+            <span>輸入代碼</span>
           </div>
           <button
             type="button"
