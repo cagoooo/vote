@@ -24,6 +24,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { EditQuestionDialog } from "@/components/edit-question-dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 
 function formatDate(ts: any): string {
   if (!ts?.toMillis) return "—";
@@ -154,9 +155,10 @@ export default function Dashboard() {
       </div>
 
       {questionsQuery.isLoading ? (
-        <div className="text-center py-16">
-          <Loader2 className="w-10 h-10 animate-spin mx-auto text-gray-400" />
-          <p className="mt-3 text-gray-500">載入題目中…</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <DashboardCardSkeleton key={i} />
+          ))}
         </div>
       ) : questions.length === 0 ? (
         <Card className="p-12 text-center space-y-4">
@@ -313,5 +315,44 @@ export default function Dashboard() {
         onOpenChange={(o) => !o && setEditingQuestion(null)}
       />
     </div>
+  );
+}
+
+/** 卡片載入骨架 — 結構盡量貼近真實 DashboardCard，避免換內容時 layout shift */
+function DashboardCardSkeleton() {
+  return (
+    <Card className="overflow-hidden h-full flex flex-col">
+      {/* 縮圖區 4:3 */}
+      <div className="relative aspect-[4/3] bg-slate-100 overflow-hidden">
+        <Skeleton className="w-full h-full" />
+        {/* 左上 status badge 占位 */}
+        <Skeleton className="absolute top-2 left-2 h-5 w-16 rounded-full" />
+        {/* 右上 room code 占位 */}
+        <Skeleton className="absolute top-2 right-2 h-6 w-14 rounded-md" />
+      </div>
+
+      <div className="p-4 flex-1 flex flex-col gap-3">
+        {/* 選項預覽（4 行） */}
+        <div className="space-y-1.5">
+          <Skeleton className="h-6 w-full" />
+          <Skeleton className="h-6 w-11/12" />
+          <Skeleton className="h-6 w-10/12" />
+          <Skeleton className="h-6 w-9/12" />
+        </div>
+
+        {/* 票數 + 時間列 */}
+        <div className="flex items-center justify-between pt-1 border-t">
+          <Skeleton className="h-4 w-12" />
+          <Skeleton className="h-4 w-16" />
+        </div>
+
+        {/* 按鈕列 */}
+        <div className="flex flex-wrap gap-2 mt-auto">
+          <Skeleton className="h-8 flex-1 min-w-0 rounded-md" />
+          <Skeleton className="h-8 w-9 rounded-md" />
+          <Skeleton className="h-8 w-9 rounded-md" />
+        </div>
+      </div>
+    </Card>
   );
 }
