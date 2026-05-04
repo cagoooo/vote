@@ -74,6 +74,23 @@
 
 ## 📅 開發進度紀錄
 
+### 2026-05-04（下午 15 點） — D5 學生投票後慶祝動畫 ✅
+
+學齡層越小越愛慶祝感。投票成功時三重感官回饋：
+- 🎉 `useConfetti` 五射煙火（既有 hook，主畫面噴）
+- ⏰ 1.8 秒淡入淡出大字 overlay：白底圓角 + 綠邊 + 7xl 🎉 emoji + spring scale 進場 + rotate 搖擺動畫
+- 🔊 `vote-submitted.mp3` 音效（既有 hook）
+
+實作細節：
+- 用既有 `useConfetti` 與 `useVotingSound` hooks，零新依賴
+- `showSuccessOverlay` state + `setTimeout(1800ms)` 自動消失
+- overlay `fixed inset-0 + pointer-events-none` 不擋學生看結果
+- z-9998 高於投票按鈕，但低於 SW update banner (10000)
+- 音效 try/catch 包住，避免某些瀏覽器 audio block 影響投票流程
+- toast variant 改 success，title 加 🎉 emoji
+
+---
+
 ### 2026-05-04（下午 14 點） — D2 題目編輯 ✅ 已完成
 
 新增 `firestore.updateQuestion(id, patch)`：
@@ -586,7 +603,7 @@ P0-1 / P0-2 / P0-3 / P0-4 已全部完成，詳見上方 2026-05-04 進度紀錄
 | **D1** | **暗色模式** | 🟡 | tailwind dark: 全套加，預設跟系統 |
 | ✅ **D2** | **題目編輯** | 🟡 | 已完成 2026-05-04，詳見上方進度紀錄 |
 | **D3** | **Skeleton loader** | 🟢 | dashboard 卡片載入時顯示 placeholder 而非 spinner |
-| **D4** | **學生投票後動畫** | 🟢 | 投出去那一刻彩色 confetti（給學生小驚喜，學齡層越小越愛）|
+| ✅ **D4** | **學生投票後動畫** | 🟢 | 已完成 2026-05-04（你叫它 D5），confetti + overlay + 音效三重感官 |
 | **D5** | **QR code 大小可調** | 🟢 | 課堂模式右側 QR 可放大（有些教室投影機畫面距離遠看不清）|
 | **D6** | **建題流程改 wizard** | 🟡 | 新手第一次用很容易迷路，改成「① 上傳圖 → ② 設選項 → ③ 確認」分頁式 |
 | **D7** | **題目縮圖卡片預覽** | 🟢 | dashboard / 結果頁加題目「視覺名片」摘要卡 |
