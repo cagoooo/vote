@@ -74,6 +74,24 @@
 
 ## 📅 開發進度紀錄
 
+### 2026-05-05 — D7 題型徽章 + D8 拖曳排序選項 ✅
+
+**D7 dashboard 視覺名片**：
+- 卡片左下角加題型 badge（◯ 單選 / ☑️ 多選 / ⚡ 是非 / 💬 簡答）
+- 各題型對應色系（藍 / 紫 / 琥珀 / 粉），一眼分辨
+- 「已設答案」徽章邏輯升級：除了 `correctAnswer`（單選）也偵測 `correctAnswers`（多選），多選題也會顯示
+- 選項預覽的正解高亮也支援多選 `correctAnswers.includes(i)`
+
+**D8 老師建題拖曳排序選項**：
+- options state 從 `string[]` 重構為 `Array<{ id, value }>`，給 framer-motion `Reorder` 穩定 key
+- `Reorder.Group` + `Reorder.Item` 原生拖曳 + 自動排開動畫（零新依賴）
+- 每行左側加 `GripVertical` 抓手 icon、cursor-grab/grabbing
+- 拖動中 `whileDrag` 加 scale 1.02 + shadow 視覺反饋
+- 選項數 ≥ 3 才顯示「可拖曳」提示
+- helper 改名：`addOption / removeOptionById / updateOptionById`
+
+---
+
 ### 2026-05-04（下午 19 點） — E1+E3 CI 自動 firestore deploy + tsc check ✅
 
 **E1 Firestore 自動部署**：
@@ -696,8 +714,8 @@ P0-1 / P0-2 / P0-3 / P0-4 已全部完成，詳見上方 2026-05-04 進度紀錄
 | ✅ **D4** | **學生投票後動畫** | 🟢 | 已完成 2026-05-04（你叫它 D5），confetti + overlay + 音效三重感官 |
 | ✅ **D5** | **QR code 大小可調** | 🟢 | 已完成 2026-05-04，4 段尺寸 S/M/L/XL + localStorage 記憶 |
 | **D6** | **建題流程改 wizard** | 🟡 | 新手第一次用很容易迷路，改成「① 上傳圖 → ② 設選項 → ③ 確認」分頁式 |
-| **D7** | **題目縮圖卡片預覽** | 🟢 | dashboard / 結果頁加題目「視覺名片」摘要卡 |
-| **D8** | **拖曳排序選項** | 🟢 | 老師建題時可拖曳改順序，目前只能上下增刪 |
+| ✅ **D7** | **題目縮圖卡片預覽** | 🟢 | 已完成 2026-05-05，題型徽章 + 多選正解高亮 |
+| ✅ **D8** | **拖曳排序選項** | 🟢 | 已完成 2026-05-05，framer-motion Reorder + 抓手 icon |
 | **D9** | **題目歷史時間軸** | 🟡 | 「今天 / 本週 / 本月 / 全部」filter，不要一次滾整個 dashboard |
 
 ### E. 維運 / DevOps
