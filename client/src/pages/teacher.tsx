@@ -12,7 +12,7 @@ import { useVotingSound } from "@/hooks/use-voting-sounds";
 import * as firestore from "@/lib/firestore-voting";
 import { auth, signInWithGoogle, signOut } from "@/lib/firebase";
 import { onAuthStateChanged, type User } from "firebase/auth";
-import { Plus, Minus, Sparkles, RefreshCw, CheckCircle2, Eye, EyeOff, LogIn, LogOut, UserCircle, LayoutGrid, Download, Monitor, Timer, UserCheck, X as XIcon, CheckSquare, Circle, Pencil, GripVertical } from "lucide-react";
+import { Plus, Minus, Sparkles, RefreshCw, CheckCircle2, Eye, EyeOff, LogIn, LogOut, UserCircle, LayoutGrid, Download, Monitor, Timer, UserCheck, X as XIcon, CheckSquare, Circle, Pencil, GripVertical, ChevronLeft, ChevronRight, Wand2, Rocket } from "lucide-react";
 import { EditQuestionDialog } from "@/components/edit-question-dialog";
 import { WordCloud } from "@/components/word-cloud";
 import { motion, Reorder } from "framer-motion";
@@ -33,6 +33,17 @@ export default function Teacher() {
   ]);
   const [questionType, setQuestionType] = useState<"single" | "multiple" | "truefalse" | "shortanswer">("single");
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  // 建題介面模式：wizard（新手友好分步驟）/ quick（資深者單頁）
+  const [formMode, setFormMode] = useState<"wizard" | "quick">(
+    () => (localStorage.getItem("teacher_form_mode") as any) || "wizard"
+  );
+  const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(1);
+  const switchFormMode = (m: "wizard" | "quick") => {
+    setFormMode(m);
+    localStorage.setItem("teacher_form_mode", m);
+    if (m === "wizard") setWizardStep(1);
+  };
   const [requireIdentity, setRequireIdentity] = useState(false);
   const [createdQuestion, setCreatedQuestion] = useState<any | null>(null);
   const [globalActiveQuestion, setGlobalActiveQuestion] = useState<any | null>(null);
@@ -239,6 +250,7 @@ export default function Teacher() {
       { id: newOptionId(), value: "" },
     ]);
     setCreatedQuestion(null);
+    setWizardStep(1);
     setVotesStats({});
     toast({
       title: "已重置所有設定",
@@ -397,6 +409,58 @@ export default function Teacher() {
 
       {!createdQuestion ? (
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* 模式切換 bar */}
+          <div className="flex items-center justify-between gap-2 text-xs flex-wrap">
+            <div className="text-slate-500">
+              {formMode === "wizard" ? "💡 新手引導模式：分 3 步建題" : "⚡ 快速模式：所有設定一次填完"}
+            </div>
+            <div className="flex items-center gap-1 bg-slate-100 rounded-full p-0.5">
+              <button
+                type="button"
+                onClick={() => switchFormMode("wizard")}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                  formMode === "wizard" ? "bg-white text-blue-700 shadow-sm" : "text-slate-500"
+                }`}
+              >
+                <Wand2 className="w-3 h-3 inline mr-1" />引導
+              </button>
+              <button
+                type="button"
+                onClick={() => switchFormMode("quick")}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                  formMode === "quick" ? "bg-white text-blue-700 shadow-sm" : "text-slate-500"
+                }`}
+              >
+                <Rocket className="w-3 h-3 inline mr-1" />快速
+              </button>
+            </div>
+          </div>
+
+          {/* Wizard 進度條 */}
+          {formMode === "wizard" && (
+            <div className="flex items-center gap-2">
+              {[1, 2, 3].map((s, i) => (
+                <div key={s} className="flex items-center gap-2 flex-1">
+                  <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm transition-all ${
+                    wizardStep > s ? "bg-green-500 text-white" :
+                    wizardStep === s ? "bg-blue-600 text-white scale-110 shadow-md" :
+                    "bg-slate-200 text-slate-400"
+                  }`}>
+                    {wizardStep > s ? <CheckCircle2 className="w-4 h-4" /> : s}
+                  </div>
+                  <div className="text-xs flex-1 hidden sm:block">
+                    <div className={wizardStep === s ? "font-semibold text-blue-700" : "text-slate-500"}>
+                      {s === 1 ? "選題型 + 上傳圖片" : s === 2 ? "設定選項" : "確認後建立"}
+                    </div>
+                  </div>
+                  {i < 2 && <div className={`hidden sm:block flex-1 h-0.5 transition-colors ${wizardStep > s ? "bg-green-400" : "bg-slate-200"}`} />}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {(formMode === "quick" || wizardStep === 1) && (
+          <>
           {globalActiveQuestion && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
@@ -425,13 +489,38 @@ export default function Teacher() {
           )}
           <ScreenshotUpload onImageSelect={handleImageSelect} />
 
+          {/* wizard step 1 也要先讓老師選題型，這樣 step 2 才知道要不要顯示選項 */}
+          {formMode === "wizard" && (
+            <Card className="p-4 sm:p-6">
+              <p className="text-sm font-semibold text-slate-700 mb-3">選擇題型</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-1 bg-slate-100 rounded-lg">
+                <button type="button" onClick={() => setQuestionType("single")} className={`flex items-center justify-center gap-1.5 px-2 py-2 rounded-md text-sm font-medium transition-all ${questionType === "single" ? "bg-white text-blue-700 shadow-sm" : "text-slate-500"}`}>
+                  <Circle className="w-4 h-4" />單選
+                </button>
+                <button type="button" onClick={() => setQuestionType("multiple")} className={`flex items-center justify-center gap-1.5 px-2 py-2 rounded-md text-sm font-medium transition-all ${questionType === "multiple" ? "bg-white text-blue-700 shadow-sm" : "text-slate-500"}`}>
+                  <CheckSquare className="w-4 h-4" />多選
+                </button>
+                <button type="button" onClick={() => setQuestionType("truefalse")} className={`flex items-center justify-center gap-1.5 px-2 py-2 rounded-md text-sm font-medium transition-all ${questionType === "truefalse" ? "bg-white text-blue-700 shadow-sm" : "text-slate-500"}`}>
+                  ⚡是非
+                </button>
+                <button type="button" onClick={() => setQuestionType("shortanswer")} className={`flex items-center justify-center gap-1.5 px-2 py-2 rounded-md text-sm font-medium transition-all ${questionType === "shortanswer" ? "bg-white text-blue-700 shadow-sm" : "text-slate-500"}`}>
+                  💬簡答
+                </button>
+              </div>
+            </Card>
+          )}
+          </>
+          )}
+
+          {(formMode === "quick" || wizardStep === 2) && (
           <Card className="p-6 card-hover">
             <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-primary" />
               選項設置
             </h2>
 
-            {/* 題型切換（4 種） */}
+            {/* 題型切換（4 種）— wizard 模式 step 1 已選過，不再顯示避免視覺重複 */}
+            {formMode === "quick" && (
             <div className="mb-4 grid grid-cols-2 sm:grid-cols-4 gap-2 p-1 bg-slate-100 rounded-lg">
               <button
                 type="button"
@@ -470,6 +559,7 @@ export default function Teacher() {
                 💬簡答
               </button>
             </div>
+            )}
 
             {questionType === "truefalse" && (
               <div className="mb-4 p-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg">
@@ -574,28 +664,106 @@ export default function Teacher() {
               </div>
             </label>
           </Card>
+          )}
 
-          <Button
-            type="submit"
-            className="w-full h-12 text-lg shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-r from-primary via-red-500 to-purple-600 hover:scale-[1.02] ripple"
-            disabled={createQuestion.isPending || !canSubmit}
-          >
-            {createQuestion.isPending ? (
-              <div className="flex items-center gap-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                建立中...
+          {/* wizard step 3：摘要預覽 */}
+          {formMode === "wizard" && wizardStep === 3 && (
+            <Card className="p-6 bg-gradient-to-br from-emerald-50 to-blue-50 border-emerald-200">
+              <h3 className="text-lg font-bold text-emerald-900 mb-4 flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5" />準備建立 — 確認以下設定
+              </h3>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <div className="text-xs text-slate-500">題目圖片</div>
+                  {imageUrl ? (
+                    <img src={imageUrl} alt="題目" className="w-full max-h-40 object-contain bg-white rounded border" />
+                  ) : (
+                    <div className="text-sm text-red-600">⚠️ 還沒上傳圖片，請回 step 1</div>
+                  )}
+                </div>
+                <div className="space-y-3 text-sm">
+                  <div>
+                    <span className="text-slate-500">題型：</span>
+                    <span className="font-semibold text-slate-800 ml-1">
+                      {questionType === "single" ? "◯ 單選題" : questionType === "multiple" ? "☑️ 多選題" : questionType === "truefalse" ? "⚡ 是非題" : "💬 簡答題"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">具名：</span>
+                    <span className="font-semibold ml-1">{requireIdentity ? "✅ 需要學生填姓名" : "❌ 匿名投票"}</span>
+                  </div>
+                  {questionType === "single" || questionType === "multiple" ? (
+                    <div>
+                      <span className="text-slate-500">選項（{validOptionCount} 個）：</span>
+                      <ol className="list-decimal list-inside mt-1 space-y-0.5 text-slate-700">
+                        {options.filter((o) => o.value.trim()).map((o, i) => (
+                          <li key={o.id}>{o.value}</li>
+                        ))}
+                      </ol>
+                    </div>
+                  ) : (
+                    <div className="text-slate-600 text-xs">{questionType === "truefalse" ? "選項自動鎖定 ⭕ 是 / ❌ 否" : `學生可輸入最多 ${firestore.SHORTANSWER_MAX_LENGTH} 字`}</div>
+                  )}
+                </div>
               </div>
-            ) : (
-              "建立問題"
-            )}
-          </Button>
+            </Card>
+          )}
 
-          {!imageUrl && (
+          {/* wizard 模式的 Prev/Next + 建立按鈕 */}
+          {formMode === "wizard" ? (
+            <div className="flex items-center gap-2">
+              {wizardStep > 1 ? (
+                <Button type="button" variant="outline" onClick={() => setWizardStep((wizardStep - 1) as 1 | 2 | 3)} className="gap-1">
+                  <ChevronLeft className="w-4 h-4" />上一步
+                </Button>
+              ) : <div className="flex-1" />}
+              <div className="flex-1" />
+              {wizardStep < 3 ? (
+                <Button
+                  type="button"
+                  onClick={() => setWizardStep((wizardStep + 1) as 1 | 2 | 3)}
+                  disabled={
+                    (wizardStep === 1 && !imageUrl) ||
+                    (wizardStep === 2 && optionsRequired && validOptionCount < 2)
+                  }
+                  className="gap-1"
+                >
+                  下一步<ChevronRight className="w-4 h-4" />
+                </Button>
+              ) : (
+                <Button
+                  type="submit"
+                  className="h-12 text-lg shadow-lg bg-gradient-to-r from-primary via-red-500 to-purple-600 hover:scale-[1.02] gap-2"
+                  disabled={createQuestion.isPending || !canSubmit}
+                >
+                  {createQuestion.isPending ? <><div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />建立中…</> : <>🚀 建立問題</>}
+                </Button>
+              )}
+            </div>
+          ) : (
+            <Button
+              type="submit"
+              className="w-full h-12 text-lg shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-r from-primary via-red-500 to-purple-600 hover:scale-[1.02] ripple"
+              disabled={createQuestion.isPending || !canSubmit}
+            >
+              {createQuestion.isPending ? (
+                <div className="flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                  建立中...
+                </div>
+              ) : (
+                "建立問題"
+              )}
+            </Button>
+          )}
+
+          {/* quick 模式的提示文字 */}
+          {formMode === "quick" && !imageUrl && (
             <p className="text-sm text-muted-foreground text-center animate-fade-in">
               請先上傳或截取圖片
             </p>
           )}
-          {optionsRequired && validOptionCount < 2 && (
+          {formMode === "quick" && optionsRequired && validOptionCount < 2 && (
             <p className="text-sm text-muted-foreground text-center animate-fade-in">
               請至少填寫兩個選項（目前已填寫 {validOptionCount} 個）
             </p>
