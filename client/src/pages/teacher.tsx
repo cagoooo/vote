@@ -12,10 +12,10 @@ import { useVotingSound } from "@/hooks/use-voting-sounds";
 import * as firestore from "@/lib/firestore-voting";
 import { auth, signInWithGoogle, signOut } from "@/lib/firebase";
 import { onAuthStateChanged, type User } from "firebase/auth";
-import { Plus, Minus, Sparkles, RefreshCw, CheckCircle2, Eye, EyeOff, LogIn, LogOut, UserCircle, LayoutGrid, Download, Monitor, Timer, UserCheck, X as XIcon, CheckSquare, Circle, Pencil } from "lucide-react";
+import { Plus, Minus, Sparkles, RefreshCw, CheckCircle2, Eye, EyeOff, LogIn, LogOut, UserCircle, LayoutGrid, Download, Monitor, Timer, UserCheck, X as XIcon, CheckSquare, Circle, Pencil, GripVertical } from "lucide-react";
 import { EditQuestionDialog } from "@/components/edit-question-dialog";
 import { WordCloud } from "@/components/word-cloud";
-import { motion } from "framer-motion";
+import { motion, Reorder } from "framer-motion";
 import { Link } from "wouter";
 import { exportQuestionVotes } from "@/lib/csv-export";
 import { compressImageToFit } from "@/lib/image-compress";
@@ -23,7 +23,14 @@ import { uploadImageIfLarge } from "@/lib/image-storage";
 
 export default function Teacher() {
   const [imageUrl, setImageUrl] = useState("");
-  const [options, setOptions] = useState<string[]>(["", "", ""]);
+  // 選項用 { id, value } 而非純 string，給 framer-motion Reorder 穩定 key 用
+  type OptionItem = { id: string; value: string };
+  const newOptionId = () => `opt_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+  const [options, setOptions] = useState<OptionItem[]>(() => [
+    { id: newOptionId(), value: "" },
+    { id: newOptionId(), value: "" },
+    { id: newOptionId(), value: "" },
+  ]);
   const [questionType, setQuestionType] = useState<"single" | "multiple" | "truefalse" | "shortanswer">("single");
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [requireIdentity, setRequireIdentity] = useState(false);
@@ -122,7 +129,7 @@ export default function Teacher() {
           ? firestore.TRUEFALSE_OPTIONS
           : questionType === "shortanswer"
             ? firestore.SHORTANSWER_PLACEHOLDER_OPTIONS
-            : options.filter(Boolean);
+            : options.map((o) => o.value).filter(Boolean);
       return await firestore.createQuestion(imageUrl, finalOptions, { requireIdentity, questionType });
     },
     onSuccess: (question) => {
@@ -226,7 +233,11 @@ export default function Teacher() {
       await firestore.deactivateQuestion(createdQuestion.id);
     }
     setImageUrl("");
-    setOptions(["", "", ""]);
+    setOptions([
+      { id: newOptionId(), value: "" },
+      { id: newOptionId(), value: "" },
+      { id: newOptionId(), value: "" },
+    ]);
     setCreatedQuestion(null);
     setVotesStats({});
     toast({
@@ -235,17 +246,12 @@ export default function Teacher() {
     });
   };
 
-  const addOption = () => setOptions([...options, ""]);
-  const removeOption = (index: number) => {
-    const newOptions = [...options];
-    newOptions.splice(index, 1);
-    setOptions(newOptions);
+  const addOption = () => setOptions([...options, { id: newOptionId(), value: "" }]);
+  const removeOptionById = (id: string) => {
+    setOptions(options.filter((o) => o.id !== id));
   };
-
-  const updateOption = (index: number, value: string) => {
-    const newOptions = [...options];
-    newOptions[index] = value;
-    setOptions(newOptions);
+  const updateOptionById = (id: string, value: string) => {
+    setOptions(options.map((o) => (o.id === id ? { ...o, value } : o)));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -298,7 +304,7 @@ export default function Teacher() {
     }
   };
 
-  const validOptionCount = options.filter(Boolean).length;
+  const validOptionCount = options.filter((o) => o.value.trim()).length;
   const optionsRequired = questionType === "single" || questionType === "multiple";
   const canSubmit = !!imageUrl && (!optionsRequired || validOptionCount >= 2);
 
@@ -490,28 +496,53 @@ export default function Teacher() {
               </div>
             )}
 
-            <div className={`space-y-4 animate-fade-in ${questionType === "truefalse" || questionType === "shortanswer" ? "opacity-40 pointer-events-none" : ""}`}>
-              {options.map((option, index) => (
-                <div key={index} className="flex gap-2 animate-slide-up" style={{ animationDelay: `${index * 100}ms` }}>
-                  <Input
-                    value={option}
-                    onChange={(e) => updateOption(index, e.target.value)}
-                    placeholder={`選項 ${index + 1}`}
-                    className="transition-all duration-300 focus:ring-2 focus:ring-green-500/20 border-green-100 hover:border-green-200 focus:border-green-300 focus:outline-none bg-green-50/30"
-                  />
-                  {options.length > 2 && (
-                    <Button
+            <div className={questionType === "truefalse" || questionType === "shortanswer" ? "opacity-40 pointer-events-none" : ""}>
+              {options.length >= 3 && (
+                <p className="text-xs text-slate-500 mb-2 flex items-center gap-1">
+                  <GripVertical className="w-3 h-3" />可拖曳左側把手調整順序
+                </p>
+              )}
+              <Reorder.Group
+                axis="y"
+                values={options}
+                onReorder={setOptions}
+                className="space-y-3"
+              >
+                {options.map((opt, index) => (
+                  <Reorder.Item
+                    key={opt.id}
+                    value={opt}
+                    className="flex items-center gap-2 bg-white rounded-md cursor-default"
+                    whileDrag={{ scale: 1.02, boxShadow: "0 8px 24px rgba(59,130,246,0.25)", zIndex: 10 }}
+                  >
+                    <button
                       type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={() => removeOption(index)}
-                      className="hover:bg-red-500/10 hover:border-red-200 transition-colors"
+                      className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0 p-1"
+                      aria-label="拖曳排序"
+                      onPointerDown={(e) => e.currentTarget.setPointerCapture(e.pointerId)}
                     >
-                      <Minus className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              ))}
+                      <GripVertical className="w-4 h-4" />
+                    </button>
+                    <Input
+                      value={opt.value}
+                      onChange={(e) => updateOptionById(opt.id, e.target.value)}
+                      placeholder={`選項 ${index + 1}`}
+                      className="transition-all duration-300 focus:ring-2 focus:ring-green-500/20 border-green-100 hover:border-green-200 focus:border-green-300 focus:outline-none bg-green-50/30"
+                    />
+                    {options.length > 2 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => removeOptionById(opt.id)}
+                        className="hover:bg-red-500/10 hover:border-red-200 transition-colors flex-shrink-0"
+                      >
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </Reorder.Item>
+                ))}
+              </Reorder.Group>
             </div>
 
             <div className="mt-4">

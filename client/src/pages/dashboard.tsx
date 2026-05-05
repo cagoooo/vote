@@ -218,9 +218,31 @@ export default function Dashboard() {
                             <Clock className="w-3 h-3" />已停用
                           </Badge>
                         )}
-                        {q.correctAnswer !== null && q.correctAnswer !== undefined && (
+                        {(q.correctAnswer !== null && q.correctAnswer !== undefined) ||
+                          (Array.isArray(q.correctAnswers) && q.correctAnswers.length > 0) ? (
                           <Badge className="bg-blue-500 hover:bg-blue-500 text-white shadow gap-1">
                             <CheckCircle2 className="w-3 h-3" />已設答案
+                          </Badge>
+                        ) : null}
+                      </div>
+
+                      {/* 題型徽章（左下角，題目內容區的視覺識別） */}
+                      <div className="absolute bottom-2 left-2">
+                        {q.questionType === "multiple" ? (
+                          <Badge className="bg-purple-100 text-purple-800 border border-purple-300 shadow-sm gap-1 hover:bg-purple-100">
+                            ☑️ 多選
+                          </Badge>
+                        ) : q.questionType === "truefalse" ? (
+                          <Badge className="bg-amber-100 text-amber-800 border border-amber-300 shadow-sm gap-1 hover:bg-amber-100">
+                            ⚡ 是非
+                          </Badge>
+                        ) : q.questionType === "shortanswer" ? (
+                          <Badge className="bg-pink-100 text-pink-800 border border-pink-300 shadow-sm gap-1 hover:bg-pink-100">
+                            💬 簡答
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-blue-100 text-blue-800 border border-blue-300 shadow-sm gap-1 hover:bg-blue-100">
+                            ◯ 單選
                           </Badge>
                         )}
                       </div>
@@ -228,11 +250,15 @@ export default function Dashboard() {
 
                     <div className="p-4 flex-1 flex flex-col gap-3">
                       <div className="space-y-1">
-                        {q.options.slice(0, 4).map((opt, i) => (
+                        {q.options.slice(0, 4).map((opt, i) => {
+                          const isCorrect =
+                            i === q.correctAnswer ||
+                            (Array.isArray(q.correctAnswers) && q.correctAnswers.includes(i));
+                          return (
                           <div
                             key={i}
                             className={`text-sm px-2 py-1 rounded ${
-                              i === q.correctAnswer
+                              isCorrect
                                 ? "bg-blue-50 text-blue-900 font-medium"
                                 : "bg-gray-50 text-gray-700"
                             }`}
@@ -240,7 +266,8 @@ export default function Dashboard() {
                             <span className="text-gray-400 mr-1.5">{i + 1}.</span>
                             <span className="truncate inline-block align-bottom max-w-[85%]">{opt}</span>
                           </div>
-                        ))}
+                          );
+                        })}
                         {q.options.length > 4 && (
                           <div className="text-xs text-gray-400 px-2">+{q.options.length - 4} 個選項…</div>
                         )}
