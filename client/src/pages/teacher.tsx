@@ -34,9 +34,9 @@ export default function Teacher() {
   const [questionType, setQuestionType] = useState<"single" | "multiple" | "truefalse" | "shortanswer">("single");
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
-  // 建題介面模式：wizard（新手友好分步驟）/ quick（資深者單頁）
+  // 建題介面模式：quick（單頁，預設）/ wizard（新手分步驟）
   const [formMode, setFormMode] = useState<"wizard" | "quick">(
-    () => (localStorage.getItem("teacher_form_mode") as any) || "wizard"
+    () => (localStorage.getItem("teacher_form_mode") as any) || "quick"
   );
   const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(1);
   const switchFormMode = (m: "wizard" | "quick") => {
