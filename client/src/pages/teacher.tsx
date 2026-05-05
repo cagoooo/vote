@@ -507,6 +507,60 @@ export default function Teacher() {
                   💬簡答
                 </button>
               </div>
+
+              {/* 各題型說明卡 — 點選後立即視覺回饋 */}
+              <motion.div
+                key={questionType}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25 }}
+                className="mt-4"
+              >
+                {questionType === "single" && (
+                  <div className="p-4 bg-gradient-to-r from-blue-50 to-sky-50 border border-blue-200 rounded-lg space-y-2">
+                    <p className="text-sm font-semibold text-blue-900 flex items-center gap-1.5">
+                      <Circle className="w-4 h-4" />單選題
+                    </p>
+                    <ul className="text-xs text-blue-800/90 space-y-1 list-disc list-inside">
+                      <li>下一步可填 2 個以上選項，學生只能選一個</li>
+                      <li>適合：常識問答、閱讀測驗、多選一</li>
+                      <li>學生點選即送出，不能改</li>
+                    </ul>
+                  </div>
+                )}
+                {questionType === "multiple" && (
+                  <div className="p-4 bg-gradient-to-r from-purple-50 to-fuchsia-50 border border-purple-200 rounded-lg space-y-2">
+                    <p className="text-sm font-semibold text-purple-900 flex items-center gap-1.5">
+                      <CheckSquare className="w-4 h-4" />多選題
+                    </p>
+                    <ul className="text-xs text-purple-800/90 space-y-1 list-disc list-inside">
+                      <li>下一步可填 2 個以上選項，學生可勾多個再送出</li>
+                      <li>適合：哪些原因 / 列出所有正確答案</li>
+                      <li>正解可設多個，全選對才算對</li>
+                    </ul>
+                  </div>
+                )}
+                {questionType === "truefalse" && (
+                  <div className="p-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg space-y-2">
+                    <p className="text-sm font-semibold text-amber-900">⚡ 是非題（自動使用以下兩個選項）</p>
+                    <p className="text-xs text-amber-800/90">不用填選項，下一步直接到具名設定。學生看到的是：</p>
+                    <div className="flex gap-3">
+                      <div className="flex-1 bg-white rounded-md py-3 text-center font-bold text-2xl border-2 border-green-300">⭕ 是</div>
+                      <div className="flex-1 bg-white rounded-md py-3 text-center font-bold text-2xl border-2 border-red-300">❌ 否</div>
+                    </div>
+                  </div>
+                )}
+                {questionType === "shortanswer" && (
+                  <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg space-y-2">
+                    <p className="text-sm font-semibold text-purple-900">💬 簡答題</p>
+                    <ul className="text-xs text-purple-800/90 space-y-1 list-disc list-inside">
+                      <li>不用填選項，學生會看到文字輸入框（最多 {firestore.SHORTANSWER_MAX_LENGTH} 字）</li>
+                      <li>老師端與課堂模式即時顯示 <strong>文字雲</strong>，相同答案合併、出現越多字級越大</li>
+                      <li>適合：腦力激盪、收集回饋、單字接龍</li>
+                    </ul>
+                  </div>
+                )}
+              </motion.div>
             </Card>
           )}
           </>
