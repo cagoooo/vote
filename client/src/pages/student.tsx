@@ -19,6 +19,8 @@ export default function Student() {
   const params = useParams<{ id: string }>();
   const questionId = params.id;
   const [question, setQuestion] = useState<any | null>(null);
+  // 區分「載入中」「找不到此題目」「沒帶 ID 直連根目錄」三種情境
+  const [notFound, setNotFound] = useState(false);
   const [hasVoted, setHasVoted] = useState(false);
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
   const { triggerConfetti } = useConfetti();
@@ -41,7 +43,13 @@ export default function Student() {
       started = true;
       if (questionId) {
         unsubQ = firestore.listenToQuestion(questionId, (q) => {
-          if (q) setQuestion(q);
+          if (q) {
+            setQuestion(q);
+            setNotFound(false);
+          } else {
+            // listener 已成功送出但題目不存在 → 流水號錯誤或題目已刪除
+            setNotFound(true);
+          }
         });
         unsubV = firestore.getVotesStats(questionId, (stats, totalVoters) => {
           setTotals(stats);
@@ -204,6 +212,27 @@ export default function Student() {
   });
 
   if (!question) {
+    // 帶 ID 但 listener 已回報不存在 → 流水號錯誤或題目已刪除
+    if (questionId && notFound) {
+      return (
+        <div className="page-container text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="space-y-3"
+          >
+            <div className="text-7xl">🔎</div>
+            <h1 className="text-2xl font-bold gradient-text">找不到這個題目</h1>
+            <p className="text-muted-foreground">
+              請跟老師確認連結是否正確，或重新掃 QR Code
+            </p>
+            <p className="text-xs text-slate-400 font-mono break-all">ID: {questionId}</p>
+          </motion.div>
+        </div>
+      );
+    }
+    // 沒帶 ID（直連根目錄）或還在載入中
     return (
       <div className="page-container text-center">
         <motion.div
