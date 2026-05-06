@@ -74,6 +74,37 @@
 
 ## 📅 開發進度紀錄
 
+### 2026-05-06（下午） — 修「按更新一直跳出來」（v1.2.2）✅
+
+**症狀**：使用者按下「立即更新」後，頁面 reload 完成，更新提示又馬上跳出來，無限循環。
+
+**三個疊加根因**：
+
+1. **`clientsClaim: true` + `skipWaiting: false` 在 prompt 模式下會打架**
+   - 官方 prompt 模式範例兩者都 `false`，由 UI 完全控制 SW 接管時機
+   - 之前的搭配在手機特別容易讓 SW lifecycle 異常 → reload 後新 SW 還沒乾淨 settle，`useRegisterSW` 又偵測到 update available
+
+2. **Fallback reload timeout 1.5 秒太短**
+   - 手機處理 `SKIP_WAITING` 常超過 1.5s，新 SW 還在 `waiting` 狀態
+   - setTimeout 強制 reload 時 SW 沒接管成功 → 重整後 `useRegisterSW` 又看到 waiting SW → 又跳通知
+
+3. **沒有「剛剛按過更新」的緩衝期**
+   - reload 完成後只要 SW 還在 settle 中（甚至幾百 ms），就會立刻又被偵測為 update available
+
+**修法**：
+
+- `vite.config.gh-pages.ts`：`clientsClaim: true → false`
+- `sw-update-prompt.tsx`：
+  - 加 `sessionStorage` 旗標 `sw_just_updated_at`，reload 前寫入時間戳
+  - mount 時讀旗標，30 秒內抑制提示（給新 SW 充裕時間完全 settle）
+  - 抑制期 setTimeout 自動解除，使用者真的有新版時還能看到提示
+  - `controllerchange` listener 改在 `postMessage` 之前就註冊好，避免處理超快錯過事件
+  - 加 waiting SW 的 `statechange === "activated"` 雙保險也觸發 reload
+  - Fallback timeout `1.5s → 5s`（手機更友善）
+- 檔案：`vite.config.gh-pages.ts`、`client/src/components/sw-update-prompt.tsx`
+
+---
+
 ### 2026-05-06 — Bug 修正三連發（v1.2.1）✅
 
 **1. 簡答題文字雲依「裝置」分色**（鑑別度）

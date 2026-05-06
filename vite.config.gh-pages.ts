@@ -64,9 +64,10 @@ export default defineConfig({
                         handler: "NetworkOnly",
                     },
                 ],
-                // SW 立即接管，舊 SW 不要等
-                skipWaiting: false, // 由 prompt UI 控制：使用者點更新才 skipWaiting
-                clientsClaim: true,
+                // prompt 模式：兩者都 false，由 UI 完全控制 SW 接管時機
+                // 之前 clientsClaim:true 配 skipWaiting:false 會在手機上造成 lifecycle 異常 → 按更新後又跳更新提示
+                skipWaiting: false,
+                clientsClaim: false,
                 cleanupOutdatedCaches: true,
                 // bundle 較大，提高上限避免 warning（單一 chunk ~970KB）
                 maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,

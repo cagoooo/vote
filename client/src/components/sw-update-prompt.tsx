@@ -9,17 +9,33 @@ import { motion, AnimatePresence } from "framer-motion";
  *
  * 偵測到新版部署時，顯示底部置中的浮動 banner，
  * 使用者點「立即更新」會：
- *   1. 對 waiting SW 送 SKIP_WAITING（讓新版立刻接管）
- *   2. 監聽 controllerchange，一接管就 reload
- *   3. Fallback：1.5 秒沒接管也強制 reload（avoid hang）
+ *   1. 先註冊 controllerchange listener（要在 SKIP_WAITING 之前，避免 race）
+ *   2. 對 waiting SW 送 SKIP_WAITING + 監聽其 statechange === "activated"
+ *   3. 任一觸發就 reload
+ *   4. Fallback：5 秒沒接管也強制 reload（手機 SKIP_WAITING 常 >1.5s）
  *
- * 用 prompt 模式（非 autoUpdate）避免：
- *  - infinite reload 雷
- *  - 學生正在投票時無預警 reload 投票流失
+ * 抑制期（核心防止「按完更新又跳」）：
+ *   按下更新時在 sessionStorage 寫旗標，reload 後 mount 偵測到旗標
+ *   就 30 秒內不顯示提示，給新 SW 充裕時間完全 settle
  */
+const SUPPRESS_KEY = "sw_just_updated_at";
+const SUPPRESS_MS = 30_000;
+
 export function SwUpdatePrompt() {
     const [dismissed, setDismissed] = useState(false);
     const [updating, setUpdating] = useState(false);
+    // mount 時讀 sessionStorage：剛剛按過更新且 reload 完，30 秒內抑制提示
+    const [suppressed, setSuppressed] = useState<boolean>(() => {
+        if (typeof sessionStorage === "undefined") return false;
+        const ts = Number(sessionStorage.getItem(SUPPRESS_KEY));
+        if (!ts) return false;
+        const elapsed = Date.now() - ts;
+        if (elapsed > SUPPRESS_MS) {
+            sessionStorage.removeItem(SUPPRESS_KEY);
+            return false;
+        }
+        return true;
+    });
     const reloadedRef = useRef(false);
     const {
         needRefresh: [needRefresh],
@@ -36,6 +52,18 @@ export function SwUpdatePrompt() {
         },
     });
 
+    // 抑制期過了自動解除（讓使用者真的有新版時還能看到提示）
+    useEffect(() => {
+        if (!suppressed) return;
+        const ts = Number(sessionStorage.getItem(SUPPRESS_KEY)) || 0;
+        const remain = Math.max(0, SUPPRESS_MS - (Date.now() - ts));
+        const t = window.setTimeout(() => {
+            sessionStorage.removeItem(SUPPRESS_KEY);
+            setSuppressed(false);
+        }, remain);
+        return () => window.clearTimeout(t);
+    }, [suppressed]);
+
     useEffect(() => {
         if (needRefresh) {
             setDismissed(false);
@@ -47,6 +75,10 @@ export function SwUpdatePrompt() {
     const doReload = () => {
         if (reloadedRef.current) return;
         reloadedRef.current = true;
+        // 寫旗標再 reload，重整後 mount 期間會抑制提示
+        try {
+            sessionStorage.setItem(SUPPRESS_KEY, String(Date.now()));
+        } catch { /* sessionStorage 可能被 disable */ }
         window.location.reload();
     };
 
@@ -54,25 +86,31 @@ export function SwUpdatePrompt() {
         if (updating) return;
         setUpdating(true);
 
-        // 1) 對 waiting SW 送 SKIP_WAITING
         try {
             if ("serviceWorker" in navigator) {
+                // 1) 監聽要在 postMessage 之前註冊好，避免 SKIP_WAITING 處理超快錯過事件
+                navigator.serviceWorker.addEventListener("controllerchange", doReload, { once: true });
+
                 const reg = await navigator.serviceWorker.getRegistration();
                 if (reg?.waiting) {
-                    reg.waiting.postMessage({ type: "SKIP_WAITING" });
+                    // 2) 雙保險：監聽 waiting SW 的 state 變 activated 也觸發 reload
+                    const waiting = reg.waiting;
+                    const onState = () => {
+                        if (waiting.state === "activated") doReload();
+                    };
+                    waiting.addEventListener("statechange", onState);
+                    waiting.postMessage({ type: "SKIP_WAITING" });
                 }
-                // 2) controllerchange 一發生就 reload
-                navigator.serviceWorker.addEventListener("controllerchange", doReload, { once: true });
             }
         } catch (err) {
             console.warn("[PWA] skipWaiting failed", err);
         }
 
-        // 3) Fallback：1.5 秒內 controllerchange 沒發生就強制 reload
-        window.setTimeout(doReload, 1500);
+        // 3) Fallback：5 秒（手機 SKIP_WAITING 處理常 >1.5s）
+        window.setTimeout(doReload, 5000);
     };
 
-    if (!needRefresh || dismissed) return null;
+    if (!needRefresh || dismissed || suppressed) return null;
 
     return (
         <AnimatePresence>
