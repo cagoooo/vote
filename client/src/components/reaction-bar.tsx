@@ -37,14 +37,16 @@ export function ReactionBar({ questionId }: Props) {
         }
     };
 
+    // 注意：fixed 定位 + 置中放在外層普通 div，motion.div 只做入場動畫。
+    // 否則 framer-motion 的 transform 會蓋掉 Tailwind 的 -translate-x-1/2，導致整個 bar 偏右。
     return (
-        <motion.div
-            initial={{ y: 50, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40"
-        >
-            <div className="bg-white/90 backdrop-blur-md border border-slate-200 rounded-full shadow-lg px-2 py-1.5 flex items-center gap-1">
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40">
+            <motion.div
+                initial={{ y: 50, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.3 }}
+                className="bg-white/90 backdrop-blur-md border border-slate-200 rounded-full shadow-lg px-2 py-1.5 flex items-center gap-1"
+            >
                 {EMOJIS.map((emoji) => (
                     <motion.button
                         key={emoji}
@@ -59,7 +61,7 @@ export function ReactionBar({ questionId }: Props) {
                         {emoji}
                     </motion.button>
                 ))}
-            </div>
-        </motion.div>
+            </motion.div>
+        </div>
     );
 }

@@ -28,7 +28,7 @@ export default function Present() {
     const { id } = useParams<{ id: string }>();
     const [question, setQuestion] = useState<any | null>(null);
     const [stats, setStats] = useState<Record<number, number>>({});
-    const [textAnswers, setTextAnswers] = useState<Array<{ id: string; text: string }>>([]);
+    const [textAnswers, setTextAnswers] = useState<Array<{ id: string; text: string; userId?: string }>>([]);
     const [reactions, setReactions] = useState<any[]>([]);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [showControls, setShowControls] = useState(true);

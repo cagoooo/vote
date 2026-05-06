@@ -1102,7 +1102,7 @@ export default function Teacher() {
 
 /** 簡答題即時答案文字雲 — 訂閱 votes textAnswer 並顯示 */
 function ShortAnswerLiveCloud({ questionId }: { questionId: string }) {
-  const [answers, setAnswers] = useState<Array<{ id: string; text: string }>>([]);
+  const [answers, setAnswers] = useState<Array<{ id: string; text: string; userId?: string }>>([]);
   useEffect(() => {
     return firestore.listenToTextAnswers(questionId, (list) => setAnswers(list));
   }, [questionId]);

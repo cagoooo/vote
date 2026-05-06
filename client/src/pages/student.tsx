@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import * as firestore from "@/lib/firestore-voting";
+import { auth } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 import { useParams } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2 } from "lucide-react";
@@ -27,30 +29,44 @@ export default function Student() {
   const [totalVotes, setTotalVotes] = useState(0);
 
   // 獲取問題數據與投票統計
+  // 重要：Firestore rules 要求 request.auth != null，必須等匿名登入完成才訂閱，
+  // 否則第一次掃 QR 進來會撞 permission_denied，listener 靜默死掉，畫面卡在「沒有活動問題」。
   useEffect(() => {
-    if (questionId) {
-      // 監聽特定問題
-      const unsubscribeQuestion = firestore.listenToQuestion(questionId, (q) => {
-        if (q) setQuestion(q);
-      });
+    let unsubQ: (() => void) | undefined;
+    let unsubV: (() => void) | undefined;
+    let started = false;
 
-      // 監聽投票統計（多選時 totalVoters 才是「投票人數」，stats 是「各選項被選次數」）
-      const unsubscribeVotes = firestore.getVotesStats(questionId, (stats, totalVoters) => {
-        setTotals(stats);
-        setTotalVotes(totalVoters);
-      });
+    const startSubscriptions = () => {
+      if (started) return;
+      started = true;
+      if (questionId) {
+        unsubQ = firestore.listenToQuestion(questionId, (q) => {
+          if (q) setQuestion(q);
+        });
+        unsubV = firestore.getVotesStats(questionId, (stats, totalVoters) => {
+          setTotals(stats);
+          setTotalVotes(totalVoters);
+        });
+      } else {
+        unsubQ = firestore.getActiveQuestion((q) => {
+          setQuestion(q);
+        });
+      }
+    };
 
-      return () => {
-        unsubscribeQuestion();
-        unsubscribeVotes();
-      };
-    } else {
-      // 獲取活動問題
-      const unsubscribeQuestion = firestore.getActiveQuestion((q) => {
-        setQuestion(q);
-      });
-      return () => unsubscribeQuestion();
+    // auth 已就緒就直接訂；還沒就等 onAuthStateChanged 第一次回有 user
+    if (auth.currentUser) {
+      startSubscriptions();
     }
+    const unsubAuth = onAuthStateChanged(auth, (user) => {
+      if (user) startSubscriptions();
+    });
+
+    return () => {
+      unsubAuth();
+      unsubQ?.();
+      unsubV?.();
+    };
   }, [questionId]);
 
   // 檢查是否已經投票

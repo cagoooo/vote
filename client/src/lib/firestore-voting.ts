@@ -239,13 +239,17 @@ export const getQuestion = async (id: string) => {
 // 監聽特定問題
 export const listenToQuestion = (id: string, callback: (question: FirestoreQuestion | null) => void) => {
     const docRef = doc(db, "questions", id);
-    return onSnapshot(docRef, (d) => {
-        if (d.exists()) {
-            callback({ id: d.id, ...d.data() } as FirestoreQuestion);
-        } else {
-            callback(null);
-        }
-    });
+    return onSnapshot(
+        docRef,
+        (d) => {
+            if (d.exists()) {
+                callback({ id: d.id, ...d.data() } as FirestoreQuestion);
+            } else {
+                callback(null);
+            }
+        },
+        (err) => console.error("[listenToQuestion]", id, err)
+    );
 };
 
 // 投票（identity 為選填，需具名題目才會帶）
@@ -305,7 +309,7 @@ export const addVote = async (
 // 訂閱某題的簡答題答案（即時，給老師端 word cloud 用）
 export const listenToTextAnswers = (
     questionId: string,
-    callback: (answers: Array<{ id: string; text: string; userName?: string; timestamp?: any }>) => void
+    callback: (answers: Array<{ id: string; text: string; userId?: string; userName?: string; timestamp?: any }>) => void
 ) => {
     const q = query(
         collection(db, "votes"),
@@ -313,7 +317,7 @@ export const listenToTextAnswers = (
         orderBy("timestamp", "asc")
     );
     return onSnapshot(q, (snap) => {
-        type Item = { id: string; text: string; userName?: string; timestamp?: any };
+        type Item = { id: string; text: string; userId?: string; userName?: string; timestamp?: any };
         const list: Item[] = [];
         snap.docs.forEach((d) => {
             const data = d.data() as any;
@@ -321,6 +325,7 @@ export const listenToTextAnswers = (
             list.push({
                 id: d.id,
                 text: data.textAnswer,
+                userId: data.userId,
                 userName: data.voterName,
                 timestamp: data.timestamp,
             });

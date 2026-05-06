@@ -74,6 +74,30 @@
 
 ## 📅 開發進度紀錄
 
+### 2026-05-06 — Bug 修正三連發（v1.2.1）✅
+
+**1. 簡答題文字雲依「裝置」分色**（鑑別度）
+- 原本：顏色用「字串 hash」取色 → 不同裝置送不同字也可能撞色
+- 改為：用「裝置 userId」分色，依送出順序配色（第 1 個裝置→色 1、第 2 個→色 2…）相鄰裝置不撞色
+- 同字被多裝置投到時仍合併計數（×N），用「第一個送該字的裝置」配色
+- 調色盤從 9 色擴到 14 色（加 teal/fuchsia/lime/red/sky）
+- `listenToTextAnswers` 多回傳 `userId`（從 vote payload）
+- 檔案：`client/src/components/word-cloud.tsx`、`client/src/lib/firestore-voting.ts`、`client/src/pages/{teacher,present}.tsx`
+
+**2. 手機第一次掃 QR 進投票連結讀不到題目**（auth race）
+- 根因：Firestore rules 要求 `request.auth != null`；學生頁 mount 後立刻訂閱 `listenToQuestion`，但匿名登入還沒完成 → 撞 `permission_denied` → listener 靜默死掉、不重試 → 畫面卡在「目前沒有活動的問題」。重整時 anon uid 已被 SDK 快取在 IndexedDB 才 OK
+- 行動裝置因網路較慢、登入完成晚於頁面 mount，特別容易踩
+- 修法：`student.tsx` 訂閱前先檢查 `auth.currentUser`，沒有就用 `onAuthStateChanged` 等到 user 出現再訂閱（用 `started` flag 避免重複訂閱）
+- 順手給 `listenToQuestion` 加 error handler，未來再撞權限/網路錯誤會印 console 不會啞掉
+- 檔案：`client/src/pages/student.tsx`、`client/src/lib/firestore-voting.ts`
+
+**3. 表情反饋列（ReactionBar）偏右沒有置中**
+- 根因：`motion.div` 的 `initial`/`animate` 會塞 `transform: translate(...)` 到 style，**整個覆蓋**掉 Tailwind 的 `-translate-x-1/2`。結果 `left-1/2` 把 bar 的左邊緣對齊螢幕中線 → 整個 bar 跑到右半邊
+- 修法：fixed 定位 + 置中放在外層普通 `div`，`motion.div` 只負責入場動畫，避免 transform 衝突
+- 檔案：`client/src/components/reaction-bar.tsx`
+
+---
+
 ### 2026-05-05（凌晨 11 點） — D6 建題 Wizard ✅
 
 新手友善的 3 步引導模式，搭配快速模式雙保險：
