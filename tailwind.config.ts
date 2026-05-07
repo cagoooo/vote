@@ -1,10 +1,16 @@
 import type { Config } from "tailwindcss";
 
 export default {
-  darkMode: ["class"],
+  // 全站永遠亮色：把 darkMode selector 設成永遠不會匹配的字串，
+  // 讓 shadcn UI 殘留的 `dark:` prefix 在 build 時編譯成「永遠不啟用」的選擇器，
+  // 即使有人不小心在 root 加上 class="dark" 也不會切深色。
+  darkMode: ["class", '[data-theme="never"]'],
   content: ["./client/index.html", "./client/src/**/*.{js,jsx,ts,tsx}"],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Nunito', '-apple-system', 'PingFang TC', 'Helvetica Neue', 'sans-serif'],
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",

@@ -326,8 +326,18 @@ export default function Student() {
 
   const maxVotes = Math.max(...Object.values(totals), 0);
 
+  // Playful Campus 選項色塊（與 teacher / voting-stats 同步）
+  const OPT_PALETTES = [
+    { bg: "#FEE2E2", dot: "#EF4444" },
+    { bg: "#DBEAFE", dot: "#3B82F6" },
+    { bg: "#FEF3C7", dot: "#F59E0B" },
+    { bg: "#D1FAE5", dot: "#10B981" },
+    { bg: "#EDE9FE", dot: "#8B5CF6" },
+    { bg: "#FCE7F3", dot: "#F472B6" },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-2 sm:p-4">
+    <div className="playful-shell min-h-screen p-2 sm:p-4">
       {/* 投票成功 overlay：confetti 同時，畫面中央彈出綠色勾勾大圖 */}
       <AnimatePresence>
         {showSuccessOverlay && (
@@ -372,20 +382,29 @@ export default function Student() {
           ⏱ <span className="tabular-nums text-lg">{secondsLeft}</span> 秒
         </motion.div>
       )}
-      <div className="max-w-2xl mx-auto">
-        <Card className="overflow-hidden shadow-xl border-0 bg-white/95 backdrop-blur-sm">
+      <div className="max-w-2xl mx-auto relative z-10">
+        {/* Playful 品牌列：logo + 班級提示 + LIVE chip */}
+        <div className="flex items-center gap-2 mb-3 px-1">
+          <img src={`${import.meta.env.BASE_URL}logo.png`} alt="" className="w-8 h-8 sm:w-9 sm:h-9 rounded-md" />
+          <div className="flex-1 leading-tight">
+            <div className="text-sm sm:text-base font-extrabold text-slate-900">即時投票系統</div>
+            <div className="text-[11px] text-slate-500">{committedName ? `${committedName} 同學` : "歡迎你！"}</div>
+          </div>
+          <span className="inline-flex items-center gap-1 text-[11px] px-2 py-1 bg-red-100 text-red-600 rounded-full font-extrabold">
+            <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-playful-pulse" />LIVE
+          </span>
+        </div>
+
+        <Card className="overflow-hidden shadow-xl border-0 bg-white/95 backdrop-blur-sm rounded-3xl">
           <div className="relative">
             <motion.img
               src={question.imageUrl}
               alt="問題圖片"
-              className="w-full h-auto max-h-[50vh] object-contain bg-gray-50"
+              className="w-full h-auto max-h-[50vh] object-contain bg-slate-50"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5 }}
             />
-            <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 text-sm font-medium text-gray-600 shadow-lg">
-              即時投票
-            </div>
           </div>
 
           <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
@@ -516,16 +535,22 @@ export default function Student() {
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.5 }}
                 >
-                  <div className="text-center mb-6">
-                    <h2 className="text-xl sm:text-2xl font-bold gradient-text mb-2">
-                      {isShortAnswer ? "請輸入你的答案" : isTrueFalse ? "你的判斷？" : isMultiple ? "可複選後送出" : "請選擇您的答案"}
+                  <div
+                    className="rounded-2xl p-4 mb-2"
+                    style={{ background: "linear-gradient(135deg,#EFF6FF,#FCE7F3)" }}
+                  >
+                    <div className="text-[11px] text-blue-700 font-extrabold mb-1">
+                      👋 {committedName ? `嗨，${committedName}` : "請選一個答案"}
+                    </div>
+                    <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 leading-snug">
+                      {isShortAnswer ? "請輸入你的答案" : isTrueFalse ? "你的判斷？" : isMultiple ? "可複選後再送出" : "請選擇你的答案"}
                     </h2>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs text-slate-500 mt-1">
                       {isShortAnswer
                         ? `最多 ${firestore.SHORTANSWER_MAX_LENGTH} 字（${textAnswer.length}/${firestore.SHORTANSWER_MAX_LENGTH}）`
                         : isMultiple
                           ? `已選 ${multiSelection.size} 項${multiSelection.size > 0 ? "，按下方送出" : ""}`
-                          : "點擊選項進行投票"}
+                          : "點選選項即送出"}
                     </p>
                   </div>
 
@@ -542,7 +567,7 @@ export default function Student() {
                       />
                       <Button
                         size="lg"
-                        className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-purple-600 to-pink-600 hover:scale-[1.02] transition-transform shadow-lg"
+                        className="playful-cta w-full h-14 text-lg rounded-2xl"
                         disabled={vote.isPending || !textAnswer.trim()}
                         onClick={() => {
                           const trimmed = textAnswer.trim();
@@ -559,25 +584,62 @@ export default function Student() {
                     </div>
                   ) : (
                   <>
-                  <div className={isTrueFalse ? "grid grid-cols-2 gap-3 sm:gap-4" : "grid gap-3 sm:gap-4"}>
+                  <div className={isTrueFalse ? "grid grid-cols-2 gap-3 sm:gap-4" : "flex flex-col gap-2.5"}>
                     {question.options.map((option: string, index: number) => {
+                      const palette = OPT_PALETTES[index % OPT_PALETTES.length];
                       const isMultiSelected = isMultiple && multiSelection.has(index);
+                      const isPicked = isMultiple ? isMultiSelected : selectedOption === index;
                       const isCorrectMulti = question.showAnswer && Array.isArray(question.correctAnswers) && question.correctAnswers.includes(index);
+                      const isAnswered = question.showAnswer && (question.correctAnswer === index || isCorrectMulti);
+                      const isWrongPick = question.showAnswer && isPicked && !isAnswered;
+
+                      // 是非題保留大圖示按鈕（⭕ / ❌）— 沿用現有色塊
+                      if (isTrueFalse) {
+                        return (
+                          <motion.button
+                            key={index}
+                            type="button"
+                            disabled={vote.isPending || hasVoted}
+                            onClick={() => {
+                              if (hasVoted || vote.isPending) return;
+                              setSelectedOption(index);
+                              setHasVoted(true);
+                              if (questionId) {
+                                localStorage.setItem(`voted_${questionId}`, index.toString());
+                              }
+                              vote.mutate(index);
+                            }}
+                            initial={{ x: -20, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            transition={{ delay: index * 0.1 }}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.97 }}
+                            className={`w-full aspect-square h-auto text-3xl sm:text-5xl font-black rounded-3xl transition-all duration-300 touch-manipulation grid place-items-center break-keep ${
+                              isPicked
+                                ? index === 0
+                                  ? "bg-emerald-500 text-white shadow-2xl"
+                                  : "bg-red-500 text-white shadow-2xl"
+                                : index === 0
+                                  ? "bg-white border-4 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                                  : "bg-white border-4 border-red-300 text-red-700 hover:bg-red-50"
+                            }`}
+                          >
+                            {option}
+                          </motion.button>
+                        );
+                      }
+
                       return (
-                      <motion.div
-                        key={index}
-                        initial={{ x: -20, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        transition={{ delay: index * 0.1 }}
-                      >
-                        <Button
+                        <motion.button
+                          key={index}
+                          type="button"
+                          disabled={vote.isPending || hasVoted}
                           onClick={() => {
                             if (hasVoted || vote.isPending) return;
                             if (isMultiple) {
                               toggleMulti(index);
                               return;
                             }
-                            // 單選 / 是非題：立即送出
                             setSelectedOption(index);
                             setHasVoted(true);
                             if (questionId) {
@@ -585,62 +647,57 @@ export default function Student() {
                             }
                             vote.mutate(index);
                           }}
-                          disabled={vote.isPending || hasVoted}
-                          variant={(isMultiple ? isMultiSelected : selectedOption === index) ? "default" : "outline"}
-                          className={
-                            isTrueFalse
-                              ? `w-full aspect-square h-auto text-3xl sm:text-5xl font-black transition-all duration-300 relative overflow-hidden touch-manipulation flex items-center justify-center break-keep ${
-                                  selectedOption === index
-                                    ? index === 0
-                                      ? "bg-green-500 hover:bg-green-600 text-white scale-105 shadow-2xl"
-                                      : "bg-red-500 hover:bg-red-600 text-white scale-105 shadow-2xl"
-                                    : index === 0
-                                      ? "border-4 border-green-300 text-green-700 hover:bg-green-50 hover:border-green-500 hover:scale-105"
-                                      : "border-4 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-500 hover:scale-105"
-                                }`
-                              : `w-full h-14 sm:h-12 text-base sm:text-lg font-medium transition-all duration-300 relative overflow-hidden touch-manipulation ${
-                                  (isMultiple ? isMultiSelected : selectedOption === index)
-                                    ? "bg-primary text-primary-foreground transform hover:scale-[1.02] hover:shadow-lg shadow-md"
-                                    : "hover:bg-primary/10 hover:border-primary/50 active:bg-primary/5"
-                                }`
-                          }
-                          asChild
+                          initial={{ x: -20, opacity: 0 }}
+                          animate={{ x: 0, opacity: 1 }}
+                          transition={{ delay: index * 0.08 }}
+                          whileHover={!hasVoted ? { scale: 1.01 } : undefined}
+                          whileTap={!hasVoted ? { scale: 0.99 } : undefined}
+                          className="w-full flex items-center gap-3 p-3 sm:p-3.5 rounded-2xl border-2 transition-all touch-manipulation text-left"
+                          style={{
+                            background: isAnswered
+                              ? "#D1FAE5"
+                              : isWrongPick
+                                ? "#FEE2E2"
+                                : isPicked
+                                  ? palette.bg
+                                  : "#fff",
+                            borderColor: isAnswered
+                              ? "#10B981"
+                              : isWrongPick
+                                ? "#EF4444"
+                                : isPicked
+                                  ? palette.dot
+                                  : "#E2E8F0",
+                            cursor: hasVoted ? "default" : "pointer",
+                          }}
                         >
-                          <motion.div
-                            whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
-                            whileTap={{ scale: 0.98 }}
+                          <span
+                            className="playful-letter w-9 h-9 text-sm flex-shrink-0"
+                            style={{ background: palette.dot }}
+                            aria-hidden
                           >
-                            <div className="relative z-10 flex items-center justify-center gap-2">
-                              {isMultiple && (
-                                <span className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center ${
-                                  isMultiSelected ? "bg-white border-white" : "border-current opacity-60"
-                                }`}>
-                                  {isMultiSelected && <CheckCircle2 className="w-4 h-4 text-primary" />}
-                                </span>
-                              )}
-                              <span>{option}</span>
-                              {question.showAnswer && (question.correctAnswer === index || isCorrectMulti) && (
-                                <motion.div
-                                  initial={{ scale: 0, opacity: 0 }}
-                                  animate={{ scale: 1, opacity: 1 }}
-                                  transition={{ type: "spring", stiffness: 300, delay: 0.2 }}
-                                >
-                                  <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-300 flex items-center gap-1">
-                                    <CheckCircle2 className="w-3 h-3" />
-                                    正確
-                                  </Badge>
-                                </motion.div>
-                              )}
-                              <motion.div
-                                className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/10 to-primary/0"
-                                animate={{ x: ["0%", "100%"] }}
-                                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                                style={{ opacity: (isMultiple ? isMultiSelected : selectedOption === index) ? 0 : 1 }}
-                              />
-                            </div>
-                          </motion.div>
-                        </Button>
-                      </motion.div>
+                            {String.fromCharCode(65 + index)}
+                          </span>
+                          <span className="flex-1 text-base sm:text-[15px] font-extrabold text-slate-900 break-words leading-snug">
+                            {option}
+                          </span>
+                          {isAnswered ? (
+                            <span className="text-2xl flex-shrink-0">✓</span>
+                          ) : isWrongPick ? (
+                            <span className="text-2xl flex-shrink-0">✗</span>
+                          ) : isPicked && !isMultiple ? (
+                            <span className="text-xl flex-shrink-0">👆</span>
+                          ) : isMultiple ? (
+                            <span
+                              className={`flex-shrink-0 w-5 h-5 rounded-md border-2 grid place-items-center transition-colors ${
+                                isMultiSelected ? "bg-white" : ""
+                              }`}
+                              style={{ borderColor: isMultiSelected ? palette.dot : "#CBD5E1" }}
+                            >
+                              {isMultiSelected && <CheckCircle2 className="w-4 h-4" style={{ color: palette.dot }} />}
+                            </span>
+                          ) : null}
+                        </motion.button>
                       );
                     })}
                   </div>
@@ -654,7 +711,7 @@ export default function Student() {
                     >
                       <Button
                         size="lg"
-                        className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-primary to-purple-600 hover:scale-[1.02] transition-transform shadow-lg"
+                        className="playful-cta w-full h-14 text-lg rounded-2xl"
                         disabled={vote.isPending || multiSelection.size === 0}
                         onClick={() => {
                           if (vote.isPending || multiSelection.size === 0) return;

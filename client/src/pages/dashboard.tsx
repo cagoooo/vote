@@ -143,15 +143,28 @@ export default function Dashboard() {
   const voteCounts = voteCountsQuery.data ?? {};
 
   return (
-    <div className="page-container max-w-5xl">
-      <div className="flex items-center justify-between mb-6 gap-2">
+    <div className="playful-shell">
+      <div className="page-container max-w-5xl">
+      {/* Playful 玻璃感頂列 */}
+      <header className="playful-topbar -mx-6 px-4 sm:px-6 py-3 mb-6 flex items-center justify-between gap-3 rounded-none">
         <Link href="/">
-          <Button variant="ghost" size="sm" className="gap-1">
-            <ArrowLeft className="w-4 h-4" />回首頁
+          <Button variant="ghost" size="sm" className="gap-1.5 rounded-full bg-white shadow-sm hover:bg-blue-50 text-slate-700 font-bold border border-slate-200">
+            <ArrowLeft className="w-4 h-4" />回建立題目
           </Button>
         </Link>
-        <h1 className="text-2xl sm:text-3xl font-bold gradient-text">我的題目</h1>
-        <div className="text-sm text-gray-500">共 {questions.length} 題</div>
+        <div className="flex items-center gap-2">
+          <img src={`${import.meta.env.BASE_URL}logo.png`} alt="" className="h-9 w-auto" />
+          <span className="hidden sm:inline text-sm font-extrabold text-slate-900">即時投票系統</span>
+        </div>
+      </header>
+
+      {/* Library 開頭 */}
+      <div className="mb-5">
+        <div className="text-[13px] text-blue-700 font-extrabold mb-1">📚 我的題庫</div>
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 leading-tight tracking-tight">
+          選一題再上一次，或建立新題目
+        </h1>
+        <div className="text-sm text-slate-500 mt-1">共 {questions.length} 題</div>
       </div>
 
       {questionsQuery.isLoading ? (
@@ -188,7 +201,7 @@ export default function Dashboard() {
                   exit={{ opacity: 0, scale: 0.9 }}
                   transition={{ duration: 0.25 }}
                 >
-                  <Card className="overflow-hidden h-full flex flex-col card-hover">
+                  <Card className="overflow-hidden h-full flex flex-col card-hover rounded-2xl border-0 shadow-[0_4px_20px_rgba(15,23,42,0.04)] hover:shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
                     <div className="relative aspect-[4/3] bg-gray-50 overflow-hidden">
                       {q.imageUrl ? (
                         <img src={q.imageUrl} alt="" className="w-full h-full object-contain" loading="lazy" />
@@ -341,6 +354,7 @@ export default function Dashboard() {
         open={!!editingQuestion}
         onOpenChange={(o) => !o && setEditingQuestion(null)}
       />
+      </div>
     </div>
   );
 }

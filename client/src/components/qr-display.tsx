@@ -29,50 +29,42 @@ export function QRDisplay({ questionId, roomCode }: QRDisplayProps) {
   };
 
   return (
-    <Card className="p-6 flex flex-col items-center gap-4 card-hover">
-      <div className="flex items-center gap-2">
-        <Scan className="w-5 h-5 text-primary" />
-        <h2 className="text-xl font-semibold gradient-text">掃描 QR 碼進行投票</h2>
+    <Card className="p-5 sm:p-6 rounded-3xl border-0 shadow-[0_4px_20px_rgba(15,23,42,0.04)]">
+      <div className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+        <Scan className="w-3.5 h-3.5" />學生掃描加入
       </div>
-      <div className="bg-white p-4 rounded-lg shadow-inner transition-transform hover:scale-105">
+      <div className="bg-slate-50 rounded-2xl p-3 grid place-items-center">
         <QRCode value={url} size={200} />
       </div>
 
       {roomCode && (
-        <div className="w-full bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3 space-y-1.5">
-          <div className="flex items-center justify-center gap-2 text-xs text-blue-700 flex-wrap">
-            <KeyRound className="w-3.5 h-3.5 flex-shrink-0" />
-            <span>或請學生到</span>
-            <a
-              href={joinUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-mono text-blue-700 hover:text-blue-900 underline underline-offset-2 decoration-blue-400 hover:decoration-blue-700 break-all"
-            >
-              {joinUrl}
+        <div className="mt-3.5 rounded-2xl p-3 text-center" style={{ background: "linear-gradient(135deg,#EFF6FF,#FCE7F3)" }}>
+          <div className="text-[11px] text-slate-500 mb-1 flex items-center justify-center gap-1">
+            <KeyRound className="w-3 h-3" />或前往{" "}
+            <a href={joinUrl} target="_blank" rel="noopener noreferrer" className="text-blue-700 underline underline-offset-2 decoration-blue-400 hover:decoration-blue-700">
+              vote ＋ 房間代碼
             </a>
-            <span>輸入代碼</span>
           </div>
           <button
             type="button"
             onClick={copyCode}
-            className="w-full flex items-center justify-center gap-3 py-2 rounded-md hover:bg-white/60 transition-colors group"
+            className="w-full flex items-center justify-center gap-3 py-1.5 rounded-md hover:bg-white/60 transition-colors group"
             title="點擊複製"
           >
-            <span className="font-mono text-3xl sm:text-4xl font-bold tracking-[0.3em] text-blue-900 select-all">
+            <span className="font-mono text-2xl sm:text-3xl font-extrabold tracking-[0.3em] text-blue-900 select-all">
               {roomCode}
             </span>
             {copied ? (
-              <Check className="w-5 h-5 text-green-600" />
+              <Check className="w-5 h-5 text-emerald-600" />
             ) : (
-              <Copy className="w-5 h-5 text-blue-400 group-hover:text-blue-600" />
+              <Copy className="w-4 h-4 text-blue-400 group-hover:text-blue-600" />
             )}
           </button>
         </div>
       )}
 
-      <p className="text-xs text-muted-foreground text-center">
-        或<a href={url} target="_blank" rel="noopener noreferrer" className="underline hover:text-primary transition-colors">直接開啟連結</a>
+      <p className="mt-3 text-[11px] text-center text-slate-500">
+        💡 學生掃 QR Code 後，他們的投票會即時顯示在右邊
       </p>
     </Card>
   );

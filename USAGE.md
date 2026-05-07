@@ -74,6 +74,57 @@
 
 ## 📅 開發進度紀錄
 
+### 2026-05-07 — Playful Campus 視覺大改版（v1.3.0）✅
+
+**改版動機**：把原本「淺藍底＋黃色按鈕、版面散落」的 UI，整體換成從 Claude Design 設計過的「Playful Campus」風 — 老師用起來開心、學生掃進來就懂、投影出去學校會場像張海報。視覺一致到投影模式、學生視角、404 都同一套。
+
+**設計交接源**：`https://api.anthropic.com/v1/design/h/CztU_gZ2KGtUKBSwGYfiOQ`（投票系統-Playful完整原型）— 含 `playful-app.jsx` / `playful-extras.jsx` 兩個 React 原型檔，方向為 Duolingo 學習風 × Figma Community。
+
+**設計系統**（新增於 `client/src/index.css`）：
+
+| Token | 樣式 | 用途 |
+|---|---|---|
+| `.playful-shell` | 米黃 #FEF9E7 → 淡藍 #EFF6FF 漸層底 + 黃藍兩顆裝飾光暈（fixed） | 套在所有頁面外殼 |
+| `.playful-topbar` | 玻璃感 sticky bar（白半透明 70% + backdrop-blur-md） | 頂部導覽區 |
+| `.playful-card` | 白底 + rounded-3xl + 柔光 shadow `0 4px 20px rgba(15,23,42,0.04)` | 主要卡片 |
+| `.playful-cta` | 漸層 #3B82F6 → #8B5CF6 + 上浮 hover + 8px 24px 30% 藍光暈 | 主按鈕 |
+| `.playful-letter` | 圓角 12 + 白字 + 各題項主色 dot | 選項字母色塊 (A/B/C/D…) |
+| `.playful-stat-chip` | 灰底 #F1F5F9 + 圓 999 + 12px 字 | Hero 統計小膠囊 |
+| `OPT_PALETTES` 七彩輪轉 | 紅/藍/黃/綠/紫/粉，bg + dot 兩階 | 選項背景 + 字母色塊主色 |
+
+**字型**：全站改用 Nunito 400/600/700/800，`<head>` preconnect Google Fonts 一次。
+
+**頁面改動全圖**：
+
+- **教師建立題目** (`teacher.tsx`)：玻璃 topbar 含 logo / 連續打卡 chip / 登入 / 題庫；Hero 問候卡（「嗨，老師！」+ 3 顆 stat chip + 黃藍粉裝飾形狀）；題型 4 張 emoji 卡（🎯 單選 / ✨ 多選 / ⚡ 是非 / 💬 簡答），點選上浮 3px + 對應主色光暈；選項列改字母色塊 (A/B/C/D)，背景七彩淡底，仍保留 framer-motion Reorder 拖曳；CTA 換成 `playful-cta` 大按鈕「🚀 建立題目，準備上課！」
+- **教師進行中** (`teacher.tsx` + `voting-stats.tsx` + `qr-display.tsx`)：紅色脈動 LIVE chip；QR 卡簡化為標題 + 灰底 QR + 漸層房間代碼；即時票數重寫成字母色塊長條 + 已投票學生動物頭像群（🦊🐼🐸🦁🐰🐯🐻 最多 7 顆 + 多餘人數計數）
+- **學生投票** (`student.tsx`)：頂部 logo + 學生稱呼列 + LIVE chip；藍粉漸層問候條；選項改七彩字母色塊大按鈕，hover 微縮放、答對綠 / 答錯紅 / 已選色塊 + ✓✗👆 圖標；簡答 CTA / 多選送出按鈕統一 `playful-cta`
+- **題庫** (`dashboard.tsx`)：玻璃 topbar 含「回建立題目」；「📚 我的題庫」標頭；卡片 rounded-2xl + 柔光（hover lift 加深）
+- **課堂模式 / 投影** (`present.tsx`)：保留原本米黃→淡藍亮色底（一度做過深色版被使用者退貨，現已全亮色）；長條改字母色塊 + 淡色漸層填底 + 大型 % 數字；QR 卡白底圓角 + 房間代碼粉藍漸層；已參與計數卡用 `playful-cta` 同款紫藍漸層
+- **房間代碼輸入** (`join.tsx`)：套 `playful-shell` + 白卡 + 大字 input + Playful CTA「🚀 進入投票」
+- **404** (`not-found.tsx`)：重寫為 🧭 Playful 卡片版（原本是英文 placeholder）+ 雙 CTA（回首頁 / 輸入房間代碼）
+- **浮動廣告鈕** (`floating-ad-button.tsx`)：紫粉橙改藍紫粉 Playful 漸層、關閉鈕從 `bg-gray-800` 改白底 slate
+
+**全站亮色三層防護**（為了徹底擋住 OS 深色偏好滲透）：
+
+1. **HTML meta**：`<meta name="color-scheme" content="light only">` + `theme-color="#FEF9E7"` + `supported-color-schemes="light"`
+2. **CSS**：`html, body, input, textarea, button { color-scheme: light only }`，並加 Chrome autofill 防染色（`-webkit-text-fill-color: #0F172A; box-shadow inset white`）
+3. **Tailwind config**：`darkMode: ["class", '[data-theme="never"]']` — 把 dark variant 的觸發 selector 改成永不存在的 `[data-theme="never"]`，shadcn UI 殘留的 `dark:` prefix（toast/alert/chart）變成永遠不啟用的 dead code
+
+**順手修的歷史地雷**：
+
+- `teacher.tsx` 第 134-138 行的 `(firestore as any)._lastTotalVoters_ = totalVoters;` — esbuild ESM 嚴格模式拒絕「對 import 賦值」，dev server 啟動就掛。改用 `useRef<number>(0)` 保留同樣的「比對前次投票人數抓增量」語意（`lastTotalVotersRef.current`）。
+- `.gitignore` 補上 `.env` / `.env.local` / `.env.*.local`，避免 Vite 在 `client/.env` 寫的 Firebase config 不小心 commit。
+
+**檔案清單**：
+- 新增：無
+- 改動：`client/index.html`、`client/src/index.css`、`client/src/pages/{teacher,student,dashboard,present,join,not-found}.tsx`、`client/src/components/{voting-stats,qr-display,floating-ad-button}.tsx`、`tailwind.config.ts`
+- 沒動：所有 firestore lib、Firebase rules、PWA SW、image-storage、whiteboard、screenshot-upload 等功能模組（純視覺改版，不改邏輯）
+
+**不在這次範圍**：班級管理頁、獨立題庫頁、單獨統計頁、白板獨立路由 — 原型有但目前後端沒對應資料，硬塞會變假資料。維持現狀讓真實功能跟得上才補。
+
+---
+
 ### 2026-05-06（傍晚） — 學生端錯誤訊息分流（v1.2.3）✅
 
 **問題**：學生連結流水號打錯時，畫面顯示「目前沒有活動的問題 / 請等待老師建立新的問題」，跟「老師還沒建題」一模一樣 → 學生分不清是「連結錯了」還是「老師沒建好」。

@@ -62,10 +62,10 @@ export function FloatingAdButton() {
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
         >
-          {/* 背景光暈效果 */}
-          <div 
-            className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 blur-md opacity-60 pointer-events-none"
-            style={{ 
+          {/* 背景光暈效果 — Playful 藍紫粉柔光 */}
+          <div
+            className="absolute inset-0 rounded-2xl bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 blur-md opacity-50 pointer-events-none"
+            style={{
               zIndex: -1,
               transform: isHovered ? 'scale(1.1)' : 'scale(1)',
               transition: 'transform 0.3s ease'
@@ -75,24 +75,26 @@ export function FloatingAdButton() {
           {/* 關閉按鈕 */}
           <button
             onClick={handleClose}
-            className="absolute -top-1 -right-1 w-5 h-5 bg-gray-800 text-white rounded-full 
-                     flex items-center justify-center text-xs hover:bg-gray-700 transition-colors z-[10000]
-                     shadow-lg border border-gray-600"
+            className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-white text-slate-500 rounded-full
+                     flex items-center justify-center text-xs hover:bg-slate-50 hover:text-red-500 transition-colors z-[10000]
+                     shadow-md border border-slate-200"
+            aria-label="關閉廣告"
           >
-            <X size={10} />
+            <X size={11} />
           </button>
 
-          {/* 簡化的主按鈕 - 直接可點擊 */}
+          {/* 簡化的主按鈕 - 直接可點擊（Playful 藍紫漸層） */}
           <button
             onClick={handleClick}
-
-            className="relative bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 
-                      rounded-xl p-3 shadow-2xl border border-white/20
+            className="relative rounded-2xl p-3 shadow-2xl border border-white/30
                       w-40 md:w-44 text-center cursor-pointer z-[9999]
-                      hover:from-purple-500 hover:via-pink-500 hover:to-orange-500
                       transform hover:scale-105 transition-all duration-200
                       active:scale-95 block"
-            style={{ position: 'relative', zIndex: 9999 }}
+            style={{
+              position: 'relative',
+              zIndex: 9999,
+              background: 'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 50%, #F472B6 100%)',
+            }}
           >
             {/* 按鈕內容 */}
             <div className="text-white pointer-events-none">

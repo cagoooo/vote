@@ -7,8 +7,34 @@
     @apply border-border;
   }
 
+  html, body {
+    font-family: "Nunito", -apple-system, "PingFang TC", "Helvetica Neue", sans-serif;
+    /* 鎖定亮色：覆蓋 OS 深色偏好對 native widgets（input / scrollbar / autofill）的影響 */
+    color-scheme: light only;
+  }
+
   body {
-    @apply font-sans antialiased bg-gradient-to-br from-purple-50 via-white to-blue-50 min-h-screen;
+    @apply antialiased min-h-screen text-slate-900;
+    background: linear-gradient(180deg, #FEF9E7 0%, #EFF6FF 100%);
+    background-attachment: fixed;
+  }
+
+  input, textarea, button {
+    font-family: inherit;
+    color-scheme: light;
+  }
+  /* 統一輸入框 focus 顏色（Playful 用藍） */
+  input:focus, textarea:focus {
+    border-color: #3B82F6;
+  }
+
+  /* 防止 Chrome autofill 把 input 染成深黃 / 深色 */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-text-fill-color: #0F172A;
+    -webkit-box-shadow: 0 0 0px 1000px #fff inset;
+    transition: background-color 5000s ease-in-out 0s;
   }
 }
 
@@ -18,7 +44,9 @@
   }
 
   .gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-600 font-bold;
+    /* Playful：藍 → 紫 漸層字（取代原本的 primary→purple） */
+    @apply bg-clip-text text-transparent font-extrabold;
+    background-image: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%);
   }
 
   .animate-fade-in {
@@ -30,10 +58,86 @@
   }
 
   .page-container {
-    @apply container mx-auto p-6 animate-fade-in;
+    @apply container mx-auto p-6 animate-fade-in relative z-10;
+  }
+
+  /* ==== Playful Campus 設計系統 ==== */
+
+  /* 整頁殼層：放在 body 最外層，提供裝飾光暈 */
+  .playful-shell {
+    @apply relative min-h-screen overflow-x-hidden;
+  }
+  .playful-shell::before,
+  .playful-shell::after {
+    content: '';
+    position: fixed;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .playful-shell::before {
+    top: -100px;
+    right: -100px;
+    width: 360px;
+    height: 360px;
+    background: radial-gradient(circle, rgba(251, 191, 36, 0.20), transparent 70%);
+  }
+  .playful-shell::after {
+    bottom: -150px;
+    left: -150px;
+    width: 460px;
+    height: 460px;
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.20), transparent 70%);
+  }
+
+  /* 玻璃感 sticky top bar（套在頁面 header 上） */
+  .playful-topbar {
+    @apply sticky top-0 z-20 backdrop-blur-md;
+    background: rgba(255, 255, 255, 0.7);
+    border-bottom: 1px solid rgba(15, 23, 42, 0.05);
+  }
+
+  /* 大圓角白卡 */
+  .playful-card {
+    @apply bg-white rounded-3xl;
+    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
+  }
+
+  /* 漸層紫藍 CTA */
+  .playful-cta {
+    @apply text-white border-0 font-extrabold;
+    background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%);
+    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .playful-cta:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(59, 130, 246, 0.35);
+  }
+  .playful-cta:active:not(:disabled) { transform: scale(0.98); }
+
+  /* 字母色塊 (A/B/C/D…) */
+  .playful-letter {
+    @apply rounded-xl text-white grid place-items-center font-extrabold flex-shrink-0;
+  }
+
+  /* 統計小 chip */
+  .playful-stat-chip {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-bold text-slate-600;
+    background: #F1F5F9;
   }
 }
+
 /* 列印時隱藏：浮動按鈕、版本徽章、頁尾署名（避免看起來像自我宣傳） */
 @media print {
   .no-print { display: none !important; }
+}
+
+/* Playful 通用脈動點動畫（給 LIVE 標記用） */
+@keyframes playful-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+.animate-playful-pulse {
+  animation: playful-pulse 1.4s ease-in-out infinite;
 }

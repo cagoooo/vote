@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { useVotingSound } from "@/hooks/use-voting-sounds";
 import * as firestore from "@/lib/firestore-voting";
 import { auth, signInWithGoogle, signOut } from "@/lib/firebase";
 import { onAuthStateChanged, type User } from "firebase/auth";
-import { Plus, Minus, Sparkles, RefreshCw, CheckCircle2, Eye, EyeOff, LogIn, LogOut, UserCircle, LayoutGrid, Download, Monitor, Timer, UserCheck, X as XIcon, CheckSquare, Circle, Pencil, GripVertical, ChevronLeft, ChevronRight, Wand2, Rocket } from "lucide-react";
+import { Plus, Minus, Sparkles, RefreshCw, CheckCircle2, Eye, EyeOff, LogIn, LogOut, UserCircle, LayoutGrid, Download, Monitor, Timer, UserCheck, X as XIcon, CheckSquare, Circle, Pencil, GripVertical, ChevronLeft, ChevronRight, Wand2, Rocket, Star } from "lucide-react";
 import { EditQuestionDialog } from "@/components/edit-question-dialog";
 import { WordCloud } from "@/components/word-cloud";
 import { motion, Reorder } from "framer-motion";
@@ -20,6 +20,16 @@ import { Link } from "wouter";
 import { exportQuestionVotes } from "@/lib/csv-export";
 import { compressImageToFit } from "@/lib/image-compress";
 import { uploadImageIfLarge } from "@/lib/image-storage";
+
+// Playful Campus 選項色塊（A/B/C/D… 一順輪轉，背景淡色 + 圓點主色）
+const OPT_PALETTES = [
+  { bg: "#FEE2E2", dot: "#EF4444", name: "red" },
+  { bg: "#DBEAFE", dot: "#3B82F6", name: "blue" },
+  { bg: "#FEF3C7", dot: "#F59E0B", name: "amber" },
+  { bg: "#D1FAE5", dot: "#10B981", name: "green" },
+  { bg: "#EDE9FE", dot: "#8B5CF6", name: "purple" },
+  { bg: "#FCE7F3", dot: "#F472B6", name: "pink" },
+];
 
 export default function Teacher() {
   const [imageUrl, setImageUrl] = useState("");
@@ -117,20 +127,21 @@ export default function Teacher() {
   }, [createdQuestion?.id]);
 
   // 監聽投票統計
+  // 用「投票人數」變化偵測新票（多選一張票會貢獻多個 stat 值，不能用 sum）
+  // 用 ref 而非反覆寫 import — 後者在 ESM 嚴格模式被 esbuild 拒絕
+  const lastTotalVotersRef = useRef(0);
   useEffect(() => {
     if (createdQuestion?.id) {
       const unsubscribe = firestore.getVotesStats(createdQuestion.id, (stats, totalVoters) => {
-        // 用「投票人數」變化偵測新票（多選一張票會貢獻多個 stat 值，不能用 sum）
-        const prev = (firestore as any)._lastTotalVoters_ ?? 0;
-        if (totalVoters > prev) {
+        if (totalVoters > lastTotalVotersRef.current) {
           playVoteSubmitted();
         }
-        (firestore as any)._lastTotalVoters_ = totalVoters;
+        lastTotalVotersRef.current = totalVoters;
         setVotesStats(stats);
       });
       return () => unsubscribe();
     }
-  }, [createdQuestion?.id, votesStats, playVoteSubmitted]);
+  }, [createdQuestion?.id, playVoteSubmitted]);
 
   const createQuestion = useMutation({
     mutationFn: async () => {
@@ -321,94 +332,111 @@ export default function Teacher() {
   const canSubmit = !!imageUrl && (!optionsRequired || validOptionCount >= 2);
 
   return (
-    <div className="page-container max-w-4xl">
-      <div className="flex items-center justify-center gap-2 sm:gap-3 md:gap-4 mb-6 md:mb-8 transition-all duration-300">
+    <div className="playful-shell">
+      <div className="page-container max-w-4xl">
+      {/* Playful 玻璃感頂列：logo + 品牌 + 連續打卡 chip */}
+      <header className="playful-topbar -mx-6 px-4 sm:px-6 py-3 mb-6 flex items-center justify-between gap-3 rounded-none">
         <a href="https://www.smes.tyc.edu.tw/" target="_blank" rel="noopener noreferrer"
-          className="relative group p-2 rounded-lg transition-all duration-300 hover:bg-yellow-100/10">
-          <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/20 to-amber-500/20 rounded-lg blur opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+          className="flex items-center gap-3 group">
           <img
             src={`${import.meta.env.BASE_URL}logo.png`}
             alt="Logo"
-            className="h-10 sm:h-12 md:h-16 lg:h-20 w-auto object-contain relative transition-all duration-300 
-              group-hover:scale-110 group-hover:rotate-3 group-hover:brightness-110 
-              group-hover:shadow-[0_0_30px_rgba(251,191,36,0.3)] 
-              group-active:scale-95 group-active:rotate-0"
+            className="h-10 sm:h-11 w-auto object-contain transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3"
           />
+          <div className="leading-tight">
+            <div className="text-base sm:text-lg font-extrabold text-slate-900">即時投票系統</div>
+            <div className="text-[11px] text-slate-500 hidden sm:block">讓每個聲音都被聽見 ✨</div>
+          </div>
         </a>
-        <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold gradient-text transition-all duration-300">
-          即時投票系統
-        </h1>
-      </div>
 
-      <div className="flex items-center justify-end gap-2 mb-4">
-        {currentUser && !currentUser.isAnonymous ? (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="flex items-center gap-2"
-          >
-            <div
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-emerald-50 to-green-50 border border-green-200 shadow-sm"
-              title={currentUser.email ?? ""}
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          {currentUser && !currentUser.isAnonymous ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex items-center gap-2"
             >
-              {currentUser.photoURL ? (
-                <img
-                  src={currentUser.photoURL}
-                  alt=""
-                  referrerPolicy="no-referrer"
-                  className="w-7 h-7 rounded-full ring-2 ring-white"
-                />
-              ) : (
-                <UserCircle className="w-6 h-6 text-green-600" />
-              )}
-              <div className="flex flex-col leading-tight pr-1">
-                <span className="text-sm font-semibold text-gray-800 max-w-[180px] truncate">
+              <div
+                className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white shadow-sm border border-slate-200"
+                title={currentUser.email ?? ""}
+              >
+                {currentUser.photoURL ? (
+                  <img
+                    src={currentUser.photoURL}
+                    alt=""
+                    referrerPolicy="no-referrer"
+                    className="w-6 h-6 rounded-full ring-2 ring-white"
+                  />
+                ) : (
+                  <UserCircle className="w-5 h-5 text-blue-600" />
+                )}
+                <span className="text-xs font-bold text-slate-800 max-w-[120px] truncate">
                   {currentUser.displayName ?? currentUser.email?.split("@")[0] ?? "已登入"}
                 </span>
-                <span className="text-[10px] text-green-700 font-medium">已登入 · 跨裝置同步</span>
               </div>
-            </div>
-            <Link href="/dashboard">
+              <Link href="/dashboard">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 gap-1.5 rounded-full bg-white shadow-sm hover:bg-blue-50 text-slate-700 font-bold"
+                >
+                  <LayoutGrid className="w-4 h-4" />題庫
+                </Button>
+              </Link>
               <Button
                 type="button"
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                className="h-9 gap-1.5 border-blue-200 text-blue-700 hover:bg-blue-50"
+                onClick={handleSignOut}
+                className="h-9 px-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full"
+                title="登出"
               >
-                <LayoutGrid className="w-4 h-4" />我的題目
+                <LogOut className="w-4 h-4" />
               </Button>
-            </Link>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={handleSignOut}
-              className="h-9 px-2 text-gray-500 hover:text-red-600 hover:bg-red-50"
-              title="登出"
-            >
-              <LogOut className="w-4 h-4" />
-            </Button>
-          </motion.div>
-        ) : (
-          <div className="flex items-center gap-2 flex-wrap justify-end">
-            <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded-full">
-              匿名模式（換瀏覽器將找不到舊題）
-            </span>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleGoogleSignIn}
-              className="h-8 px-3 border-blue-300 text-blue-700 hover:bg-blue-50"
-            >
-              <LogIn className="w-3.5 h-3.5 mr-1.5" />Google 登入
-            </Button>
-          </div>
-        )}
-      </div>
+            </motion.div>
+          ) : (
+            <>
+              <span className="hidden md:inline text-[11px] text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded-full font-bold">
+                匿名模式
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleGoogleSignIn}
+                className="h-9 gap-1.5 rounded-full bg-white shadow-sm hover:bg-blue-50 text-slate-700 font-bold border border-slate-200"
+              >
+                <LogIn className="w-3.5 h-3.5" />Google 登入
+              </Button>
+            </>
+          )}
+        </div>
+      </header>
 
       {!createdQuestion ? (
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Playful Hero 問候卡 */}
+          <div className="playful-card p-6 sm:p-8 flex items-center justify-between gap-4 overflow-hidden">
+            <div className="min-w-0">
+              <div className="text-[13px] text-blue-700 font-extrabold mb-2">👋 嗨，老師！</div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 leading-tight tracking-tight">
+                今天想問學生<br className="hidden sm:block" />什麼問題呢？
+              </h1>
+              <div className="flex gap-2 mt-4 flex-wrap">
+                <span className="playful-stat-chip">📊 即時計票</span>
+                <span className="playful-stat-chip">⚡ QR 一掃即投</span>
+                <span className="playful-stat-chip">⭐ 答對立即慶祝</span>
+              </div>
+            </div>
+            {/* 裝飾圖形：黃方塊 + 藍方塊 + 粉紅圓 */}
+            <div className="relative w-24 h-24 sm:w-28 sm:h-28 flex-shrink-0 hidden sm:block" aria-hidden>
+              <div className="absolute top-0 left-0 w-12 h-12 rounded-2xl bg-amber-400" />
+              <div className="absolute bottom-0 right-0 w-12 h-12 rounded-2xl bg-blue-500" />
+              <div className="absolute top-5 right-5 w-12 h-12 rounded-full bg-pink-400" />
+            </div>
+          </div>
+
           {/* 模式切換 bar */}
           <div className="flex items-center justify-between gap-2 text-xs flex-wrap">
             <div className="text-slate-500">
@@ -491,22 +519,9 @@ export default function Teacher() {
 
           {/* wizard step 1 也要先讓老師選題型，這樣 step 2 才知道要不要顯示選項 */}
           {formMode === "wizard" && (
-            <Card className="p-4 sm:p-6">
-              <p className="text-sm font-semibold text-slate-700 mb-3">選擇題型</p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-1 bg-slate-100 rounded-lg">
-                <button type="button" onClick={() => setQuestionType("single")} className={`flex items-center justify-center gap-1.5 px-2 py-2 rounded-md text-sm font-medium transition-all ${questionType === "single" ? "bg-white text-blue-700 shadow-sm" : "text-slate-500"}`}>
-                  <Circle className="w-4 h-4" />單選
-                </button>
-                <button type="button" onClick={() => setQuestionType("multiple")} className={`flex items-center justify-center gap-1.5 px-2 py-2 rounded-md text-sm font-medium transition-all ${questionType === "multiple" ? "bg-white text-blue-700 shadow-sm" : "text-slate-500"}`}>
-                  <CheckSquare className="w-4 h-4" />多選
-                </button>
-                <button type="button" onClick={() => setQuestionType("truefalse")} className={`flex items-center justify-center gap-1.5 px-2 py-2 rounded-md text-sm font-medium transition-all ${questionType === "truefalse" ? "bg-white text-blue-700 shadow-sm" : "text-slate-500"}`}>
-                  ⚡是非
-                </button>
-                <button type="button" onClick={() => setQuestionType("shortanswer")} className={`flex items-center justify-center gap-1.5 px-2 py-2 rounded-md text-sm font-medium transition-all ${questionType === "shortanswer" ? "bg-white text-blue-700 shadow-sm" : "text-slate-500"}`}>
-                  💬簡答
-                </button>
-              </div>
+            <Card className="p-4 sm:p-6 rounded-3xl border-0 shadow-[0_4px_20px_rgba(15,23,42,0.04)]">
+              <p className="text-sm font-extrabold text-slate-900 mb-3">選擇題型</p>
+              <PlayfulTypeRow questionType={questionType} setQuestionType={setQuestionType} />
 
               {/* 各題型說明卡 — 點選後立即視覺回饋 */}
               <motion.div
@@ -567,52 +582,26 @@ export default function Teacher() {
           )}
 
           {(formMode === "quick" || wizardStep === 2) && (
-          <Card className="p-6 card-hover">
-            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-primary" />
-              選項設置
-            </h2>
+          <Card className="p-6 rounded-3xl border-0 shadow-[0_4px_20px_rgba(15,23,42,0.04)]">
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+              <h2 className="text-base font-extrabold flex items-center gap-2 text-slate-900">
+                🎲 選項設置
+                {(questionType === "single" || questionType === "multiple") && (
+                  <span className="text-xs text-slate-400 font-normal">共 {options.length} 個</span>
+                )}
+              </h2>
+              {(questionType === "single" || questionType === "multiple") && options.length >= 3 && (
+                <span className="text-[11px] text-slate-500 flex items-center gap-1">
+                  <GripVertical className="w-3 h-3" />可拖曳排序
+                </span>
+              )}
+            </div>
 
             {/* 題型切換（4 種）— wizard 模式 step 1 已選過，不再顯示避免視覺重複 */}
             {formMode === "quick" && (
-            <div className="mb-4 grid grid-cols-2 sm:grid-cols-4 gap-2 p-1 bg-slate-100 rounded-lg">
-              <button
-                type="button"
-                onClick={() => setQuestionType("single")}
-                className={`flex items-center justify-center gap-1.5 px-2 py-2 rounded-md text-sm font-medium transition-all ${
-                  questionType === "single" ? "bg-white text-blue-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                <Circle className="w-4 h-4" />單選
-              </button>
-              <button
-                type="button"
-                onClick={() => setQuestionType("multiple")}
-                className={`flex items-center justify-center gap-1.5 px-2 py-2 rounded-md text-sm font-medium transition-all ${
-                  questionType === "multiple" ? "bg-white text-blue-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                <CheckSquare className="w-4 h-4" />多選
-              </button>
-              <button
-                type="button"
-                onClick={() => setQuestionType("truefalse")}
-                className={`flex items-center justify-center gap-1.5 px-2 py-2 rounded-md text-sm font-medium transition-all ${
-                  questionType === "truefalse" ? "bg-white text-blue-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                ⚡是非
-              </button>
-              <button
-                type="button"
-                onClick={() => setQuestionType("shortanswer")}
-                className={`flex items-center justify-center gap-1.5 px-2 py-2 rounded-md text-sm font-medium transition-all ${
-                  questionType === "shortanswer" ? "bg-white text-blue-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                💬簡答
-              </button>
-            </div>
+              <div className="mb-4">
+                <PlayfulTypeRow questionType={questionType} setQuestionType={setQuestionType} />
+              </div>
             )}
 
             {questionType === "truefalse" && (
@@ -641,63 +630,72 @@ export default function Teacher() {
             )}
 
             <div className={questionType === "truefalse" || questionType === "shortanswer" ? "opacity-40 pointer-events-none" : ""}>
-              {options.length >= 3 && (
-                <p className="text-xs text-slate-500 mb-2 flex items-center gap-1">
-                  <GripVertical className="w-3 h-3" />可拖曳左側把手調整順序
-                </p>
-              )}
               <Reorder.Group
                 axis="y"
                 values={options}
                 onReorder={setOptions}
-                className="space-y-3"
+                className="flex flex-col gap-2.5"
               >
-                {options.map((opt, index) => (
+                {options.map((opt, index) => {
+                  const palette = OPT_PALETTES[index % OPT_PALETTES.length];
+                  return (
                   <Reorder.Item
                     key={opt.id}
                     value={opt}
-                    className="flex items-center gap-2 bg-white rounded-md cursor-default"
+                    className="flex items-center gap-2 rounded-2xl cursor-default p-2"
+                    style={{ background: palette.bg }}
                     whileDrag={{ scale: 1.02, boxShadow: "0 8px 24px rgba(59,130,246,0.25)", zIndex: 10 }}
                   >
                     <button
                       type="button"
-                      className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0 p-1"
+                      className="cursor-grab active:cursor-grabbing text-white/70 hover:text-white transition-colors flex-shrink-0 p-1 rounded-md"
                       aria-label="拖曳排序"
                       onPointerDown={(e) => e.currentTarget.setPointerCapture(e.pointerId)}
+                      style={{ color: palette.dot }}
                     >
                       <GripVertical className="w-4 h-4" />
                     </button>
+                    <span
+                      className="playful-letter w-9 h-9 text-sm"
+                      style={{ background: palette.dot }}
+                      aria-hidden
+                    >
+                      {String.fromCharCode(65 + index)}
+                    </span>
                     <Input
                       value={opt.value}
                       onChange={(e) => updateOptionById(opt.id, e.target.value)}
                       placeholder={`選項 ${index + 1}`}
-                      className="transition-all duration-300 focus:ring-2 focus:ring-green-500/20 border-green-100 hover:border-green-200 focus:border-green-300 focus:outline-none bg-green-50/30"
+                      className="bg-white border-0 rounded-xl h-11 font-semibold text-slate-900 focus-visible:ring-2 focus-visible:ring-blue-500/30 focus-visible:ring-offset-0 placeholder:text-slate-400 placeholder:font-normal"
                     />
                     {options.length > 2 && (
                       <Button
                         type="button"
-                        variant="outline"
+                        variant="ghost"
                         size="icon"
                         onClick={() => removeOptionById(opt.id)}
-                        className="hover:bg-red-500/10 hover:border-red-200 transition-colors flex-shrink-0"
+                        className="bg-white/70 hover:bg-white text-slate-500 hover:text-red-600 rounded-xl h-9 w-9 flex-shrink-0"
+                        title="刪除此選項"
                       >
                         <Minus className="h-4 w-4" />
                       </Button>
                     )}
                   </Reorder.Item>
-                ))}
+                  );
+                })}
               </Reorder.Group>
             </div>
 
-            <div className="mt-4">
+            <div className="mt-3">
               <Button
                 type="button"
-                variant="outline"
+                variant="ghost"
                 onClick={addOption}
-                className="flex items-center gap-2 hover:bg-green-500/10 hover:border-green-200 transition-colors"
+                disabled={questionType === "truefalse" || questionType === "shortanswer"}
+                className="w-full h-12 border-2 border-dashed border-slate-300 bg-white text-slate-500 hover:bg-slate-50 hover:border-slate-400 rounded-2xl font-extrabold disabled:opacity-40"
               >
-                <Plus className="h-4 w-4" />
-                添加選項
+                <Plus className="h-4 w-4 mr-1" />
+                多加一個選項
               </Button>
             </div>
 
@@ -787,17 +785,21 @@ export default function Teacher() {
               ) : (
                 <Button
                   type="submit"
-                  className="h-12 text-lg shadow-lg bg-gradient-to-r from-primary via-red-500 to-purple-600 hover:scale-[1.02] gap-2"
+                  className="playful-cta h-14 px-7 text-base rounded-2xl gap-2"
                   disabled={createQuestion.isPending || !canSubmit}
                 >
-                  {createQuestion.isPending ? <><div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />建立中…</> : <>🚀 建立問題</>}
+                  {createQuestion.isPending ? (
+                    <><div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />建立中…</>
+                  ) : (
+                    <><span className="text-xl">🚀</span>建立題目，準備上課！</>
+                  )}
                 </Button>
               )}
             </div>
           ) : (
             <Button
               type="submit"
-              className="w-full h-12 text-lg shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-r from-primary via-red-500 to-purple-600 hover:scale-[1.02] ripple"
+              className="playful-cta w-full h-16 text-lg rounded-3xl gap-2.5"
               disabled={createQuestion.isPending || !canSubmit}
             >
               {createQuestion.isPending ? (
@@ -806,7 +808,7 @@ export default function Teacher() {
                   建立中...
                 </div>
               ) : (
-                "建立問題"
+                <><span className="text-2xl">🚀</span>建立題目，準備上課！</>
               )}
             </Button>
           )}
@@ -825,8 +827,14 @@ export default function Teacher() {
         </form>
       ) : (
         <div className="space-y-6 animate-fade-in">
-          <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
-            <h2 className="text-xl font-semibold gradient-text">投票進行中</h2>
+          <div className="flex items-end justify-between mb-4 gap-3 flex-wrap">
+            <div>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-100 text-red-600 text-[11px] font-extrabold mb-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-playful-pulse" />
+                投票進行中
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 leading-tight">即時計票中</h2>
+            </div>
             <div className="flex items-center gap-2 flex-wrap">
               <Button
                 type="button"
@@ -866,12 +874,12 @@ export default function Teacher() {
             </div>
           </div>
 
-          <Card className="p-6 card-hover">
-            <div className="flex justify-center mb-6">
+          <Card className="p-3 sm:p-4 rounded-3xl border-0 shadow-[0_4px_20px_rgba(15,23,42,0.04)]">
+            <div className="flex justify-center">
               <img
                 src={createdQuestion.imageUrl}
                 alt="問題圖片"
-                className="max-w-full max-h-[40vh] w-auto h-auto object-contain rounded-lg shadow-lg"
+                className="max-w-full max-h-[40vh] w-auto h-auto object-contain rounded-2xl"
               />
             </div>
           </Card>
@@ -1096,6 +1104,51 @@ export default function Teacher() {
         onOpenChange={setEditDialogOpen}
         onSaved={(updated) => setCreatedQuestion(updated)}
       />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Playful Campus 題型選擇列 — 4 張 emoji 卡（單選 / 多選 / 是非 / 簡答）
+ * 選中時：邊框換成題型主色、白底、上浮 3px、彩色光暈
+ */
+function PlayfulTypeRow({
+  questionType,
+  setQuestionType,
+}: {
+  questionType: "single" | "multiple" | "truefalse" | "shortanswer";
+  setQuestionType: (t: "single" | "multiple" | "truefalse" | "shortanswer") => void;
+}) {
+  const types = [
+    { k: "single", label: "單選", emoji: "🎯", color: "#3B82F6", hint: "一題一答" },
+    { k: "multiple", label: "多選", emoji: "✨", color: "#8B5CF6", hint: "可複選" },
+    { k: "truefalse", label: "是非", emoji: "⚡", color: "#F59E0B", hint: "對 / 錯" },
+    { k: "shortanswer", label: "簡答", emoji: "💬", color: "#10B981", hint: "文字輸入" },
+  ] as const;
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {types.map((t) => {
+        const on = questionType === t.k;
+        return (
+          <button
+            key={t.k}
+            type="button"
+            onClick={() => setQuestionType(t.k)}
+            className="rounded-2xl text-center p-4 transition-all"
+            style={{
+              background: on ? "#fff" : "rgba(255,255,255,0.7)",
+              border: on ? `2px solid ${t.color}` : "2px solid transparent",
+              transform: on ? "translateY(-3px)" : "translateY(0)",
+              boxShadow: on ? `0 10px 20px ${t.color}40` : "none",
+            }}
+          >
+            <div className="text-3xl mb-1.5">{t.emoji}</div>
+            <div className="font-extrabold text-sm" style={{ color: on ? t.color : "#0F172A" }}>{t.label}</div>
+            <div className="text-[11px] text-slate-400 mt-0.5">{t.hint}</div>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -1107,12 +1160,12 @@ function ShortAnswerLiveCloud({ questionId }: { questionId: string }) {
     return firestore.listenToTextAnswers(questionId, (list) => setAnswers(list));
   }, [questionId]);
   return (
-    <Card className="p-4 sm:p-6 card-hover bg-gradient-to-br from-purple-50 via-white to-pink-50 min-h-[280px]">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-bold text-purple-900 flex items-center gap-1.5">
+    <Card className="p-5 sm:p-6 rounded-3xl border-0 shadow-[0_4px_20px_rgba(15,23,42,0.04)] min-h-[280px]" style={{ background: "linear-gradient(135deg, #EFF6FF, #FCE7F3)" }}>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-1.5">
           💬 即時答案文字雲
         </h3>
-        <span className="text-xs text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full font-medium">
+        <span className="text-xs text-blue-700 bg-white px-3 py-1 rounded-full font-extrabold shadow-sm">
           {answers.length} 則
         </span>
       </div>
