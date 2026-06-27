@@ -1,26 +1,71 @@
 import { setGlobalOptions } from "firebase-functions/v2";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
+import { onCall } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { defineSecret } from "firebase-functions/params";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, Timestamp, FieldValue } from "firebase-admin/firestore";
 import * as logger from "firebase-functions/logger";
 import { notifyAdminCard } from "./notify-line.js";
+import { pushGoogleChatCard } from "./google-chat.js";
 
 initializeApp();
 setGlobalOptions({ region: "asia-east1" });
 
 const LINE_TOKEN = defineSecret("VOTE_LINE_CHANNEL_ACCESS_TOKEN");
 const LINE_USER_ID = defineSecret("VOTE_LINE_ADMIN_USER_ID");
+const GOOGLE_CHAT_WEBHOOK_URL = defineSecret("GOOGLE_CHAT_WEBHOOK_URL");
 
 const APP_NAME = "即時投票系統";
 const SITE_URL = "https://cagoooo.github.io/vote";
+
+export const reportClientEvent = onCall(
+    {
+        secrets: [GOOGLE_CHAT_WEBHOOK_URL],
+    },
+    async (request) => {
+        const data = request.data ?? {};
+        const status = normalizeStatus(data.status);
+        const title = cleanText(data.title, status === "failed" ? "服務發生錯誤" : "服務狀態更新", 80);
+        const message = cleanText(data.message, "", 500);
+        const progress = cleanText(data.progress, "", 120);
+        const context = cleanText(data.context, "前端事件", 120);
+        const url = cleanText(data.url, "", 500);
+        const details = data.details && typeof data.details === "object" ? data.details : {};
+        const auth = request.auth;
+
+        const rows = [
+            { label: "進度", value: progress || (status === "success" ? "流程已完成" : "等待處理") },
+            { label: "位置", value: context },
+            { label: "使用者", value: userLabel(auth?.uid, auth?.token?.email, auth?.token?.name) },
+        ];
+
+        Object.entries(details)
+            .slice(0, 6)
+            .forEach(([key, value]) => rows.push({ label: key, value: cleanText(String(value ?? ""), "-", 200) }));
+
+        await pushGoogleChatCard(
+            GOOGLE_CHAT_WEBHOOK_URL.value(),
+            {
+                status,
+                title,
+                subtitle: APP_NAME,
+                rows,
+                body: message || undefined,
+                buttons: url ? [{ text: "開啟頁面", url }] : undefined,
+            },
+            "reportClientEvent"
+        );
+
+        return { ok: true };
+    }
+);
 
 // 老師建立新題目時推播
 export const onQuestionCreated = onDocumentCreated(
     {
         document: "questions/{questionId}",
-        secrets: [LINE_TOKEN, LINE_USER_ID],
+        secrets: [LINE_TOKEN, LINE_USER_ID, GOOGLE_CHAT_WEBHOOK_URL],
     },
     async (event) => {
         const data = event.data?.data();
@@ -54,6 +99,23 @@ export const onQuestionCreated = onDocumentCreated(
             },
             LINE_TOKEN.value(),
             LINE_USER_ID.value()
+        );
+
+        await pushGoogleChatCard(
+            GOOGLE_CHAT_WEBHOOK_URL.value(),
+            {
+                status: "success",
+                title: "新題目已開放投票",
+                subtitle: APP_NAME,
+                rows: [
+                    { label: "進度", value: "題目建立完成，學生可開始投票" },
+                    { label: "房間代碼", value: roomCode },
+                    { label: "選項數", value: `${options.length}` },
+                ],
+                body: optionPreview,
+                buttons: [{ text: "開啟投票頁", url: `${SITE_URL}/${questionId}` }],
+            },
+            "onQuestionCreated"
         );
 
         logger.info("[onQuestionCreated] notified", { questionId, roomCode });
@@ -155,4 +217,28 @@ export const expireOldQuestions = onSchedule(
 function trimOpt(s: string): string {
     if (!s) return "";
     return s.length > 12 ? s.substring(0, 12) + "…" : s;
+}
+
+function normalizeStatus(value: unknown): "success" | "failed" | "warning" | "started" {
+    if (value === "success" || value === "failed" || value === "warning" || value === "started") {
+        return value;
+    }
+    return "warning";
+}
+
+function cleanText(value: unknown, fallback: string, maxLength: number): string {
+    if (typeof value !== "string") return fallback;
+    const trimmed = value.trim();
+    if (!trimmed) return fallback;
+    return trimmed.slice(0, maxLength);
+}
+
+function userLabel(uid: string | undefined, email: unknown, name: unknown): string {
+    const emailText = typeof email === "string" && email ? email : "";
+    const nameText = typeof name === "string" && name ? name : "";
+    const uidText = uid ? uid.slice(0, 12) : "no-auth";
+    if (emailText && nameText) return `${nameText} <${emailText}> (${uidText})`;
+    if (emailText) return `${emailText} (${uidText})`;
+    if (nameText) return `${nameText} (${uidText})`;
+    return uidText;
 }

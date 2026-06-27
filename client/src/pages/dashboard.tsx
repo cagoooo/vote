@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { errorDetails, reportServiceEvent } from "@/lib/telemetry";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -93,9 +94,24 @@ export default function Dashboard() {
 
   const handleGoogleSignIn = async () => {
     try {
-      await signInWithGoogle();
+      const user = await signInWithGoogle();
+      reportServiceEvent({
+        status: "success",
+        title: "Dashboard 登入成功",
+        context: "dashboard.googleSignIn",
+        progress: "Google 登入完成，可檢視題目管理列表",
+        details: { email: user.email, uid: user.uid },
+      });
     } catch (err: any) {
       if (err?.code === "auth/popup-closed-by-user" || err?.code === "auth/cancelled-popup-request") return;
+      reportServiceEvent({
+        status: "failed",
+        title: "Dashboard 登入失敗",
+        context: "dashboard.googleSignIn",
+        progress: "Google 登入流程失敗",
+        message: err?.message ?? "登入失敗",
+        details: errorDetails(err),
+      });
       toast({ title: "登入失敗", description: err?.message ?? "請稍後再試", variant: "destructive" });
     }
   };

@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { ReactionBar } from "@/components/reaction-bar";
 import { useConfetti } from "@/hooks/use-confetti";
 import { useVotingSound } from "@/hooks/use-voting-sounds";
+import { errorDetails, reportServiceEvent } from "@/lib/telemetry";
 
 export default function Student() {
   const { toast } = useToast();
@@ -176,6 +177,18 @@ export default function Student() {
       // 🎉 慶祝動畫：confetti + 大字 overlay + 音效（多重感官回饋，學齡層越小越愛）
       triggerConfetti();
       try { playVoteSubmitted(); } catch { /* ignore audio block */ }
+      reportServiceEvent({
+        status: "success",
+        title: "學生投票成功",
+        context: "student.vote",
+        progress: "投票資料已寫入 Firestore",
+        details: {
+          questionId: question?.id,
+          questionType: question?.questionType ?? "single",
+          requireIdentity,
+          selectionType: Array.isArray(selection) ? "multiple" : typeof selection === "object" ? "text" : "single",
+        },
+      });
       setShowSuccessOverlay(true);
       window.setTimeout(() => setShowSuccessOverlay(false), 1800);
 
@@ -203,6 +216,18 @@ export default function Student() {
       }
     },
     onError: (error: any) => {
+      reportServiceEvent({
+        status: "failed",
+        title: "學生投票失敗",
+        context: "student.vote",
+        progress: "投票寫入或驗證失敗",
+        message: error.message || "投票失敗",
+        details: {
+          ...errorDetails(error),
+          questionId: question?.id,
+          questionType: question?.questionType ?? "single",
+        },
+      });
       toast({
         title: "投票失敗",
         description: error.message || "請重試",

@@ -11,6 +11,7 @@ import { SiteFooter } from "@/components/site-footer";
 import Teacher from "@/pages/teacher";
 import NotFound from "@/pages/not-found";
 import { Loader2 } from "lucide-react";
+import { errorDetails, reportServiceEvent } from "@/lib/telemetry";
 
 // Lazy load 次要路由（首次載入只下載 Teacher 頁，其他頁面按需載入）
 const Dashboard = lazy(() => import("@/pages/dashboard"));
@@ -43,7 +44,17 @@ function App() {
   useEffect(() => {
     return onAuthStateChanged(auth, (user) => {
       if (!user) {
-        loginAnonymously().catch(console.error);
+        loginAnonymously().catch((err) => {
+          console.error(err);
+          reportServiceEvent({
+            status: "failed",
+            title: "匿名登入失敗",
+            context: "app.loginAnonymously",
+            progress: "初始化登入失敗，可能影響投票與讀取題目",
+            message: err?.message ?? "匿名登入失敗",
+            details: errorDetails(err),
+          });
+        });
       }
     });
   }, []);

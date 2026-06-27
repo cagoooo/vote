@@ -10,6 +10,7 @@ import {
     type User,
 } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getFunctions } from "firebase/functions";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
@@ -25,6 +26,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+export const functions = getFunctions(app, "asia-east1");
 
 // 顯式指定 storageBucket：新版 Firebase 預設是 .firebasestorage.app（雷 #8）
 // 用 projectId 推導，避開 GitHub Secret 可能還是舊的 .appspot.com 格式

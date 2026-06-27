@@ -20,6 +20,7 @@ import { Link } from "wouter";
 import { exportQuestionVotes } from "@/lib/csv-export";
 import { compressImageToFit } from "@/lib/image-compress";
 import { uploadImageIfLarge } from "@/lib/image-storage";
+import { errorDetails, reportServiceEvent } from "@/lib/telemetry";
 
 // Playful Campus 選項色塊（A/B/C/D… 一順輪轉，背景淡色 + 圓點主色）
 const OPT_PALETTES = [
@@ -82,6 +83,13 @@ export default function Teacher() {
     try {
       const user = await signInWithGoogle();
       const name = user.displayName?.split(" ")[0] ?? user.email?.split("@")[0] ?? "老師";
+      reportServiceEvent({
+        status: "success",
+        title: "老師登入成功",
+        context: "teacher.googleSignIn",
+        progress: "Google 登入完成，可建立與管理題目",
+        details: { email: user.email, uid: user.uid },
+      });
       toast({
         title: `👋 歡迎回來，${name}！`,
         description: "你的題目從此跨裝置同步，換電腦也找得到。",
@@ -90,6 +98,14 @@ export default function Teacher() {
     } catch (err: any) {
       if (err?.code === "auth/popup-closed-by-user") return;
       if (err?.code === "auth/cancelled-popup-request") return;
+      reportServiceEvent({
+        status: "failed",
+        title: "老師登入失敗",
+        context: "teacher.googleSignIn",
+        progress: "Google 登入流程失敗",
+        message: err?.message ?? "登入失敗",
+        details: errorDetails(err),
+      });
       toast({
         title: "登入失敗",
         description: err?.message ?? "請稍後再試",
@@ -157,6 +173,19 @@ export default function Teacher() {
     onSuccess: (question) => {
       setCreatedQuestion(question);
       playVoteSessionStart();
+      reportServiceEvent({
+        status: "success",
+        title: "題目建立成功",
+        context: "teacher.createQuestion",
+        progress: "題目已建立並開放使用",
+        details: {
+          questionId: question.id,
+          roomCode: question.roomCode,
+          questionType: question.questionType,
+          requireIdentity: question.requireIdentity,
+          optionCount: question.options.length,
+        },
+      });
       toast({
         title: "成功建立問題",
         description: "學生現在可以開始投票了",
@@ -164,6 +193,14 @@ export default function Teacher() {
       });
     },
     onError: (error: Error) => {
+      reportServiceEvent({
+        status: "failed",
+        title: "題目建立失敗",
+        context: "teacher.createQuestion",
+        progress: "建立題目流程失敗",
+        message: error.message,
+        details: errorDetails(error),
+      });
       toast({
         title: "建立問題失敗",
         description: error.message,
@@ -319,6 +356,14 @@ export default function Teacher() {
       const finalUrl = await uploadImageIfLarge(compressed.dataUrl);
       setImageUrl(finalUrl);
     } catch (err: any) {
+      reportServiceEvent({
+        status: "failed",
+        title: "圖片處理失敗",
+        context: "teacher.handleImageSelect",
+        progress: "圖片壓縮或上傳失敗",
+        message: err?.message ?? "圖片處理失敗",
+        details: errorDetails(err),
+      });
       toast({
         title: "圖片處理失敗",
         description: err?.message ?? "請再試一次",
