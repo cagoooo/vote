@@ -2,6 +2,8 @@
 
 🌐 **線上使用：[學生即時投票系統](https://cagoooo.github.io/vote/)**
 
+> 📌 **目前版本：v1.3.0**（依據 `package.json`）
+
 一個專為教室環境設計的即時投票系統，讓老師可以建立互動問答，學生透過 QR Code 或連結即時參與投票。
 
 ![Screenshot](client/public/screen.png)
