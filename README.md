@@ -1,5 +1,7 @@
 # 即時投票系統 (Real-time Voting System)
 
+🌐 **線上使用：[學生即時投票系統](https://cagoooo.github.io/vote/)**
+
 一個專為教室環境設計的即時投票系統，讓老師可以建立互動問答，學生透過 QR Code 或連結即時參與投票。
 
 ![Screenshot](client/public/screen.png)
@@ -362,7 +364,7 @@ MIT License
 - Repository：`cagoooo/vote`
 - 可見性：公開
 - 主要技術：TypeScript、React、Vite、Firebase、Tailwind CSS
-- 線上入口：未在 GitHub repository metadata 設定
+- 線上入口：<https://cagoooo.github.io/vote/>
 
 ### 可以怎麼應用
 
