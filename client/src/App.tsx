@@ -46,11 +46,15 @@ function App() {
       if (!user) {
         loginAnonymously().catch((err) => {
           console.error(err);
+          const errorCode = typeof err?.code === "string" ? err.code : "";
+          const isReferrerBlocked = errorCode.startsWith("auth/requests-from-referrer-");
           reportServiceEvent({
             status: "failed",
             title: "匿名登入失敗",
             context: "app.loginAnonymously",
-            progress: "初始化登入失敗，可能影響投票與讀取題目",
+            progress: isReferrerBlocked
+              ? "Firebase API Key 網站來源限制拒絕登入（請求 Referer 為空或不符）"
+              : "初始化登入失敗，可能影響投票與讀取題目",
             message: err?.message ?? "匿名登入失敗",
             details: errorDetails(err),
           });
