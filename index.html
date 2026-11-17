@@ -48,6 +48,18 @@
   }</style>
 
   <meta charset="UTF-8" />
+  <!-- 🛡️ LINE 內建瀏覽器不能做 Google 登入（403 disallowed_useragent）：
+       用 LINE 官方參數 openExternalBrowser=1 自動改用系統瀏覽器重開本頁（保留 query 與 hash，已帶參數就不再跳）。
+       FB／IG 等 App 沒有通用參數，改在按「Google 登入」時才顯示引導（學生不需要登入，不擋整頁）。 -->
+  <script>
+    (function () {
+      var ua = navigator.userAgent || "";
+      if (/\bLine\//i.test(ua) && location.search.indexOf("openExternalBrowser=1") === -1) {
+        var sep = location.search ? "&" : "?";
+        location.replace(location.href.split("#")[0] + sep + "openExternalBrowser=1" + location.hash);
+      }
+    })();
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
   <!-- Firebase API Key 使用網站來源限制；跨來源請求傳送 origin，不暴露頁面路徑。 -->
   <meta name="referrer" content="origin" />
@@ -88,12 +100,12 @@
     }(window.location))
   </script>
   <title>即時投票系統</title>
-  <script type="module" crossorigin src="/vote/assets/index-BbFWnVtC.js"></script>
+  <script type="module" crossorigin src="/vote/assets/index-OxFfLu06.js"></script>
   <link rel="modulepreload" crossorigin href="/vote/assets/motion-F8pgAWUR.js">
   <link rel="modulepreload" crossorigin href="/vote/assets/firebase-r8zFMlWm.js">
   <link rel="modulepreload" crossorigin href="/vote/assets/confetti-B5JVzsfH.js">
   <link rel="modulepreload" crossorigin href="/vote/assets/qr-Cs_Qm0dx.js">
-  <link rel="stylesheet" crossorigin href="/vote/assets/index-DTnsLinO.css">
+  <link rel="stylesheet" crossorigin href="/vote/assets/index-XDnmtax2.css">
 <link rel="manifest" href="/vote/manifest.webmanifest"></head>
 
 <body>
