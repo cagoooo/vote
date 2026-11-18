@@ -5,14 +5,11 @@ import { defineSecret } from "firebase-functions/params";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, Timestamp, FieldValue } from "firebase-admin/firestore";
 import * as logger from "firebase-functions/logger";
-import { notifyAdminCard } from "./notify-line.js";
 import { pushGoogleChatCard } from "./google-chat.js";
 
 initializeApp();
 setGlobalOptions({ region: "asia-east1" });
 
-const LINE_TOKEN = defineSecret("VOTE_LINE_CHANNEL_ACCESS_TOKEN");
-const LINE_USER_ID = defineSecret("VOTE_LINE_ADMIN_USER_ID");
 const GOOGLE_CHAT_WEBHOOK_URL = defineSecret("GOOGLE_CHAT_WEBHOOK_URL");
 
 const APP_NAME = "即時投票系統";
@@ -85,7 +82,8 @@ export const reportClientEvent = onCall(
     }
 );
 
-// 每日彙整：取代「每建一題、每結束一題就通知」，一天只送一張卡（Google Chat＋LINE）
+// 每日彙整：取代「每建一題、每結束一題就通知」，一天只送一張卡（只發 Google Chat）
+// 2026-11-18 起不再推 LINE：多個網站共用同一個 LINE 官方帳號，免費方案每月 200 則要留給錯誤告警
 // 全國老師都在用時，逐題通知會洗版，所以全部集中到傍晚一次看
 const DIGEST_TOP_N = 5;
 const DIGEST_MAX_QUESTIONS = 200;
@@ -94,7 +92,7 @@ export const dailyVoteDigest = onSchedule(
     {
         schedule: "30 17 * * *",
         timeZone: "Asia/Taipei",
-        secrets: [LINE_TOKEN, LINE_USER_ID, GOOGLE_CHAT_WEBHOOK_URL],
+        secrets: [GOOGLE_CHAT_WEBHOOK_URL],
     },
     async () => {
         const db = getFirestore();
@@ -168,25 +166,6 @@ export const dailyVoteDigest = onSchedule(
                 buttons: [{ text: "開啟網站", url: SITE_URL }],
             },
             "dailyVoteDigest"
-        );
-
-        await notifyAdminCard(
-            {
-                status: "success",
-                title: "今日投票彙整",
-                appName: APP_NAME,
-                hero: { label: "🗳️ 過去 24 小時", value: `${newQuestions} 題・${votesToday} 票` },
-                sections: [
-                    { type: "text", icon: "👩‍🏫", label: "出題老師", value: `${teachers} 位` },
-                    ...(topLines.length
-                        ? [{ type: "text" as const, icon: "🏆", label: "票數最多", value: topLines.slice(0, 3).join("\n") }]
-                        : []),
-                ],
-                action: { label: "📊 開啟網站", uri: SITE_URL },
-                footerNote: "每天 17:30 彙整一次",
-            },
-            LINE_TOKEN.value(),
-            LINE_USER_ID.value()
         );
 
         logger.info("[dailyVoteDigest] sent", { newQuestions, votesToday, teachers });

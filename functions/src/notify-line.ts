@@ -55,6 +55,11 @@ export async function notifyAdminCard(
 
         if (!res.ok) {
             const body = await res.text();
+            // 429 = 本月推播額度已用完，改純文字重送也一樣會被拒，直接略過
+            if (res.status === 429) {
+                logger.warn("[notify-line] LINE 本月推播額度已用完，略過", { body: body.substring(0, 120) });
+                return;
+            }
             logger.warn("[notify-line] Flex 失敗, fallback 純文字", { status: res.status, body });
             await fetch(LINE_PUSH_API, {
                 method: "POST",
