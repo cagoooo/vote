@@ -35,6 +35,16 @@ const STATUS_COLOR: Record<ChatStatus, string> = {
     started: "#1A73E8",
 };
 
+const STATUS_ICON: Record<ChatStatus, string> = {
+    success: "✅",
+    failed: "❌",
+    warning: "⚠️",
+    started: "⏳",
+};
+
+// 手機推播只看得到摘要那一行，所以摘要與卡片標題都要寫出平台名稱
+const DEFAULT_APP_NAME = "即時投票系統";
+
 export async function pushGoogleChatCard(
     webhookUrl: string | undefined,
     card: ChatCard,
@@ -47,7 +57,11 @@ export async function pushGoogleChatCard(
     }
 
     const statusText = STATUS_LABEL[card.status];
-    const text = `[${statusText}] ${card.title}`.slice(0, 1000);
+    const appName = card.subtitle || DEFAULT_APP_NAME;
+    const platformTag = `【${appName}】`;
+    const summary = `[${statusText}] ${card.title}`;
+    const text = (summary.includes(platformTag) ? summary : `${STATUS_ICON[card.status]} ${platformTag}${summary}`).slice(0, 1000);
+    const headerTitle = card.title.endsWith(`｜${appName}`) ? card.title : `${card.title}｜${appName}`;
     const widgets: any[] = [
         {
             decoratedText: {
@@ -90,7 +104,7 @@ export async function pushGoogleChatCard(
                 cardId: `vote-${Date.now()}`,
                 card: {
                     header: {
-                        title: card.title,
+                        title: headerTitle,
                         subtitle: card.subtitle ?? "即時服務狀態通知",
                     },
                     sections: [{ widgets }],
