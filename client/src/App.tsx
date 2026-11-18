@@ -40,27 +40,69 @@ function AppRouter() {
   );
 }
 
+// 匿名登入遇到網路錯誤的重試間隔（共約 12 秒）
+const LOGIN_RETRY_DELAYS_MS = [1000, 3000, 8000];
+
 function App() {
   useEffect(() => {
-    return onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        loginAnonymously().catch((err) => {
-          console.error(err);
+    // 匿名登入：網路一時斷線（auth/network-request-failed）時自動重試，
+    // 避免學生頁永遠停在等待登入；手機離線就等「恢復連線」再試，不發告警。
+    let cancelled = false;
+    let inFlight = false;
+    let attempt = 0;
+    let timer: number | undefined;
+    let reportedNetworkFailure = false;
+
+    const tryLogin = () => {
+      if (cancelled || inFlight || auth.currentUser) return;
+      inFlight = true;
+      loginAnonymously()
+        .then(() => { attempt = 0; })
+        .catch((err) => {
           const errorCode = typeof err?.code === "string" ? err.code : "";
+          const isNetwork = errorCode === "auth/network-request-failed";
+          if (isNetwork) {
+            if (attempt < LOGIN_RETRY_DELAYS_MS.length) {
+              timer = window.setTimeout(tryLogin, LOGIN_RETRY_DELAYS_MS[attempt++]);
+              return;
+            }
+            // 裝置自己離線不是系統問題；恢復連線時 online 事件會再試
+            if (!navigator.onLine || reportedNetworkFailure) return;
+            reportedNetworkFailure = true;
+          }
           const isReferrerBlocked = errorCode.startsWith("auth/requests-from-referrer-");
           reportServiceEvent({
-            status: "failed",
+            status: isNetwork ? "warning" : "failed",
             title: "匿名登入失敗",
             context: "app.loginAnonymously",
             progress: isReferrerBlocked
               ? "Firebase API Key 網站來源限制拒絕登入（請求 Referer 為空或不符）"
-              : "初始化登入失敗，可能影響投票與讀取題目",
+              : isNetwork
+                ? `已自動重試 ${LOGIN_RETRY_DELAYS_MS.length} 次仍連不上登入服務（裝置顯示有網路）`
+                : "初始化登入失敗，可能影響投票與讀取題目",
             message: err?.message ?? "匿名登入失敗",
             details: errorDetails(err),
           });
-        });
-      }
+        })
+        .finally(() => { inFlight = false; });
+    };
+
+    const onOnline = () => {
+      attempt = 0;
+      window.clearTimeout(timer);
+      tryLogin();
+    };
+    window.addEventListener("online", onOnline);
+    const unsubAuth = onAuthStateChanged(auth, (user) => {
+      if (!user) tryLogin();
     });
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+      window.removeEventListener("online", onOnline);
+      unsubAuth();
+    };
   }, []);
 
   const base = import.meta.env.VITE_GH_PAGES ? "/vote" : "";
