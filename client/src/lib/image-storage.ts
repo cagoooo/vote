@@ -14,7 +14,7 @@ import {
     getDownloadURL,
     deleteObject,
 } from "firebase/storage";
-import { storage, auth } from "./firebase";
+import { storage, auth, loginAnonymously } from "./firebase";
 import { estimateBase64Size } from "./image-compress";
 
 // 50KB 以下的圖片直接 inline，避免上傳延遲
@@ -33,14 +33,34 @@ const dataUrlToBlob = (dataUrl: string): Blob => {
  * 上傳圖片到 Storage。回傳可用於 <img src> 的 https URL。
  * 小圖直接回傳原 base64 dataUrl（不上傳，省 RTT）。
  */
-export const uploadImageIfLarge = async (dataUrl: string): Promise<string> => {
-    const userId = auth.currentUser?.uid;
-    if (!userId) throw new Error("未登入，無法上傳圖片");
+/**
+ * 取得目前登入者的 uid；頁面剛打開時匿名登入可能還在進行（或網路閃斷正在重試），
+ * 先等登入狀態確定，仍沒有登入就補做一次匿名登入。
+ * （2026-11-24：老師端選圖時 auth.currentUser 還是 null，回報「未登入，無法上傳圖片」。）
+ */
+// 用函式讀，避免 TypeScript 在 await 之後仍沿用「currentUser 是 null」的推斷
+const currentUid = (): string | null => auth.currentUser?.uid ?? null;
 
+const ensureUploaderId = async (): Promise<string | null> => {
+    if (currentUid()) return currentUid();
+    try { await auth.authStateReady(); } catch { /* 繼續嘗試補登入 */ }
+    if (currentUid()) return currentUid();
+    try {
+        const user = await loginAnonymously();
+        return user?.uid ?? currentUid();
+    } catch {
+        return currentUid();
+    }
+};
+
+export const uploadImageIfLarge = async (dataUrl: string): Promise<string> => {
     const sizeBytes = estimateBase64Size(dataUrl);
     if (sizeBytes < INLINE_THRESHOLD_BYTES) {
-        return dataUrl; // 小圖 inline 即可
+        return dataUrl; // 小圖 inline 即可，不需要上傳，也不需要登入
     }
+
+    const userId = await ensureUploaderId();
+    if (!userId) throw new Error("登入尚未完成，無法上傳圖片，請確認網路後再試一次");
 
     const blob = dataUrlToBlob(dataUrl);
     const ext = (blob.type.split("/")[1] || "jpg").replace("jpeg", "jpg");
